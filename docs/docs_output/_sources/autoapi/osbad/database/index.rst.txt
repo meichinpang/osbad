@@ -1,0 +1,275 @@
+osbad.database
+==============
+
+.. py:module:: osbad.database
+
+.. autoapi-nested-parse::
+
+   Utilities for loading and visualizing benchmarking data from DuckDB.
+
+   This module defines :class:`BenchDB`, a helper for accessing battery cell
+   datasets stored in DuckDB, removing labels for modeling, extracting ground-
+   truth outlier indices, and plotting cycling curves. Figures are saved to a
+   per-cell artifacts directory under ``bconf.PIPELINE_OUTPUT_DIR`` and may be
+   shown interactively if ``bconf.SHOW_FIG_STATUS`` is enabled.
+
+   Key features:
+       - ``load_benchmark_dataset``: Load the training or test dataset
+         for the selected cell from a DuckDB database (including the label
+         column).
+       - ``drop_labels``: Remove the ``outlier`` label column and,
+         optionally, keep only a specified subset of columns.
+       - ``get_true_outlier_cycle_index``: Retrieve the cycle indices
+         labeled as anomalous (``outlier == 1``) for the selected cell.
+       - ``plot_cycle_data``: Plot discharge voltage vs. capacity
+         cycles; optionally highlight and annotate known anomalous cycles.
+         Saves the figure to the cell's artifacts directory and can display it.
+       - ``load_features_db``: Load precomputed features (train or
+         test) for the selected cell from a DuckDB features database.
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       from osbad.database import BenchDB
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:class:: BenchDB(input_db_filepath: str, cell_label: str)
+
+   Load and analyze benchmarking datasets for a single cell.
+
+   The ``BenchDB`` class provides utilities for accessing and managing
+   benchmarking datasets stored in DuckDB. It supports loading training
+   and test datasets, extracting features, removing labels, plotting
+   cycling data, and retrieving ground-truth outlier indices. Figures
+   are saved to a per-cell artifacts directory, with optional display
+   enabled via configuration.
+
+   :param input_db_filepath: Path to the DuckDB benchmarking database
+                             file.
+   :type input_db_filepath: str
+   :param cell_label: Label of the cell to be analyzed.
+   :type cell_label: str
+   :param show_fig_status: Whether to show generated
+                           figures interactively. Defaults to False when running the
+                           pipeline in the batch mode for multiple cells.
+   :type show_fig_status: bool, optional
+
+
+   .. py:method:: load_benchmark_dataset(dataset_type='train') -> pandas.DataFrame
+
+      Load benchmarking dataset for the selected cell from DuckDB.
+
+      This function connects to the DuckDB benchmarking database, loads
+      either the training or test dataset, and filters the records for the
+      selected cell label. The resulting DataFrame contains all cycles for
+      that cell, including true outlier labels.
+
+      :param dataset_type: Type of dataset to load. Must be
+                           one of:
+                           - ``"train"``: Load training dataset from
+                           ``df_train_dataset_sv``.
+                           - ``"test"``: Load test dataset from
+                           ``df_test_dataset_sv``.
+                           Defaults to ``"train"``.
+      :type dataset_type: str, optional
+
+      :returns: Benchmarking dataset filtered for the selected
+                cell label.
+      :rtype: pd.DataFrame
+
+      :raises AssertionError: If the selected cell label is not found in the
+          database.
+
+      .. rubric:: Example
+
+      .. code-block::
+
+          # Path to the DuckDB instance:
+          # "train_dataset_severson.db"
+          db_filepath = (
+              Path.cwd()
+              .parent.parent
+              .joinpath("database","train_dataset_severson.db"))
+
+          # Get the cell-ID from cell_inventory
+          selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+
+          # Import the BenchDB class
+          # Load only the dataset based on the selected cell
+          benchdb = BenchDB(
+              db_filepath,
+              selected_cell_label)
+
+          # load the benchmarking dataset
+          df_selected_cell = benchdb.load_benchmark_dataset(
+              dataset_type="train")
+
+
+
+   .. py:method:: drop_labels(df_selected_cell: pandas.DataFrame, filter_col: list = None) -> pandas.DataFrame
+
+      Remove true outlier labels from a cell cycling dataset.
+
+      This function drops the ``outlier`` column from the benchmarking
+      dataset for the selected cell. Optionally, it can also filter the
+      dataset to retain only the specified columns.
+
+      :param df_selected_cell: Input cycling dataset for a
+                               single cell, including the ``outlier`` label column.
+      :type df_selected_cell: pd.DataFrame
+      :param filter_col: List of column names to retain after
+                         dropping labels. If None, all remaining columns are returned.
+                         Defaults to None.
+      :type filter_col: list, optional
+
+      :returns: DataFrame without the ``outlier`` column. If
+                ``filter_col`` is provided, only the specified columns are kept.
+      :rtype: pd.DataFrame
+
+      .. rubric:: Example
+
+      .. code-block::
+
+          # Path to the DuckDB instance: "train_dataset_severson.db"
+          db_filepath = (
+              Path.cwd()
+              .parent.parent
+              .joinpath("database","train_dataset_severson.db"))
+          print(db_filepath)
+
+          # Import the BenchDB class
+          # Load only the dataset based on the selected cell
+          benchdb = BenchDB(
+              db_filepath,
+              selected_cell_label)
+
+          # load the benchmarking dataset
+          df_selected_cell = benchdb.load_benchmark_dataset(
+              dataset_type="train")
+
+          if df_selected_cell is not None:
+
+              filter_col = [
+                  "cell_index",
+                  "cycle_index",
+                  "discharge_capacity",
+                  "voltage"]
+
+              # Drop true labels from the benchmarking dataset
+              # and filter for selected columns only
+              benchdb.drop_labels(
+                  df_selected_cell,
+                  filter_col)
+
+
+
+   .. py:method:: get_true_outlier_cycle_index(df_selected_cell: pandas.DataFrame) -> numpy.ndarray
+
+      Extract true outlier labels from the benchmarking dataset.
+
+      :param df_selected_cell: Cell cycling dataset based on
+                               selected cell index.
+      :type df_selected_cell: pd.DataFrame
+
+      :returns: True outliers labels from the benchmarking dataset.
+      :rtype: np.ndarray
+
+      .. rubric:: Example
+
+      .. code-block::
+
+          # Extract true outliers cycle index
+          # from benchmarking dataset
+          true_outlier_cycle_idx = battdb.get_true_outlier_cycle_index(
+              df_selected_cell)
+          print(f"True outlier cycle index: {true_outlier_cycle_idx}")
+
+
+
+   .. py:method:: plot_cycle_data(df_selected_cell_without_labels: pandas.DataFrame, true_outlier_cycle_index: list = None)
+
+      Visualize discharge voltage vs. capacity cycles for a cell.
+
+      This function plots cycling data for the selected cell. If a list of
+      true outlier cycle indices is provided, those cycles are highlighted
+      and annotated on the plot. Otherwise, no annotations of anomalies will
+      be shown. The figure is saved in the cell’s artifacts directory.
+
+      :param df_selected_cell_without_labels: DataFrame
+                                              containing discharge capacity, voltage, and cycle index for
+                                              the selected cell (without labels).
+      :type df_selected_cell_without_labels: pd.DataFrame
+      :param true_outlier_cycle_index: List of cycle indices
+                                       known to be anomalous. If None, cycles are plotted without
+                                       outlier highlights. Defaults to None.
+      :type true_outlier_cycle_index: list, optional
+
+      :returns: Axes object containing the cycle plot.
+      :rtype: matplotlib.axes.Axes
+
+      .. rubric:: Example
+
+      .. code-block::
+
+          # Plot cell data with true anomalies
+          # If the true outlier cycle index is not known,
+          # cycling data will be plotted without labels
+          benchdb.plot_cycle_data(
+              df_selected_cell_without_labels,
+              true_outlier_cycle_index)
+
+
+
+   .. py:method:: load_features_db(db_features_filepath: Union[pathlib.PosixPath, str], dataset_type: str)
+
+      Load features for the selected cell from a DuckDB database.
+
+      This function connects to a DuckDB database containing precomputed
+      features for battery cells. It supports loading either training or
+      test datasets, filters the data for the selected cell label, and
+      returns the resulting feature DataFrame.
+
+      :param db_features_filepath: Path to the
+                                   DuckDB features database file.
+      :type db_features_filepath: Union[pathlib.PosixPath, str]
+      :param dataset_type: Type of dataset to load. Must be one of:
+                           - ``"train"``: Load training features from
+                           ``df_train_features_sv``.
+                           - ``"test"``: Load test features from
+                           ``df_test_features_sv``.
+      :type dataset_type: str
+
+      :returns: DataFrame containing features for the selected cell.
+      :rtype: pd.DataFrame
+
+      :raises AssertionError: If the selected cell label is not found in the
+          database.
+
+      .. rubric:: Example
+
+      .. code-block::
+
+          # Define the filepath to ``train_features_severson.db``
+          # DuckDB instance.
+          db_features_filepath = (
+              Path.cwd()
+              .parent.parent
+              .joinpath("database","train_features_severson.db"))
+
+          # Load only the training features dataset
+          df_features_per_cell = benchdb.load_features_db(
+              db_features_filepath,
+              dataset_type="train")
+
+          unique_cycle_count = (
+              df_features_per_cell["cycle_index"].unique())
+
+
+

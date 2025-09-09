@@ -1,0 +1,505 @@
+osbad.hyperparam
+=================
+
+.. py:module:: osbad.hyperparam
+
+.. autoapi-nested-parse::
+
+   Hyperparameter tuning utilities for PyOD models with Optuna.
+
+   This module provides building blocks to define search spaces, create model
+   instances, run Optuna studies, summarize/aggregate best trials, visualize
+   Pareto fronts (recall vs. precision), and export results to CSV files. It
+   covers six anomaly-detection models: Isolation Forest, KNN, GMM, LOF, PCA,
+   and AutoEncoder.
+
+   Key features:
+       - ``_customize_logger``: Create a configured logger with a custom
+         formatter and stdout handler; clears existing handlers to avoid
+         duplicates.
+       - ``ModelConfigDataClass``: Frozen dataclass bundling the Optuna
+         search-space function (``hp_space``), the model factory
+         (``model_param``), and the probability column index (``proba_col``).
+       - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
+         ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
+         ``ModelConfigDataClass``.
+       - ``objective``: Generic Optuna objective that samples params, builds
+         the model, predicts outliers, and returns (recall, precision).
+       - ``aggregate_param_method``: Aggregate a list of values via ``median``,
+         ``median_int``, or ``mode`` (with deterministic tie-breaking by
+         ``mode``).
+       - ``aggregate_best_trials``: Collect parameters from ``study.best_trials``
+         and produce a single-row DataFrame of aggregated hyperparameters.
+       - ``_artifacts_output_dir``: Ensure a per-cell artifacts directory
+         exists under ``bconf.PIPELINE_OUTPUT_DIR``.
+       - ``evaluate_hp_perfect_score_pct``: Compute the percentage of trials
+         with perfect recall and precision (value == 1) and log per-trial
+         scores.
+       - ``plot_pareto_front``: Plot the Pareto front (recall vs. precision),
+         annotate perfect-score percentages, and save to the artifacts folder.
+       - ``export_current_hyperparam``: Append best hyperparameters for a cell
+         to a CSV (skips if already present) and return the updated DataFrame.
+       - ``export_current_model_metrics``: Append evaluation metrics for a
+         (model, cell) pair to a CSV (skips if already present) and return the
+         updated DataFrame.
+
+   Configuration:
+       - ``RANDOM_STATE``: Shared random seed used by model factories.
+       - ``bconf.SHOW_FIG_STATUS``: When True, figures are displayed after
+         saving.
+       - ``bconf.PIPELINE_OUTPUT_DIR``: Base directory where per-cell figures
+         are saved.
+
+   .. code-block::
+
+       import osbad.hyperparam as hp
+
+
+
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:data:: RANDOM_STATE
+   :value: 42
+
+
+.. py:data:: HpSpaceFuncType
+
+   A type alias for a function that takes an ``optuna.trial.Trial`` as input and
+   returns a dictionary mapping hyperparameter names ``str`` to their suggested
+   values ``Any``.
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       def knn_hp_space(trial: optuna.trial.Trial) -> Dict[str, Any]:
+
+           hyperparam_dict =  {
+               "contamination": trial.suggest_float(
+                   "contamination", 0.0, 0.5),
+               "n_neighbors": trial.suggest_int(
+                   "n_neighbors", 2, 50, step=2),
+               "method": trial.suggest_categorical(
+                   "method", ["largest", "mean", "median"]),
+               "metric": trial.suggest_categorical(
+                   "metric", ["minkowski", "euclidean", "manhattan"]),
+               "threshold": trial.suggest_float(
+                   "threshold", 0.0, 1.0),
+           }
+
+           return hyperparam_dict
+
+.. py:data:: ModelParamFuncType
+
+   A type alias for a function type that takes a dictionary of hyperparameters
+   as input ``Dict[str, Any]`` and returns a model instance
+   (e.g., KNN, IForest, GMM) ``Any``.
+
+       Example:
+       .. code-block::
+
+           input_hyperparam_dict = {
+               "contamination": 0.1,
+               "n_neighbors": 10,
+               "method": "mean",
+               "metric": "euclidean",
+               "threshold": 0.5,
+           }
+
+           def knn_model_param(param: Dict[str, Any]) -> Any:
+
+               model_instance = KNN(
+                   contamination=param["contamination"],
+                   n_neighbors=param["n_neighbors"],
+                   method=param["method"],
+                   metric=param["metric"],
+                   n_jobs=-1,
+               )
+
+               return model_instance
+
+           # output will be:
+           # KNN(contamination=0.1, n_neighbors=10, method="mean",
+           # metric="euclidean", n_jobs=-1)
+
+.. py:class:: ModelConfigDataClass
+
+   Immutable container class for the model configuration.
+
+   Stores the search space function for Optuna trials, the model
+   factory function, and the probability column index used for
+   PyOD estimators.
+
+
+   .. py:attribute:: hp_space
+      :type:  HpSpaceFuncType
+
+      Function that defines the hyperparameter search space for an Optuna trial.
+
+
+   .. py:attribute:: model_param
+      :type:  ModelParamFuncType
+
+      Function that builds a model instance from a set of hyperparameters.
+
+
+   .. py:attribute:: proba_col
+      :type:  int
+      :value: 1
+
+
+      Index of the probability column in PyOD estimators. Column 0 is the inlier
+      probability, and column 1 is the outlier probability. Defaults to 1.
+
+
+.. py:data:: MODEL_CONFIG
+   :type:  Dict[str, ModelConfigDataClass]
+
+   Dictionary mapping model identifiers to their configurations.
+
+   Each entry contains a ModelConfigDataClass object that defines the search
+   space for Optuna hyperparameter optimization (`hp_space`) and a
+   factory function (`model_param`) to create the corresponding model
+   with the chosen hyperparameters.
+
+   The following model identifiers are supported:
+       - "iforest": Isolation Forest
+       - "knn": k-Nearest Neighbors
+       - "gmm": Gaussian Mixture Model
+       - "lof": Local Outlier Factor
+       - "pca": Principal Component Analysis
+       - "autoencoder": AutoEncoder
+
+   :param key: Model identifier.
+   :type key: str
+   :param value: Configuration for searching hyperparameters
+                 and to instantiate the corresponding model creation based on the
+                 hyperparameter search space.
+   :type value: ModelConfigDataClass
+
+.. py:function:: objective(trial: optuna.trial.Trial, model_id: Literal['iforest', 'knn', 'gmm', 'lof', 'pca', 'autoencoder'], df_feature_dataset: fireducks.pandas.DataFrame, selected_feature_cols: list, df_benchmark_dataset: fireducks.pandas.DataFrame, selected_cell_label: str) -> Tuple[float, float]
+
+   Optimize model hyperparameters using Optuna trial.
+
+   This function evaluates a given anomaly detection model by sampling
+   hyperparameters from the trial, training the model, predicting
+   outliers, and computing recall and precision against a benchmark
+   dataset.
+
+   :param trial: Optuna trial object used to
+                 suggest hyperparameters.
+   :type trial: optuna.trial.Trial
+   :param model_id: Identifier of the model to optimize. Must be
+                    one of "iforest", "knn", "gmm", "lof", "pca", or
+                    "autoencoder".
+   :type model_id: Literal
+   :param df_feature_dataset: Feature dataset containing
+                              model input features.
+   :type df_feature_dataset: pd.DataFrame
+   :param df_benchmark_dataset: Benchmark dataset used to
+                                evaluate predicted outliers.
+   :type df_benchmark_dataset: pd.DataFrame
+
+   :returns: Recall and precision scores of the model.
+   :rtype: Tuple[float, float]
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       import optuna
+       import osbad.hyperparam as hp
+
+       # Use the TPESampler from optuna
+       sampler = optuna.samplers.TPESampler(seed=42)
+
+       # Create a study to maximize recall and precision score
+       study = optuna.create_study(
+           sampler=sampler,
+           directions=["maximize","maximize"])
+
+       # Optimize the hyperparameters for iforest using 20 trials
+       study.optimize(
+           lambda tr: hp.objective(
+               tr,
+               "iforest",
+               df_features_per_cell,
+               df_selected_cell),
+           n_trials=20)
+
+
+.. py:data:: Agg
+
+   Type alias for the aggregation methods.
+
+   Represents allowed strategies for aggregating a list of values:
+
+       - "median": Returns the median as a float.
+       - "median_int": Returns the median as an integer.
+       - "mode": Returns the most frequent value.
+
+.. py:function:: aggregate_param_method(values: List[Any], how: Agg)
+
+   Aggregate a list of values using the given method.
+
+   Supports median, median as integer, and mode. Raises ValueError
+   if an unsupported method is provided.
+
+   :param values: List of values to aggregate.
+   :type values: List[Any]
+   :param how: Aggregation method, one of ``median``, ``median_int``,
+               or ``mode``.
+   :type how: Agg
+
+   :returns: Aggregated result based on the specified method.
+   :rtype: Any
+
+   :raises ValueError: If ``how`` is not a supported aggregation method.
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       >>> aggregate_param_method([500, 300, 250, 400, 200], "median")
+       300.0
+       >>> aggregate_param_method([500, 300, 250, 400, 200], "median_int")
+       300
+       >>> aggregate_param_method(
+           ['manhattan', 'manhattan', 'euclidean',
+           'manhattan', 'minkowski'], "mode")
+       'manhattan'
+
+   .. Note::
+
+       If there is a tie in the most frequent parameter, for example,
+       ``method`` = ``['largest','largest','median','median','mean']``,
+       the first most frequent parameter ``largest`` will be chosen.
+
+
+
+.. py:function:: aggregate_best_trials(study: optuna.study.Study, cell_label: str, model_id: str, schema: Dict[str, Agg]) -> fireducks.pandas.DataFrame
+
+   Aggregate parameters from the best Optuna trials.
+
+   Collects hyperparameters from the best trials of a study and
+   aggregates them using rules defined in the schema. Each parameter
+   is reduced to a single representative value using median,
+   median_int, or mode.
+
+   :param study: Optuna study object containing best trials.
+   :type study: optuna.study.Study
+   :param cell_label: Identifier for the experimental cell.
+   :type cell_label: str
+   :param model_id: Identifier of the ML-model. Allowed values are
+                    "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
+   :type model_id: str
+   :param schema: Mapping of parameter names to
+                  aggregation strategies. Allowed values are "median",
+                  "median_int", and "mode".
+   :type schema: Dict[str, Agg]
+
+   :returns: A single-row DataFrame containing the model ID,
+             cell label, and aggregated hyperparameters.
+   :rtype: pd.DataFrame
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       schema_knn = {
+           "contamination": "median",
+           "n_neighbors": "median_int",
+           "method": "mode",
+           "metric": "mode",
+           "threshold": "median"}
+
+       df_knn = hp.aggregate_best_trials(
+           study,
+           cell_label=selected_cell_label,
+           model_id="knn",
+           schema=schema_knn)
+
+
+.. py:function:: evaluate_hp_perfect_score_pct(model_study: optuna.study.study.Study, output_log_bool: bool = True)
+
+   Evaluate percentage of trials with the perfect recall and precision score.
+
+   This function analyzes an Optuna study and calculates the percentage
+   of trials that achieved a perfect recall score of 1 and a perfect
+   precision score of 1. Trial-level recall and precision values are
+   logged for inspection. The function provides an overview of how often
+   hyperparameter trials reach ideal performance.
+
+   :param model_study: Optuna study object
+                       containing hyperparameter optimization trials. Each trial is
+                       expected to have recall and precision as its objective values.
+   :type model_study: optuna.study.study.Study
+   :param output_log_bool: If True, enables logging output.
+                           Defaults to True.
+   :type output_log_bool: bool, optional
+
+   :returns:
+
+             A tuple containing:
+                 - recall_score_pct (float): Percentage of trials with recall=1.
+                 - precision_score_pct (float): Percentage of trials with
+                   precision=1.
+   :rtype: Tuple[float, float]
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       sampler = optuna.samplers.TPESampler(seed=42)
+
+       selected_feature_cols = (
+           "log_max_diff_dQ",
+           "log_max_diff_dV")
+
+       if_study = optuna.create_study(
+           study_name="iforest_hyperparam",
+           sampler=sampler,
+           directions=["maximize","maximize"])
+
+       if_study.optimize(
+           lambda trial: hp.objective(
+               trial,
+               model_id="iforest",
+               df_feature_dataset=df_features_per_cell,
+               selected_feature_cols=selected_feature_cols,
+               df_benchmark_dataset=df_selected_cell,
+               selected_cell_label=selected_cell_label),
+           n_trials=20)
+
+       (recall_score_pct,
+       precision_score_pct) = hp.evaluate_hp_perfect_score_pct(
+           model_study=if_study)
+
+
+.. py:function:: plot_pareto_front(model_study: optuna.study.study.Study, selected_cell_label: str, fig_title: str, output_log_status: bool = False) -> None
+
+   Plot and save the Pareto front of recall vs. precision scores.
+
+   This function generates a Pareto front plot from an Optuna study
+   that optimizes for both recall and precision. The plot includes an
+   annotation showing the percentage of trials with perfect recall and
+   precision scores. The figure is customized with labels, legends, and
+   formatting before being saved as a PNG file.
+
+   :param model_study: Optuna study object
+                       containing trials with recall and precision scores as
+                       objectives.
+   :type model_study: optuna.study.study.Study
+   :param selected_cell_label: Identifier for the evaluated cell,
+                               used to generate the output file path.
+   :type selected_cell_label: str
+   :param fig_title: Title of the plot and basis for the output file
+                     name.
+   :type fig_title: str
+   :param output_log_status: If True, enables logging of
+                             intermediate evaluation steps. Defaults to False.
+   :type output_log_status: bool, optional
+
+   :returns: The function saves the Pareto front plot as a PNG file in
+             the artifacts directory associated with the selected cell.
+   :rtype: None
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       hp.plot_pareto_front(
+           if_study,
+           selected_cell_label,
+           fig_title="Isolation Forest Pareto Front")
+
+
+.. py:function:: export_current_hyperparam(df_best_param_current_cell: fireducks.pandas.DataFrame, selected_cell_label: str, export_csv_filepath: Union[pathlib.PosixPath, str], output_log_bool: bool = True)
+
+   Export best hyperparameters for a cell to a CSV file.
+
+   This function checks if the best hyperparameters for a given cell are
+   already stored in the CSV file. If not found, the function appends the
+   current cell's hyperparameters to the file. If the cell already exists,
+   the existing CSV content is returned without modification. Logging is
+   used to track the export status and duplication checks.
+
+   :param df_best_param_current_cell: DataFrame containing the
+                                      best hyperparameters for the current cell.
+   :type df_best_param_current_cell: pd.DataFrame
+   :param selected_cell_label: Identifier for the evaluated cell.
+   :type selected_cell_label: str
+   :param export_csv_filepath: Path to the
+                               CSV file where hyperparameters are stored.
+   :type export_csv_filepath: Union[pathlib.PosixPath, str]
+   :param output_log_bool: If True, enables logging output.
+                           Defaults to True.
+   :type output_log_bool: bool, optional
+
+   :returns: Updated DataFrame containing hyperparameters from both
+             existing records and the current cell.
+   :rtype: pd.DataFrame
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Export current hyperparameters to CSV
+       hyperparam_filepath =  PIPELINE_OUTPUT_DIR.joinpath(
+           "hyperparams_iforest_new.csv")
+
+       hp.export_current_hyperparam(
+           df_iforest_hyperparam,
+           selected_cell_label,
+           export_csv_filepath=hyperparam_filepath)
+
+
+.. py:function:: export_current_model_metrics(model_name: str, selected_cell_label: str, df_current_eval_metrics: fireducks.pandas.DataFrame, export_csv_filepath: Union[pathlib.PosixPath, str], output_log_bool: bool = True)
+
+   Export current model evaluation metrics to a CSV file.
+
+   This function logs the status of existing metrics, checks for duplicate
+   entries in the CSV, and updates the file with new evaluation metrics if
+   necessary. If the model and cell label already exist in the CSV, the
+   existing file is returned without modification.
+
+   :param model_name: Name of the machine learning model.
+   :type model_name: str
+   :param selected_cell_label: Identifier for the evaluated cell.
+   :type selected_cell_label: str
+   :param df_current_eval_metrics: DataFrame containing current
+                                   evaluation metrics to be exported.
+   :type df_current_eval_metrics: pd.DataFrame
+   :param export_csv_filepath: Path to the CSV
+                               file where evaluation metrics are stored.
+   :type export_csv_filepath: Union[pathlib.PosixPath, str]
+   :param output_log_bool: If True, enables logging output.
+                           Defaults to True.
+   :type output_log_bool: bool, optional
+
+   :returns: Updated DataFrame containing evaluation metrics from
+             both existing and current evaluations.
+   :rtype: pd.DataFrame
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Export current metrics to CSV
+       hyperparam_eval_filepath =  Path.cwd().joinpath(
+           "eval_metrics_hp_single_cell_new.csv")
+
+       hp.export_current_model_metrics(
+           model_name="iforest",
+           selected_cell_label=selected_cell_label,
+           df_current_eval_metrics=df_current_eval_metrics,
+           export_csv_filepath=hyperparam_eval_filepath)
+
+

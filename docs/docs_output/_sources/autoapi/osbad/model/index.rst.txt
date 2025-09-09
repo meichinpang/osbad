@@ -1,0 +1,232 @@
+osbad.model
+===========
+
+.. py:module:: osbad.model
+
+.. autoapi-nested-parse::
+
+   Utilities for anomaly detection benchmarking on battery cell data.
+
+   This module provides the :class:`ModelRunner` class to orchestrate data
+   preparation, prediction, evaluation, and visualization for a single cell.
+   It supports several PyOD models via the :data:`PyODModelType` type alias
+   and produces publication-ready figures saved per cell in an artifacts
+   directory.
+
+   Key features:
+       - ``create_model_x_input``: Extracts selected feature columns from the
+         input DataFrame and stores them as ``self.Xdata``.
+       - ``pred_outlier_indices_from_proba``: Identifies indices of predicted
+         outliers based on probability outputs and a decision threshold.
+       - ``evaluate_indices``: Compares predicted outliers against benchmark
+         labels and computes recall and precision scores.
+       - ``create_2d_mesh_grid``: Builds a 2D mesh grid from the first two
+         features of ``self.Xdata`` for plotting decision surfaces.
+       - ``predict_anomaly_score_map``: Fits a PyOD model, visualizes anomaly
+         probabilities with a decision boundary, highlights predicted outliers,
+         and saves the resulting figure to the cell’s artifact directory.
+
+   .. code-block::
+
+       from osbad.model import ModelRunner
+
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:data:: SELECTED_FEATURE_COLS
+   :value: ('log_max_diff_dQ', 'log_max_diff_dV')
+
+
+.. py:data:: PyODModelType
+
+   Type alias for supported PyOD anomaly detection models.
+
+   This alias groups together the most commonly used PyOD estimators for
+   outlier detection. It allows functions and methods to accept any of
+   these model types without explicitly listing each one in the type
+   annotations.
+
+   Models included:
+       - IForest (Isolation Forest)
+       - KNN (k-Nearest Neighbors)
+       - GMM (Gaussian Mixture Model)
+       - LOF (Local Outlier Factor)
+       - PCA (Principal Component Analysis for outliers)
+       - AutoEncoder (Neural-network-based autoencoder for anomalies)
+
+.. py:class:: ModelRunner(cell_label: str, df_input_features: fireducks.pandas.DataFrame, selected_feature_cols: Union[Tuple, List])
+
+   .. py:attribute:: df_input_features
+
+
+   .. py:attribute:: selected_features
+
+
+   .. py:method:: create_model_x_input()
+
+      Extract selected feature columns as a NumPy array.
+
+      This method selects the feature columns specified in
+      ``self.selected_features`` from the input DataFrame
+      ``self.df_input_features``. The values are converted into a NumPy
+      array and stored in ``self.Xdata`` for downstream model training and
+      visualization.
+
+      :param None:
+
+      :returns: Array of shape (n_samples, n_features) containing the
+                selected feature values.
+      :rtype: np.ndarray
+
+      .. code-block::
+
+          selected_feature_cols = (
+              "log_max_diff_dQ",
+              "log_max_diff_dV")
+
+          runner = ModelRunner(
+              cell_label=selected_cell_label,
+              df_input_features=df_features_per_cell,
+              selected_feature_cols=selected_feature_cols
+          )
+
+          Xdata = runner.create_model_x_input()
+
+
+
+   .. py:method:: pred_outlier_indices_from_proba(proba: numpy.ndarray, threshold: float, outlier_col: int = 1) -> numpy.ndarray
+
+      Identify outlier sample indices from probability predictions.
+
+      In PyOD, probability output has shape (n_samples, 2), where:
+
+      - column 0 = inlier probability
+      - column 1 = outlier probability
+
+      This function selects all indices where the outlier probability is
+      greater than or equal to the given threshold.
+
+      :param proba: Array of shape (n_samples, 2) with predicted probabilities.
+      :type proba: np.ndarray
+      :param threshold: Probability threshold above which a sample is flagged
+                        as outlier.
+      :type threshold: float
+      :param outlier_col: Column index for outlier probability. Defaults to 1.
+      :type outlier_col: int, optional
+
+      :returns:     Array of indices for samples classified as outliers.
+      :rtype: np.ndarray
+
+
+
+   .. py:method:: evaluate_indices(df_benchmark_dataset: fireducks.pandas.DataFrame, pred_indices: numpy.ndarray) -> Tuple[float, float]
+
+      Evaluate predicted outlier indices against benchmark labels.
+
+      Uses ``modval.evaluate_pred_outliers`` to align predicted outlier
+      indices with the benchmark dataset. The resulting DataFrame is
+      expected to contain the columns ``true_outlier`` and
+      ``pred_outlier``. Recall and precision are then computed from
+      these columns.
+
+      :param df_benchmark_dataset: Benchmark dataset containing ground-truth outlier labels.
+      :type df_benchmark_dataset: pd.DataFrame
+      :param pred_indices: Indices of predicted outliers from the model.
+      :type pred_indices: np.ndarray
+
+      :returns:     - recall: Fraction of true outliers correctly identified.
+                    - precision: Fraction of predicted outliers that are true.
+      :rtype: Tuple[float, float]
+
+      .. note::
+
+          Both recall and precision use ``zero_division=0``. This means
+          that if there is a zero division, for example when the denominator
+          is zero (TP + FP = 0 for precision) or (TP + FN = 0 for recall),
+          the calculated ``recall_score`` or ``precision_score``
+          will be zero.
+
+
+
+   .. py:method:: create_2d_mesh_grid()
+
+      Create a 2D mesh grid for visualization of anomaly scores.
+
+      This function generates a square mesh grid covering the range of the
+      first two features in ``self.Xdata``. The grid is expanded by ±1 unit
+      beyond the min and max values to ensure full coverage. The resulting
+      grid can be used for plotting decision boundaries and anomaly score
+      heatmaps.
+
+      :param None:
+
+      :returns:     - xx (np.ndarray): 2D array of x-coordinates.
+                    - yy (np.ndarray): 2D array of y-coordinates.
+                    - meshgrid (np.ndarray): Flattened 2D grid of shape
+                      (n_points, 2) where each row is a (x, y) coordinate pair.
+      :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
+
+
+
+   .. py:method:: predict_anomaly_score_map(selected_model: PyODModelType, model_name: str, xoutliers: fireducks.pandas.Series, youtliers: fireducks.pandas.Series, pred_outliers_index: numpy.ndarray, threshold: float = 0.7)
+
+      Plot a 2D anomaly score map with decision boundaries.
+
+      This function fits the selected PyOD model to the dataset and
+      visualizes the predicted anomaly scores across a 2D mesh grid.
+      It creates a contour plot showing anomaly probabilities, a dashed
+      decision boundary at the specified threshold, and highlights the
+      predicted anomalous cycles. Annotations and a legend are added to
+      label outliers, and the figure is saved in the artifacts directory.
+
+      :param selected_model: Trained PyOD model used to predict anomaly scores.
+      :type selected_model: PyODModelType
+      :param model_name: Name of the model, used as the plot title and
+                         in the output filename.
+      :type model_name: str
+      :param xoutliers: x-coordinates of predicted anomalous
+                        samples.
+      :type xoutliers: pd.Series
+      :param youtliers: y-coordinates of predicted anomalous
+                        samples.
+      :type youtliers: pd.Series
+      :param pred_outliers_index: Indices of the predicted
+                                  anomalous samples.
+      :type pred_outliers_index: np.ndarray
+      :param threshold: Probability threshold for the
+                        anomaly decision boundary. Defaults to 0.7.
+      :type threshold: np.float64, optional
+
+      :returns: Axes object containing the anomaly score
+                contour plot.
+      :rtype: matplotlib.axes.Axes
+
+      .. code-block::
+
+          axplot = runner.predict_anomaly_score_map(
+              selected_model=model,
+              model_name="Isolation Forest",
+              xoutliers=df_outliers_pred["log_max_diff_dQ"],
+              youtliers=df_outliers_pred["log_max_diff_dV"],
+              pred_outliers_index=pred_outlier_indices,
+              threshold=param_dict["threshold"]
+          )
+
+      .. note::
+
+          Currently supported PyOD models in this benchmarking study are:
+              * ``pyod.models.iforest.IForest``
+              * ``pyod.models.knn.KNN``
+              * ``pyod.models.gmm.GMM``
+              * ``pyod.models.lof.LOF``
+              * ``pyod.models.pca.PCA``
+              * ``pyod.models.auto_encoder.Autoencoder``
+
+
+
