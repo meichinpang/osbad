@@ -1,3 +1,1 @@
-test_dataset_severson.db filter=lfs diff=lfs merge=lfs -text
 train_dataset_severson.db filter=lfs diff=lfs merge=lfs -text
-train_features_severson.db filter=lfs diff=lfs merge=lfs -text
