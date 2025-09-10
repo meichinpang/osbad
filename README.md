@@ -80,8 +80,8 @@ categories:
 - Principal Component Analysis (PCA)
 - Autoencoders (AE)
 
-Each method is applied and tested on curated battery datasets to assess its
-suitability and effectiveness.
+Each method is applied and tested on curated benchmarking datasets to assess
+its suitability and effectiveness.
 
 
 ## Evaluation Metrics
@@ -98,6 +98,11 @@ positives and false negatives,
 
 These metrics help ensure a fair and comprehensive comparison across different
 detection techniques.
+
+## Documentation
+
+The documentation to our project can be found here:
+[OSBAD Documentation](https://osbad.readthedocs.io/en/latest/)
 
 
 ## Contributing
