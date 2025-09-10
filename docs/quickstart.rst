@@ -42,6 +42,9 @@ install uv.
    # Sync Dependencies
    uv sync
 
+   # Clone the osbad repository to access the example notebooks and scripts
+   git clone git@github.com:meichinpang/osbad.git
+
 To test ``osbad`` installation, replace the script in ``main.py`` with
 
 .. code-block:: python

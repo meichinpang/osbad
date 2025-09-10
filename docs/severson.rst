@@ -47,11 +47,11 @@ Minimal Example
 .. code-block:: python
 
    # STEP-1: LOAD LIBRARIES
-   # Base libraries
+   # Standard library
    import os
    from pathlib import Path
 
-   # Database library
+   # Third-party libraries
    import duckdb
 
    # Custom osbad library for anomaly detection
@@ -67,7 +67,6 @@ Minimal Example
       Path.cwd()
       .parent
       .joinpath("database","train_dataset_severson.db"))
-   print(db_filepath)
 
    # Create a DuckDB connection
    con = duckdb.connect(

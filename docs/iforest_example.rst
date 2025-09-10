@@ -52,25 +52,24 @@ Import the libraries into your local development environment, including the
 
 .. code-block:: python
 
-    # Base libraries
-    import os
-    from pathlib import Path
+  # Standard library
+  import os
+  from pathlib import Path
 
-    # Database library
-    import duckdb
+  # Third-party libraries
+  import duckdb
+  import fireducks.pandas as pd
+  import matplotlib.pyplot as plt
+  from matplotlib import rcParams
 
-    # Data analysis libraries
-    import matplotlib.pyplot as plt
-    import fireducks.pandas as pd
-    from matplotlib import rcParams
-    rcParams["text.usetex"] = True
+  rcParams["text.usetex"] = True
 
-    # Custom osbad library for benchmarking anomaly detection
-    import osbad.config as bconf
-    from osbad.database import BenchDB
-    from osbad.model import ModelRunner
-    import osbad.hyperparam as hp
-    import osbad.modval as modval
+  # Custom osbad library for benchmarking anomaly detection
+  import osbad.config as bconf
+  import osbad.hyperparam as hp
+  import osbad.modval as modval
+  from osbad.database import BenchDB
+  from osbad.model import ModelRunner
 
 Step-2: Load Benchmarking Dataset
 ------------------------------------
