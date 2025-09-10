@@ -20,35 +20,24 @@ Key features:
       probabilities with a decision boundary, highlights predicted outliers,
       and saves the resulting figure to the cell’s artifact directory.
 
-.. code-block:: 
+.. code-block::
 
     from osbad.model import ModelRunner
 """
-
-# import base libraries ---------------------------------------------------
+# Standard library
 import logging
 import os
 import pathlib
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
-import osbad.config as bconf
-from osbad.config import CustomFormatter
-
-# import data transformation library --------------------------------------
+# Third-party libraries
 import fireducks.pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams
 from matplotlib import cm
-
-rcParams["text.usetex"] = True
-
-# Import all models -------------------------------------------------------
-
+from matplotlib import rcParams
 import pyod
 from pyod.models.auto_encoder import AutoEncoder
 from pyod.models.gmm import GMM
@@ -56,14 +45,15 @@ from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.lof import LOF
 from pyod.models.pca import PCA
-
-# import hyperparameter tuning libraries ----------------------------------
-import optuna
-from statistics import mode
-
-# Model evaluation libraries ----------------------------------------------
-import osbad.modval as modval
 from sklearn.metrics import precision_score, recall_score
+
+rcParams["text.usetex"] = True
+
+# Custom osbad library for anomaly detection
+import osbad.config as bconf
+import osbad.modval as modval
+from osbad.config import CustomFormatter
+
 
 SELECTED_FEATURE_COLS = ("log_max_diff_dQ", "log_max_diff_dV")
 
@@ -92,8 +82,6 @@ Models included:
     - AutoEncoder (Neural-network-based autoencoder for anomalies)
 
 """
-
-
 class ModelRunner:
     def __init__(
         self,
@@ -110,9 +98,9 @@ class ModelRunner:
         Args:
             cell_label (str): Label identifying the evaluated cell.
             df_input_features (pd.DataFrame): Input feature dataset containing
-                per-cycle metrics for the cell. Must include the columns 
+                per-cycle metrics for the cell. Must include the columns
                 required by ``SELECTED_FEATURE_COLS``.
-            selected_feature_cols (Union[Tuple, List]): Names of columns used 
+            selected_feature_cols (Union[Tuple, List]): Names of columns used
                 as model inputs.
 
         .. note::
@@ -133,7 +121,7 @@ class ModelRunner:
         self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
-        # store all figures output for each evaluated 
+        # store all figures output for each evaluated
         # cell into its corresponding folder
         self._selected_cell_artifacts = bconf.PIPELINE_OUTPUT_DIR.joinpath(
             self._selected_cell_label)
@@ -172,10 +160,10 @@ class ModelRunner:
 
             Xdata = runner.create_model_x_input()
         """
-        
+
         self.Xdata = (
             self.df_input_features.loc[:, self.selected_features].values)
-        
+
         return self.Xdata
 
     def pred_outlier_indices_from_proba(
@@ -195,16 +183,16 @@ class ModelRunner:
         greater than or equal to the given threshold.
 
         Args:
-            proba (np.ndarray):  
+            proba (np.ndarray):
                 Array of shape (n_samples, 2) with predicted probabilities.
-            threshold (float):  
+            threshold (float):
                 Probability threshold above which a sample is flagged
                 as outlier.
-            outlier_col (int, optional):  
+            outlier_col (int, optional):
                 Column index for outlier probability. Defaults to 1.
 
         Returns:
-            np.ndarray:  
+            np.ndarray:
                 Array of indices for samples classified as outliers.
         """
         outlier_prob = proba[:, outlier_col]
@@ -222,7 +210,7 @@ class ModelRunner:
 
     def evaluate_indices(
         self,
-        df_benchmark_dataset: pd.DataFrame, 
+        df_benchmark_dataset: pd.DataFrame,
         pred_indices: np.ndarray) -> Tuple[float, float]:
         """
         Evaluate predicted outlier indices against benchmark labels.
@@ -234,25 +222,25 @@ class ModelRunner:
         these columns.
 
         Args:
-            df_benchmark_dataset (pd.DataFrame):  
+            df_benchmark_dataset (pd.DataFrame):
                 Benchmark dataset containing ground-truth outlier labels.
-            pred_indices (np.ndarray):  
+            pred_indices (np.ndarray):
                 Indices of predicted outliers from the model.
 
         Returns:
-            Tuple[float, float]:  
-                - recall: Fraction of true outliers correctly identified.  
+            Tuple[float, float]:
+                - recall: Fraction of true outliers correctly identified.
                 - precision: Fraction of predicted outliers that are true.
 
         .. note::
 
             Both recall and precision use ``zero_division=0``. This means
             that if there is a zero division, for example when the denominator
-            is zero (TP + FP = 0 for precision) or (TP + FN = 0 for recall), 
-            the calculated ``recall_score`` or ``precision_score`` 
-            will be zero. 
+            is zero (TP + FP = 0 for precision) or (TP + FN = 0 for recall),
+            the calculated ``recall_score`` or ``precision_score``
+            will be zero.
         """
-        # Expect modval.evaluate_pred_outliers to return columns 
+        # Expect modval.evaluate_pred_outliers to return columns
         # 'true_outlier', 'pred_outlier'
         df_eval = modval.evaluate_pred_outliers(
             df_benchmark=df_benchmark_dataset,
@@ -265,7 +253,7 @@ class ModelRunner:
         precision = precision_score(y_true, y_pred, zero_division=0)
         return recall, precision
 
-        
+
     def create_2d_mesh_grid(
         self):
         """
@@ -284,19 +272,14 @@ class ModelRunner:
             Tuple[np.ndarray, np.ndarray, np.ndarray]:
                 - xx (np.ndarray): 2D array of x-coordinates.
                 - yy (np.ndarray): 2D array of y-coordinates.
-                - meshgrid (np.ndarray): Flattened 2D grid of shape 
+                - meshgrid (np.ndarray): Flattened 2D grid of shape
                   (n_points, 2) where each row is a (x, y) coordinate pair.
 
         """
 
         # Define the boundaries of the grid
-        # Extend the grid boundaries by -1 and +1 to 
+        # Extend the grid boundaries by -1 and +1 to
         # ensure full coverage
-        # min_xrange = self.xdata.min() - 1
-        # max_xrange = self.xdata.max() + 1
-        # min_yrange = self.ydata.min() - 1
-        # max_yrange = self.ydata.max() + 1
-
         min_xrange = np.min(self.Xdata[:,0]) - 1
         max_xrange = np.max(self.Xdata[:,0]) + 1
         min_yrange = np.min(self.Xdata[:,1]) - 1
@@ -304,14 +287,14 @@ class ModelRunner:
 
         min_ax = np.min([min_xrange, min_yrange])
         max_ax = np.max([max_xrange, max_yrange])
-        
+
         # Create a linearly spaced square xgrid and ygrid
         # using the min and max values from xdata and ydata
         xgrid = np.linspace(min_ax, max_ax, 100)
         ygrid = np.linspace(min_ax, max_ax, 100)
 
-        
-        # Create 2D meshgrid 
+
+        # Create 2D meshgrid
         xx, yy = np.meshgrid(
             xgrid,
             ygrid)
@@ -326,14 +309,14 @@ class ModelRunner:
         r1, r2 = (
             r1.reshape(len(r1),1),
             r2.reshape(len(r2),1))
-        
+
         # stack each vector into a grid
         # the first column corresponds to x-axis
         # the second column corresponds to y-axis
         meshgrid = np.hstack((r1, r2))
-        
+
         return (xx, yy, meshgrid)
-            
+
     def predict_anomaly_score_map(
         self,
         selected_model: PyODModelType,
@@ -394,18 +377,18 @@ class ModelRunner:
         xx, yy, meshgrid = self.create_2d_mesh_grid()
 
         selected_colormap = cm.RdBu_r
-        
+
         selected_model.fit(self.Xdata)
 
-        # Predict the probability of the data point 
+        # Predict the probability of the data point
         # on the grid being an outlier
         yhat_grid_score = selected_model.predict_proba(meshgrid)
 
         # We only want to plot the outlier probability
         yhat_grid_outlier = yhat_grid_score[:, 1]
 
-        # Reshape yhat_grid_outlier into the 
-        # size of the grid 
+        # Reshape yhat_grid_outlier into the
+        # size of the grid
         zz_grid_outlier_score = yhat_grid_outlier.reshape(xx.shape)
 
         fig, ax = plt.subplots(figsize=(8,5))
@@ -413,7 +396,7 @@ class ModelRunner:
         # Reset the sns settings
         mpl.rcParams.update(mpl.rcParamsDefault)
         rcParams["text.usetex"] = True
-        
+
         # The contour plot using the model on the grid
         ax_contourplot = ax.contourf(
             xx,
@@ -422,7 +405,7 @@ class ModelRunner:
             cmap=selected_colormap,
             vmin=0,
             vmax=1)
-        
+
         # Define the threshold for anomalies
         # Threshold: 70% of anomaly probabilities
         decision_boundary = ax.contour(
@@ -433,17 +416,17 @@ class ModelRunner:
             linewidths=2,
             linestyles="dashed",
             colors='black')
-        
+
         # Set the limits for the colorbar
         cbar_limit = plt.cm.ScalarMappable(cmap=selected_colormap)
         cbar_limit.set_array(zz_grid_outlier_score)
         cbar_limit.set_clim(0., 1.)
-        
+
         cbar = fig.colorbar(cbar_limit, ax=ax, shrink=0.9)
         cbar.ax.set_ylabel(
             'Outliers probability',
             fontsize=14)
-        
+
         # Scatterplot of all cycles
         ax.scatter(
             self.Xdata[:, 0],
@@ -464,20 +447,20 @@ class ModelRunner:
             c="gold")
 
         # -------------------------------------------------------------------
-        # Text beside each flagged cycle to label the 
+        # Text beside each flagged cycle to label the
         # anomalous cycle
         if len(pred_outliers_index) != 0:
             for cycle in pred_outliers_index:
                 dQ_text_position = xoutliers.loc[cycle]
                 dV_text_position = youtliers.loc[cycle]
-                
+
                 # print(f"Anomalous cycle: {cycle}")
                 # print(f"dQ text position: {dQ_text_position}")
                 # print(f"dV text position: {dV_text_position}")
 
                 ax.text(
                     # x-position of the text
-                    # Add an offset of 0.1 so that the text 
+                    # Add an offset of 0.1 so that the text
                     # does not overlap with the outlier symbol
                     x = dQ_text_position + 0.1,
                     # y-position of the text
@@ -502,9 +485,9 @@ class ModelRunner:
                 r"\textbf{Predicted anomalous cycles:}",
                 f"{str(pred_outliers_index)}"))
 
-            # first text value corresponds to the left right 
+            # first text value corresponds to the left right
             # alignment starting from left
-            # second second value corresponds to up down 
+            # second second value corresponds to up down
             # alignment starting from bottom
             ax.text(
                 0.75, 0.95,
@@ -531,13 +514,13 @@ class ModelRunner:
             filename = model_name.replace(" ", "_").lower()
 
             output_fig_filename = (
-                filename + "_" 
-                + self._selected_cell_label 
+                filename + "_"
+                + self._selected_cell_label
                 + ".png")
 
             fig_output_path = (
                 self._selected_cell_artifacts.joinpath(output_fig_filename))
-            
+
             plt.savefig(
                 fig_output_path,
                 dpi=200,

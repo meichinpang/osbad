@@ -9,7 +9,7 @@ shown interactively if ``bconf.SHOW_FIG_STATUS`` is enabled.
 
 Key features:
     - ``load_benchmark_dataset``: Load the training or test dataset
-      for the selected cell from a DuckDB database (including the label 
+      for the selected cell from a DuckDB database (including the label
       column).
     - ``drop_labels``: Remove the ``outlier`` label column and,
       optionally, keep only a specified subset of columns.
@@ -26,31 +26,25 @@ Example:
 
         from osbad.database import BenchDB
 """
-
-# Base libraries -------------------------------------------------------------
-from typing import Union
+# Standard library
 import os
 import pathlib
 from pathlib import Path
-import pprint
-import glob
-from natsort import natsorted
+from typing import Union
 
-# Database library -----------------------------------------------------------
+# Third-party libraries
 import duckdb
-
-# Data analysis libraries ----------------------------------------------------
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 from matplotlib import rcParams
+
 rcParams["text.usetex"] = True
 
-# Custom osbad library for anomaly detection --------------------------------
-import osbad.viz as bviz
+# Custom osbad library for anomaly detection
 import osbad.config as bconf
-
+import osbad.viz as bviz
 
 
 class BenchDB:
@@ -81,7 +75,7 @@ class BenchDB:
         self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
-        # store all figures output for each evaluated 
+        # store all figures output for each evaluated
         # cell into its corresponding folder
         self._selected_cell_artifacts = bconf.PIPELINE_OUTPUT_DIR.joinpath(
             self._selected_cell_label)
@@ -119,13 +113,13 @@ class BenchDB:
         Example:
             .. code-block::
 
-                # Path to the DuckDB instance: 
+                # Path to the DuckDB instance:
                 # "train_dataset_severson.db"
                 db_filepath = (
                     Path.cwd()
                     .parent.parent
                     .joinpath("database","train_dataset_severson.db"))
-                
+
                 # Get the cell-ID from cell_inventory
                 selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
@@ -146,7 +140,7 @@ class BenchDB:
             con = duckdb.connect(
                 self._db_filepath,
                 read_only=True)
-            
+
             if dataset_type == "train":
                 df_duckdb = con.execute(
                     "SELECT * FROM df_train_dataset_sv").fetchdf()
@@ -155,19 +149,19 @@ class BenchDB:
                     "SELECT * FROM df_test_dataset_sv").fetchdf()
 
             # Filter dataset for specific selected cell only
-            assert (self._selected_cell_label 
+            assert (self._selected_cell_label
                 in df_duckdb["cell_index"].unique()), (
                 f"{self._selected_cell_label} does not exist in database")
-            
+
             df_selected_cell = df_duckdb[
                 df_duckdb["cell_index"] == self._selected_cell_label]
-            
+
             print("*"*100)
-            
+
             return df_selected_cell
-        
+
         else:
-            print("Filepath is not valid. Please ensure that database " 
+            print("Filepath is not valid. Please ensure that database "
                   + "can be found in the given filepath.")
 
     def drop_labels(
@@ -219,7 +213,7 @@ class BenchDB:
                         "cycle_index",
                         "discharge_capacity",
                         "voltage"]
-                    
+
                     # Drop true labels from the benchmarking dataset
                     # and filter for selected columns only
                     benchdb.drop_labels(
@@ -233,12 +227,12 @@ class BenchDB:
         if filter_col is not None:
             df_selected_cell_no_label_filtered = df_selected_cell_no_label[
                 filter_col].reset_index(drop=True)
-        
+
             return df_selected_cell_no_label_filtered
-        
+
         else:
             return df_selected_cell_no_label
-    
+
     def get_true_outlier_cycle_index(
         self,
         df_selected_cell: pd.DataFrame) -> np.ndarray:
@@ -246,7 +240,7 @@ class BenchDB:
         Extract true outlier labels from the benchmarking dataset.
 
         Args:
-            df_selected_cell (pd.DataFrame): Cell cycling dataset based on 
+            df_selected_cell (pd.DataFrame): Cell cycling dataset based on
                 selected cell index.
 
         Returns:
@@ -255,7 +249,7 @@ class BenchDB:
         Example:
             .. code-block::
 
-                # Extract true outliers cycle index 
+                # Extract true outliers cycle index
                 # from benchmarking dataset
                 true_outlier_cycle_idx = battdb.get_true_outlier_cycle_index(
                     df_selected_cell)
@@ -271,8 +265,8 @@ class BenchDB:
         true_outlier_cycle_index = df_true_outlier["cycle_index"].unique()
 
         return true_outlier_cycle_index
-    
-    
+
+
     def plot_cycle_data(
         self,
         df_selected_cell_without_labels: pd.DataFrame,
@@ -282,7 +276,7 @@ class BenchDB:
 
         This function plots cycling data for the selected cell. If a list of
         true outlier cycle indices is provided, those cycles are highlighted
-        and annotated on the plot. Otherwise, no annotations of anomalies will 
+        and annotated on the plot. Otherwise, no annotations of anomalies will
         be shown. The figure is saved in the cell’s artifacts directory.
 
         Args:
@@ -300,7 +294,7 @@ class BenchDB:
             .. code-block::
 
                 # Plot cell data with true anomalies
-                # If the true outlier cycle index is not known, 
+                # If the true outlier cycle index is not known,
                 # cycling data will be plotted without labels
                 benchdb.plot_cycle_data(
                     df_selected_cell_without_labels,
@@ -327,7 +321,7 @@ class BenchDB:
                     df_selected_cell_without_labels["cycle_index"]),
                 xoutlier=df_true_outlier["discharge_capacity"],
                 youtlier=df_true_outlier["voltage"])
-        
+
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
                 r"\textbf{Cycle index with anomalies:}",
@@ -339,8 +333,8 @@ class BenchDB:
                 facecolor='wheat',
                 alpha=0.5)
 
-            # first 0.95 corresponds to the left right alignment starting 
-            # from left, second 0.95 corresponds to up down alignment 
+            # first 0.95 corresponds to the left right alignment starting
+            # from left, second 0.95 corresponds to up down alignment
             # starting from bottom
             axplot.text(
                 0.95, 0.95,
@@ -358,7 +352,7 @@ class BenchDB:
                 yseries=df_selected_cell_without_labels["voltage"],
                 cycle_index_series=(
                     df_selected_cell_without_labels["cycle_index"]))
-            
+
         axplot.set_xlabel(
             r"Discharge capacity, $Q_\textrm{dis}$ [Ah]",
             fontsize=14)
@@ -369,18 +363,18 @@ class BenchDB:
         axplot.set_title(
             f"Cell {self._selected_cell_label}",
             fontsize=16)
-        
-        # Use pdf for figures in the paper, but loading pdf output 
-        # can take time 
+
+        # Use pdf for figures in the paper, but loading pdf output
+        # can take time
         # Use png for normal plot
         output_fig_filename = (
-            "plot_cycles_" 
-            + self._selected_cell_label 
+            "plot_cycles_"
+            + self._selected_cell_label
             + ".png")
 
         fig_output_path = (
             self._selected_cell_artifacts.joinpath(output_fig_filename))
-        
+
         plt.savefig(
             fig_output_path,
             dpi=200,
@@ -420,7 +414,7 @@ class BenchDB:
         Example:
             .. code-block::
 
-                # Define the filepath to ``train_features_severson.db`` 
+                # Define the filepath to ``train_features_severson.db``
                 # DuckDB instance.
                 db_features_filepath = (
                     Path.cwd()
@@ -438,30 +432,30 @@ class BenchDB:
 
         if os.path.exists(db_features_filepath):
             print("Features database is found in the given filepath.")
-            
-            
+
+
             # Create a DuckDB connection
             con = duckdb.connect(
                 db_features_filepath,
                 read_only=True)
-            
+
             if dataset_type == "train":
                 df_merge_features_train = con.execute(
                     "SELECT * FROM df_train_features_sv").fetchdf()
             elif dataset_type == "test":
                 df_merge_features_train = con.execute(
                     "SELECT * FROM df_test_features_sv").fetchdf()
-    
+
         # Filter dataset for specific selected cell only
-        assert (self._selected_cell_label 
+        assert (self._selected_cell_label
             in df_merge_features_train["cell_index"].unique()), (
             f"{self._selected_cell_label} does not exist in database")
-        
+
         df_features_per_cell = (df_merge_features_train[
-            df_merge_features_train["cell_index"] == 
+            df_merge_features_train["cell_index"] ==
             self._selected_cell_label]
             .reset_index(drop=True))
-        
+
         print(f"Features database is loaded.")
         print("*"*100)
         return df_features_per_cell

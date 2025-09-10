@@ -8,14 +8,13 @@ covers six anomaly-detection models: Isolation Forest, KNN, GMM, LOF, PCA,
 and AutoEncoder.
 
 Key features:
-    - ``_customize_logger``: Create a configured logger with a custom
-      formatter and stdout handler; clears existing handlers to avoid
-      duplicates.
-    - ``ModelConfigDataClass``: Frozen dataclass bundling the Optuna 
-      search-space function (``hp_space``), the model factory 
-      (``model_param``), and the probability column index (``proba_col``).
+    - ``ModelConfigDataClass``: Frozen dataclass bundling the Optuna
+      search-space function (``hp_space``), model configuration with
+      tuned hyperparameters (``model_param``), model configuration without
+      hyperparameters tuning (``baseline_model_param``) and the probability
+      column index for outliers (``proba_col``).
     - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
-      ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their 
+      ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
       ``ModelConfigDataClass``.
     - ``objective``: Generic Optuna objective that samples params, builds
       the model, predicts outliers, and returns (recall, precision).
@@ -24,8 +23,6 @@ Key features:
       ``mode``).
     - ``aggregate_best_trials``: Collect parameters from ``study.best_trials``
       and produce a single-row DataFrame of aggregated hyperparameters.
-    - ``_artifacts_output_dir``: Ensure a per-cell artifacts directory
-      exists under ``bconf.PIPELINE_OUTPUT_DIR``.
     - ``evaluate_hp_perfect_score_pct``: Compute the percentage of trials
       with perfect recall and precision (value == 1) and log per-trial
       scores.
@@ -43,50 +40,41 @@ Configuration:
       saving.
     - ``bconf.PIPELINE_OUTPUT_DIR``: Base directory where per-cell figures
       are saved.
-      
+
 .. code-block::
 
     import osbad.hyperparam as hp
 """
-
-# import base libraries ---------------------------------------------------
+# Standard library
 import logging
 import os
 import pathlib
 import sys
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from statistics import mode
+from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
-import osbad.config as bconf
-from osbad.config import CustomFormatter
-
-# import data transformation library --------------------------------------
+# Third-party libraries
 import fireducks.pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import optuna
 from matplotlib import rcParams
-
-rcParams["text.usetex"] = True
-
-# Import all models -------------------------------------------------------
+import pyod
 from pyod.models.auto_encoder import AutoEncoder
 from pyod.models.gmm import GMM
 from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.lof import LOF
 from pyod.models.pca import PCA
+
+rcParams["text.usetex"] = True
+
+# Custom osbad library for anomaly detection
+import osbad.config as bconf
+from osbad.config import CustomFormatter
 from osbad.model import ModelRunner
-
-# import hyperparameter tuning libraries ----------------------------------
-import optuna
-from statistics import mode
-
-# Model evaluation libraries ----------------------------------------------
-import osbad.modval as modval
-from sklearn.metrics import precision_score, recall_score
-
 
 # Initiate logging for methods --------------------------------------------
 
@@ -103,8 +91,8 @@ def _customize_logger(
 
     Args:
         logger_name (str): Name assigned to the logger instance.
-        output_log (bool, optional): If True, sets logging level to 
-            ``logging.INFO``. If False, sets logging level to 
+        output_log (bool, optional): If True, sets logging level to
+            ``logging.INFO``. If False, sets logging level to
             ``logging.WARNING``. Defaults to True.
 
     Returns:
@@ -142,19 +130,19 @@ RANDOM_STATE = 42
 # Config plumbing ------------------------------------------------------------
 
 # HpSpaceFuncType is a type alias
-# a function that takes an optuna.trial.Trial and returns a dict of 
+# a function that takes an optuna.trial.Trial and returns a dict of
 # hyperparameters
 HpSpaceFuncType = Callable[[optuna.trial.Trial], Dict[str, Any]]
 """
-A type alias for a function that takes an ``optuna.trial.Trial`` as input and 
-returns a dictionary mapping hyperparameter names ``str`` to their suggested 
+A type alias for a function that takes an ``optuna.trial.Trial`` as input and
+returns a dictionary mapping hyperparameter names ``str`` to their suggested
 values ``Any``.
 
 Example:
     .. code-block::
 
         def knn_hp_space(trial: optuna.trial.Trial) -> Dict[str, Any]:
-        
+
             hyperparam_dict =  {
                 "contamination": trial.suggest_float(
                     "contamination", 0.0, 0.5),
@@ -170,16 +158,18 @@ Example:
 
             return hyperparam_dict
 """
+
+# ----------------------------------------------------------------------------
 # ModelParamFuncType is a type alias
-# a function that takes that dict of hyperparameters and 
+# a function that takes that dict of hyperparameters and
 # returns a model instance
 ModelParamFuncType  = Callable[[Dict[str, Any]], Any]
 """
-A type alias for a function type that takes a dictionary of hyperparameters 
-as input ``Dict[str, Any]`` and returns a model instance 
+A type alias for a function type that takes a dictionary of hyperparameters
+as input ``Dict[str, Any]`` and returns a model instance
 (e.g., KNN, IForest, GMM) ``Any``.
 
-    Example:
+Example:
     .. code-block::
 
         input_hyperparam_dict = {
@@ -191,7 +181,7 @@ as input ``Dict[str, Any]`` and returns a model instance
         }
 
         def knn_model_param(param: Dict[str, Any]) -> Any:
-        
+
             model_instance = KNN(
                 contamination=param["contamination"],
                 n_neighbors=param["n_neighbors"],
@@ -203,62 +193,35 @@ as input ``Dict[str, Any]`` and returns a model instance
             return model_instance
 
         # output will be:
-        # KNN(contamination=0.1, n_neighbors=10, method="mean", 
+        # KNN(contamination=0.1, n_neighbors=10, method="mean",
         # metric="euclidean", n_jobs=-1)
 """
-# ---------------------------------------------------------------------------
-# import optuna
-# from pyod.models.knn import KNN
-# from typing import Dict, Any
 
+PyODModelType = Union[
+    pyod.models.iforest.IForest,
+    pyod.models.knn.KNN,
+    pyod.models.gmm.GMM,
+    pyod.models.lof.LOF,
+    pyod.models.pca.PCA,
+    pyod.models.auto_encoder.AutoEncoder]
+"""Type alias for supported PyOD anomaly detection models.
 
-# # Define the search space for KNN
-# def knn_hp_space(trial: optuna.trial.Trial) -> Dict[str, Any]:
-#     return {
-#         "contamination": trial.suggest_float("contamination", 0.0, 0.5),
-#         "n_neighbors": trial.suggest_int("n_neighbors", 2, 50, step=2),
-#         "method": trial.suggest_categorical(
-#             "method", ["largest", "mean", "median"]),
-#         "metric": trial.suggest_categorical(
-#             "metric", ["minkowski", "euclidean", "manhattan"]),
-#         "threshold": trial.suggest_float("threshold", 0.0, 1.0),
-#     }
+This alias unifies the set of PyOD estimators commonly used in the
+benchmarking pipeline, enabling consistent type annotations and
+improved readability.
 
-# # Define how to create the model from sampled parameters
-# def knn_model_param(params: Dict[str, Any]) -> KNN:
-#     return KNN(
-#         contamination=params["contamination"],
-#         n_neighbors=params["n_neighbors"],
-#         method=params["method"],
-#         metric=params["metric"],
-#         n_jobs=-1,
-#     )
+Supported models:
+    * ``IForest``: Isolation Forest model.
+    * ``KNN``: K-Nearest Neighbors–based outlier detector.
+    * ``GMM``: Gaussian Mixture Model for density-based detection.
+    * ``LOF``: Local Outlier Factor for neighborhood-based detection.
+    * ``PCA``: Principal Component Analysis for subspace-based detection.
+    * ``AutoEncoder``: Neural network–based autoencoder for
+      reconstruction-based detection.
+"""
 
-# # Objective function for Optuna optimization
-# def objective(trial: optuna.trial.Trial) -> float:
-#     # 1. Sample hyperparameters
-#     params = knn_hp_space(trial)
-
-#     # 2. Build the model
-#     model = knn_model_param(params)
-
-#     # 3. Dummy evaluation for understanding purposes
-#       toy metric
-#     score = 1.0 / (params["n_neighbors"] + 1)  
-#     return score
-
-# # Run optimization for 5 trials
-# study = optuna.create_study(direction="maximize")
-# study.optimize(objective, n_trials=5)
-
-# print("Best trial:")
-# print(study.best_trial)
-# print("Best parameters:")
-# print(study.best_params)
-
-# ---------------------------------------------------------------------------
-
-# Declares an immutable container class. 
+# ----------------------------------------------------------------------------
+# Declares an immutable container class.
 # Once created, its fields can’t be changed.
 @dataclass(frozen=True)
 class ModelConfigDataClass:
@@ -273,10 +236,16 @@ class ModelConfigDataClass:
     """
     Function that defines the hyperparameter search space for an Optuna trial.
     """
-    
+
     model_param: ModelParamFuncType
     """
     Function that builds a model instance from a set of hyperparameters.
+    """
+
+    # Model instance without hyperparameter tuning
+    baseline_model_param: Optional[Callable[[], PyODModelType]] = None
+    """
+    Function that builds a model instance without hyperparameter tuning.
     """
 
     # For PyOD estimators:
@@ -284,18 +253,11 @@ class ModelConfigDataClass:
     # column 1 = probability of being outlier
     proba_col: int = 1
     """
-    Index of the probability column in PyOD estimators. Column 0 is the inlier 
+    Index of the probability column in PyOD estimators. Column 0 is the inlier
     probability, and column 1 is the outlier probability. Defaults to 1.
     """
 
 # Model registry -------------------------------------------------------------
-
-from pyod.models.iforest import IForest
-from pyod.models.knn import KNN
-from pyod.models.gmm import GMM
-from pyod.models.lof import LOF
-from pyod.models.pca import PCA as PCAOD
-from pyod.models.auto_encoder import AutoEncoder
 
 MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "iforest": ModelConfigDataClass(
@@ -314,6 +276,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             contamination=param["contamination"],
             n_estimators=param["n_estimators"],
             max_samples=param["max_samples"],
+            random_state=RANDOM_STATE,
+            n_jobs=-1
+        ),
+        baseline_model_param=lambda: IForest(
+            behaviour="new",
             random_state=RANDOM_STATE,
             n_jobs=-1
         ),
@@ -338,6 +305,9 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             metric=param["metric"],
             n_jobs=-1
         ),
+        baseline_model_param=lambda: KNN(
+            n_jobs=-1
+        ),
     ),
     "gmm": ModelConfigDataClass(
         hp_space=lambda trial: {
@@ -358,6 +328,10 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             contamination=param["contamination"],
             random_state=RANDOM_STATE
         ),
+        baseline_model_param=lambda: GMM(
+            n_components=2,
+            random_state=RANDOM_STATE
+        ),
     ),
     "lof": ModelConfigDataClass(
         hp_space=lambda trial: {
@@ -376,6 +350,10 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             novelty=True,
             n_jobs=-1
         ),
+        baseline_model_param=lambda: LOF(
+            novelty=True,
+            n_jobs=-1
+        ),
     ),
     "pca": ModelConfigDataClass(
         hp_space=lambda trial: {
@@ -386,6 +364,9 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         model_param=lambda param: PCAOD(
             n_components=param["n_components"],
             contamination=param["contamination"]
+        ),
+        baseline_model_param=lambda: PCAOD(
+            n_components=2,
         ),
     ),
     "autoencoder": ModelConfigDataClass(
@@ -401,6 +382,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             epoch_num=param["epoch_num"],
             lr=param["learning_rate"],
             dropout_rate=param["dropout_rate"],
+            hidden_neuron_list=[25, 2, 2, 25],
+            optimizer_name="adam",
+            random_state=RANDOM_STATE
+        ),
+        baseline_model_param=lambda: AutoEncoder(
             hidden_neuron_list=[25, 2, 2, 25],
             optimizer_name="adam",
             random_state=RANDOM_STATE
@@ -425,8 +411,8 @@ The following model identifiers are supported:
 
 Args:
     key (str): Model identifier.
-    value (ModelConfigDataClass): Configuration for searching hyperparameters 
-        and to instantiate the corresponding model creation based on the 
+    value (ModelConfigDataClass): Configuration for searching hyperparameters
+        and to instantiate the corresponding model creation based on the
         hyperparameter search space.
 """
 
@@ -485,7 +471,6 @@ def objective(
                     df_selected_cell),
                 n_trials=20)
     """
-    
     cfg = MODEL_CONFIG[model_id]
     params = cfg.hp_space(trial)
 
@@ -493,7 +478,7 @@ def objective(
         cell_label=selected_cell_label,
         df_input_features=df_feature_dataset,
         selected_feature_cols=selected_feature_cols)
-    
+
 
     Xdata = runner.create_model_x_input()
     model = cfg.model_param(params)
@@ -528,7 +513,7 @@ def aggregate_param_method(values: List[Any], how: Agg):
     """
     Aggregate a list of values using the given method.
 
-    Supports median, median as integer, and mode. Raises ValueError 
+    Supports median, median as integer, and mode. Raises ValueError
     if an unsupported method is provided.
 
     Args:
@@ -550,13 +535,13 @@ def aggregate_param_method(values: List[Any], how: Agg):
             >>> aggregate_param_method([500, 300, 250, 400, 200], "median_int")
             300
             >>> aggregate_param_method(
-                ['manhattan', 'manhattan', 'euclidean', 
+                ['manhattan', 'manhattan', 'euclidean',
                 'manhattan', 'minkowski'], "mode")
             'manhattan'
 
     .. Note::
 
-        If there is a tie in the most frequent parameter, for example,        
+        If there is a tie in the most frequent parameter, for example,
         ``method`` = ``['largest','largest','median','median','mean']``,
         the first most frequent parameter ``largest`` will be chosen.
         """
@@ -585,7 +570,7 @@ def aggregate_best_trials(
     Args:
         study (optuna.study.Study): Optuna study object containing best trials.
         cell_label (str): Identifier for the experimental cell.
-        model_id (str): Identifier of the ML-model. Allowed values are 
+        model_id (str): Identifier of the ML-model. Allowed values are
                         "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
         schema (Dict[str, Agg]): Mapping of parameter names to
             aggregation strategies. Allowed values are "median",
@@ -630,7 +615,7 @@ def aggregate_best_trials(
     # Initialize an empty dict to store best trials hyperparameter
     # where k correspond to the keys from the schema:
     # collected_param_dict = {
-    #   'contamination': [], 'n_neighbors': [], 
+    #   'contamination': [], 'n_neighbors': [],
     #   'method': [], 'metric': [], 'threshold': []}
 
     # Extract the parameters from the best trial of the optuna optimization
@@ -638,7 +623,7 @@ def aggregate_best_trials(
     for tr in trials:
         for p in schema.keys():
             collected_param_dict[p].append(tr.params[p])
-    
+
     # If there are 8 best trials output from the optuna study,
     # collected_param_dict will store the param of each best trial in the dict
 
@@ -658,12 +643,12 @@ def aggregate_best_trials(
     #               0.4523263128776084, 0.1499228256998617]}
 
     # Some hyperparameter in PyOD require specific type
-    # For example: 
+    # For example:
     # For iForest: n_estimators and max_samples must have the type int
     # For knn: method and metric must have the type str
-    # Use the aggregare_param_method to calculate the median parameter or 
+    # Use the aggregare_param_method to calculate the median parameter or
     # most frequent param out of the best trials.
-    
+
     # aggregated =  {
     #   'contamination': 0.2638107863674184,
     #   'n_neighbors': 16,
@@ -681,20 +666,6 @@ def aggregate_best_trials(
     out = {"ml_model": model_id, "cell_index": cell_label}
     out.update(aggregated)
     return pd.DataFrame([out])
-
-def _artifacts_output_dir(selected_cell_label: str) -> pathlib.PosixPath:
-    
-    # create a new folder for each evaluated cell
-    # store all figures output for each evaluated 
-    # cell into its corresponding folder
-    selected_cell_artifacts_dir = bconf.PIPELINE_OUTPUT_DIR.joinpath(
-        selected_cell_label)
-    
-    if not os.path.exists(selected_cell_artifacts_dir):
-        os.mkdir(selected_cell_artifacts_dir, exist_ok=True)
-
-    return selected_cell_artifacts_dir
-
 
 def evaluate_hp_perfect_score_pct(
     model_study: optuna.study.study.Study,
@@ -761,40 +732,40 @@ def evaluate_hp_perfect_score_pct(
     # extract the recall and precision score per trial
     recall_score_list = []
     precision_score_list = []
-    
+
     for trial_idx in range(total_hp_trial):
         eval_score = model_study.trials[trial_idx].values
-    
+
         recall_score_per_trial = eval_score[0]
         precision_score_per_trial = eval_score[1]
 
 
-        logger.info(f"Trial {trial_idx}:\n" + 
+        logger.info(f"Trial {trial_idx}:\n" +
             f"Recall score per trial: {recall_score_per_trial}\n" +
             f"Precision score per trial: {precision_score_per_trial}")
         logger.info("-"*70)
         recall_score_list.append(recall_score_per_trial)
         precision_score_list.append(precision_score_per_trial)
-        
+
     # ------------------------------------------------------------------
     # Calculate the percentage of recall score = 1 among all trials
     recall_score_arr = np.array(recall_score_list)
-    
+
     # boolean mask for score equals to 1
     mask = (recall_score_arr == 1)
-    
+
     # count score equals to 1
     perfect_score_count = np.sum(mask)
     recall_score_pct = ((perfect_score_count/total_hp_trial)*100)
     logger.info(f"Percentage perfect recall score: {recall_score_pct}")
-        
+
     # ------------------------------------------------------------------
     # Calculate the percentage of precision score = 1 among all trials
     precision_score_arr = np.array(precision_score_list)
-    
+
     # boolean mask for score equals to 1
     mask = (precision_score_arr == 1)
-    
+
     # count score equals to 1
     perfect_score_count = np.sum(mask)
     precision_score_pct = ((perfect_score_count/total_hp_trial)*100)
@@ -845,39 +816,34 @@ def plot_pareto_front(
      precision_score_pct) = evaluate_hp_perfect_score_pct(
      model_study,
      output_log_bool=output_log_status)
-    
+
 
     axplot = optuna.visualization.matplotlib.plot_pareto_front(
         model_study,
         target_names=[
             "pred_recall_score",
             "pred_precision_score"])
-    
+
     axplot.axis("equal")
-    
+
     axplot.set_xlabel(
         "Recall score",
         color="black",
         fontsize=14)
-    
+
     axplot.set_ylabel(
         "Precision score",
         color="black",
         fontsize=14)
-    
+
     axplot.set_title(
         fig_title,
         fontsize=16)
-    
-    # axplot.legend(
-    #    loc='lower right',
-    #    bbox_to_anchor=(0.32, -0.35),
-    #    fontsize=14)
 
     axplot.legend(
         loc='upper right',
         fontsize=10)
-    
+
     axplot.annotate(
         text=(
             f"Perfect recall score: {np.round(recall_score_pct)}\%\n" +
@@ -890,38 +856,38 @@ def plot_pareto_front(
             fc="yellow",
             ec="yellow",
             alpha=0.2))
-    
+
     axplot.set_xlim([0,1.4])
-    
+
     axplot.patch.set_facecolor("white")
     axplot.spines["bottom"].set_color("black")
     axplot.spines["top"].set_color("black")
     axplot.spines["left"].set_color("black")
     axplot.spines["right"].set_color("black")
-    
+
     axplot.grid(
         color="grey",
         linestyle="-",
         linewidth=0.25,
         alpha=0.7)
-    
+
     # convert the fig title to snake_case for filepath standardization
     output_fig_filename = (
         fig_title.casefold().replace(" ","_")
-        + "_" + selected_cell_label 
+        + "_" + selected_cell_label
         + ".png")
 
-    selected_cell_artifacts_dir = _artifacts_output_dir(
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
         selected_cell_label)
 
     fig_output_path = (
         selected_cell_artifacts_dir.joinpath(output_fig_filename))
-    
+
     plt.savefig(
         fig_output_path,
         dpi=200,
         bbox_inches="tight")
-    
+
     if bconf.SHOW_FIG_STATUS:
         plt.show()
 
@@ -972,11 +938,11 @@ def export_current_hyperparam(
     if os.path.exists(export_csv_filepath):
         df_best_param_from_csv = pd.read_csv(
             export_csv_filepath)
-    
+
         # Status check if the current model hyperparam
         # already exists in the hyperparam inventories
         check_cell_bool = (
-            selected_cell_label in 
+            selected_cell_label in
             df_best_param_from_csv["cell_index"].unique())
         logger.info("Have the hyperparam for "
                 + f"{selected_cell_label} been evaluated?")
@@ -985,17 +951,17 @@ def export_current_hyperparam(
     else:
         check_cell_bool = False
         df_best_param_from_csv = None
-    
+
     if not check_cell_bool:
         logger.info("Exporting hyperparameters for "
                 + f"{selected_cell_label} to CSV file.")
-    
-        # concat current hyperparam with hyperparam 
+
+        # concat current hyperparam with hyperparam
         # from other cells
         df_updated_hyperparam = pd.concat(
             [df_best_param_from_csv,
             df_best_param_current_cell], axis=0)
-    
+
         # Export metrics to CSV
         df_updated_hyperparam.to_csv(
             export_csv_filepath,
@@ -1004,7 +970,7 @@ def export_current_hyperparam(
         logger.info("Hyperparameters for "
             + f"{selected_cell_label} already exists "
             +"in the CSV file!")
-        
+
         df_updated_hyperparam = df_best_param_from_csv.copy()
 
     return df_updated_hyperparam
@@ -1061,7 +1027,7 @@ def export_current_model_metrics(
 
         # Status check if the current model metrics
         # already exists in the metric inventories
-        duplicated_metric_check = (model_name in 
+        duplicated_metric_check = (model_name in
             df_eval_metrics_from_csv["ml_model"]
             .unique())
         logger.info("Is this metric already saved in the CSV output?")
@@ -1070,7 +1036,7 @@ def export_current_model_metrics(
 
         # Status check if the current selected cell
         # already exists in the metric inventories
-        duplicated_cell_check = (selected_cell_label in 
+        duplicated_cell_check = (selected_cell_label in
             df_eval_metrics_from_csv["cell_index"]
             .unique())
         logger.info("Is this cell already saved in the CSV output?")
@@ -1085,7 +1051,7 @@ def export_current_model_metrics(
     if (not duplicated_metric_check) | (not duplicated_cell_check):
         logger.info("Exporting evaluation metrics to CSV:")
 
-        # concat current metrics with metrics 
+        # concat current metrics with metrics
         # from other models
         df_updated_metrics = pd.concat(
             [df_eval_metrics_from_csv,
@@ -1096,7 +1062,7 @@ def export_current_model_metrics(
             export_csv_filepath,
             index=False)
     else:
-        logger.info(f"{selected_cell_label} has been evaluated " 
+        logger.info(f"{selected_cell_label} has been evaluated "
                 + "in the CSV output!")
         df_updated_metrics = df_eval_metrics_from_csv.copy()
         logger.info("-"*70)

@@ -21,31 +21,25 @@ Key features:
 
         import osbad.modval as modval
 """
-
+# Standard library
 from typing import Union
 
-import pandas as pd
-import numpy as np
-from scipy.stats import t
+# Third-party libraries
+import fireducks.pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
-
-
-# Model evaluation libraries
+import numpy as np
+from matplotlib import rcParams
+from scipy.stats import t
 from sklearn.metrics import (
-    confusion_matrix,
     accuracy_score,
+    confusion_matrix,
+    f1_score,
+    matthews_corrcoef,
     precision_score,
     recall_score,
-    f1_score,
-    matthews_corrcoef)
+)
 
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import root_mean_squared_error
-
-
-from matplotlib import rcParams
 rcParams["text.usetex"] = True
 
 
@@ -53,19 +47,19 @@ def evaluate_pred_outliers(
     df_benchmark: pd.DataFrame,
     outlier_cycle_index: np.ndarray) -> pd.DataFrame:
     """
-    Evaluate the predicted outliers against the true outliers for each 
+    Evaluate the predicted outliers against the true outliers for each
     cycle in a new dataframe.
 
     Args:
-        df_benchmark (pd.DataFrame): Benchmarking dataset of the selected 
+        df_benchmark (pd.DataFrame): Benchmarking dataset of the selected
             cell.
-        outlier_cycle_index (np.ndarray): Predicted outliers from 
+        outlier_cycle_index (np.ndarray): Predicted outliers from
             statistical methods or ML models.
 
     Returns:
-        pd.DataFrame: A dataframe with predicted outliers and true 
+        pd.DataFrame: A dataframe with predicted outliers and true
         outliers from the benchmarking dataset for each cycle.
-    
+
     Example:
         .. code-block::
 
@@ -79,10 +73,10 @@ def evaluate_pred_outliers(
         "cell_index",
         "voltage",
         "discharge_capacity"]].copy()
-        
+
     # Define the default label as zero
     df_pred_outliers["outlier_pred"] = 0
-    
+
     # Conditional update the label based on predicted outlier_cycle_index
     outlier_conditions = [
         df_pred_outliers["cycle_index"].isin(outlier_cycle_index)]
@@ -90,15 +84,15 @@ def evaluate_pred_outliers(
     df_pred_outliers["outlier_pred"] = np.select(
         outlier_conditions,
         outlier_values)
-            
+
     unique_cycle_count = df_benchmark["cycle_index"].unique()
-    
+
     true_outlier_cycle_label = []
     pred_outlier_cycle_label = []
-    
+
     for cycle_count in unique_cycle_count:
-    
-        # Extract the outlier label per cycle from the 
+
+        # Extract the outlier label per cycle from the
         # benchmarking dataset for true outliers
         df_cycle_true = df_benchmark[
             df_benchmark["cycle_index"] == cycle_count]
@@ -108,7 +102,7 @@ def evaluate_pred_outliers(
         else:
             true_cycle_label = 0
             true_outlier_cycle_label.append(true_cycle_label)
-    
+
         # Extract outlier label per cycle
         # For predicted outliers
         df_cycle_pred = df_pred_outliers[
@@ -119,15 +113,15 @@ def evaluate_pred_outliers(
         else:
             pred_cycle_label = 0
             pred_outlier_cycle_label.append(pred_cycle_label)
-    
+
     outlier_eval_dict = {
         "cycle_index": unique_cycle_count,
         "true_outlier": true_outlier_cycle_label,
         "pred_outlier": pred_outlier_cycle_label
     }
-    
+
     df_eval_outlier = pd.DataFrame.from_dict(outlier_eval_dict)
-    
+
     return df_eval_outlier
 
 
@@ -135,18 +129,18 @@ def generate_confusion_matrix(
     y_true: Union[pd.Series,np.ndarray],
     y_pred: Union[pd.Series,np.ndarray]) -> matplotlib.axes._axes.Axes:
     """
-    Generate a custom confusion matrix for true and false predictions, 
-    where the color palegreen indicates true predictions, whereas the 
+    Generate a custom confusion matrix for true and false predictions,
+    where the color palegreen indicates true predictions, whereas the
     color salmon denotes false predictions.
 
     Args:
-        y_true (pd.Series | np.ndarray): True outliers from the 
+        y_true (pd.Series | np.ndarray): True outliers from the
             benchmarking dataset.
-        y_pred (pd.Series | np.ndarray): Predicted outliers from the 
+        y_pred (pd.Series | np.ndarray): Predicted outliers from the
             statistical methods or ML models.
 
     Returns:
-        matplotlib.axes._axes.Axes: Matplotlib axes for additional 
+        matplotlib.axes._axes.Axes: Matplotlib axes for additional
         external customization.
 
     Example:
@@ -166,7 +160,7 @@ def generate_confusion_matrix(
             plt.show()
     """
 
-    # Ref: 
+    # Ref:
     # https://medium.com/@dtuk81/confusion-matrix-visualization-fc31e3f30fea
     # https://stackoverflow.com/questions/73709628/labelling-both-percentages-and-absolute-values-on-the-cells-in-seaborn-heatmap-c
 
@@ -180,7 +174,7 @@ def generate_confusion_matrix(
 
     group_names = ["True Neg", "False Pos", "False Neg", "True Pos"]
     group_counts = ["{0:0.0f}".format(value) for value in conf_matrix.flatten()]
-    group_pct = [str(np.round(value,2)) + "\\%" for 
+    group_pct = [str(np.round(value,2)) + "\\%" for
         value in (conf_matrix.flatten()/np.sum(conf_matrix))*100]
 
     labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(
@@ -197,7 +191,7 @@ def generate_confusion_matrix(
         cbar=False,
         annot_kws={"fontsize":18},
         cmap=sns.color_palette(["salmon", "palegreen"], as_cmap=True))
-    
+
     ax.set_xlabel(r"Predicted anomalous cycle", labelpad=20, fontsize=16)
     ax.set_ylabel(r"True anomalous cycle", labelpad=20, fontsize=16)
 
@@ -244,23 +238,23 @@ def eval_model_performance(
 
     y_true=df_eval_outliers["true_outlier"]
     y_pred=df_eval_outliers["pred_outlier"]
-    
+
     accuracy = accuracy_score(y_true, y_pred)
     print(f"Accuracy: {accuracy}")
-    
+
     precision = precision_score(y_true, y_pred)
     print(f"Precision: {precision}")
-    
+
     recall = recall_score(y_true, y_pred)
     print(f"Recall: {recall}")
-    
+
     f1score = f1_score(y_true, y_pred)
     print(f"F1-score: {f1score}")
-    
+
     mcc_score = matthews_corrcoef(y_true, y_pred)
     print(f"MCC-score: {mcc_score}")
     print("*"*100)
-    
+
     eval_dict = {
         "ml_model": model_name,
         "cell_index": selected_cell_label,
@@ -270,9 +264,9 @@ def eval_model_performance(
         "f1_score": [f1score],
         "mcc_score": [mcc_score]
     }
-    
+
     df_current_eval_metrics = pd.DataFrame.from_dict(eval_dict)
-    
+
     return df_current_eval_metrics
-    
+
 

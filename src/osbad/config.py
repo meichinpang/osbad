@@ -1,7 +1,9 @@
+# Standard library
 import logging
+import os
 import pathlib
 from pathlib import Path
-import os
+
 
 SHOW_FIG_STATUS = True
 """
@@ -54,11 +56,11 @@ def artifacts_output_dir(selected_cell_label: str) -> pathlib.PosixPath:
         pathlib.PosixPath: Path to the cell-specific artifacts directory.
     """
     # create a new folder for each evaluated cell
-    # store all figures output for each evaluated 
+    # store all figures output for each evaluated
     # cell into its corresponding folder
     selected_cell_artifacts_dir = PIPELINE_OUTPUT_DIR.joinpath(
         selected_cell_label)
-    
+
     if not os.path.exists(selected_cell_artifacts_dir):
         os.mkdir(selected_cell_artifacts_dir)
 
