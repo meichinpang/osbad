@@ -34,7 +34,7 @@ osbad.modval
 Module Contents
 ---------------
 
-.. py:function:: evaluate_pred_outliers(df_benchmark: pandas.DataFrame, outlier_cycle_index: numpy.ndarray) -> pandas.DataFrame
+.. py:function:: evaluate_pred_outliers(df_benchmark: fireducks.pandas.DataFrame, outlier_cycle_index: numpy.ndarray) -> fireducks.pandas.DataFrame
 
    Evaluate the predicted outliers against the true outliers for each
    cycle in a new dataframe.
@@ -59,7 +59,7 @@ Module Contents
            outlier_cycle_index=std_outlier_dV_index)
 
 
-.. py:function:: generate_confusion_matrix(y_true: Union[pandas.Series, numpy.ndarray], y_pred: Union[pandas.Series, numpy.ndarray]) -> matplotlib.axes._axes.Axes
+.. py:function:: generate_confusion_matrix(y_true: Union[fireducks.pandas.Series, numpy.ndarray], y_pred: Union[fireducks.pandas.Series, numpy.ndarray]) -> matplotlib.axes._axes.Axes
 
    Generate a custom confusion matrix for true and false predictions,
    where the color palegreen indicates true predictions, whereas the
@@ -94,7 +94,7 @@ Module Contents
        plt.show()
 
 
-.. py:function:: eval_model_performance(model_name, selected_cell_label: str, df_eval_outliers: pandas.DataFrame) -> pandas.DataFrame
+.. py:function:: eval_model_performance(model_name, selected_cell_label: str, df_eval_outliers: fireducks.pandas.DataFrame) -> fireducks.pandas.DataFrame
 
    Evaluate and summarize model performance metrics.
 

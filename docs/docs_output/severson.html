@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Tohoku Dataset" href="tohoku.html" /><link rel="prev" title="Datasets Guide" href="dataset.html" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
-        <title>Data-driven Prediction of Battery Cycle Life Dataset - osbad 1.0.0 documentation</title>
+        <title>MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset - osbad 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="index.html"><div class="brand">osbad 1.0.0 documentation</div></a>
+      <a href="index.html"><div class="brand">osbad 1.2.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
   
-  <span class="sidebar-brand-text">osbad 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">osbad 1.2.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -202,7 +202,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="dataset.html">Datasets Guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Datasets Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Data-driven Prediction of Battery Cycle Life Dataset</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tohoku.html">Tohoku Dataset</a></li>
 </ul>
 </li>
@@ -264,8 +264,8 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="data-driven-prediction-of-battery-cycle-life-dataset">
-<h1>Data-driven Prediction of Battery Cycle Life Dataset<a class="headerlink" href="#data-driven-prediction-of-battery-cycle-life-dataset" title="Link to this heading">¶</a></h1>
+          <section id="mit-stanford-data-driven-prediction-of-battery-cycle-life-dataset">
+<h1>MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset<a class="headerlink" href="#mit-stanford-data-driven-prediction-of-battery-cycle-life-dataset" title="Link to this heading">¶</a></h1>
 <p>The first dataset used in this project is extracted from the publication by</p>
 <blockquote>
 <div><p>Severson, K.A., Attia, P.M., Jin, N. et al. Data-driven prediction of
@@ -275,10 +275,10 @@ Nat Energy 4, 383–391 (2019). <a class="reference external" href="https://doi.
 <p>The raw dataset was found to be contaminated with different anomalies.
 Due to the large number of cells used for the experiments in their works,
 we have only used the experimental dataset from 46 cells in this study.
-Each cell has an average of XXX cycles, which is more than sufficient for
+Each cell has an average of 845 cycles, which is more than sufficient for
 benchmarking anomaly detection algorithms in the present study.
 In addition, we have also enriched the raw dataset by manually
-labelling normal (denoted as <cite>0</cite>) vs anomalous cycle (denoted as <cite>1</cite>)
+labelling normal (denoted as 0) vs anomalous cycle (denoted as 1)
 for each cycle in these 46 cells. The outliers that we have labelled
 manually were provided in the <code class="docutils literal notranslate"><span class="pre">cycle_outlier_inventory.csv</span></code>.</p>
 <section id="train-and-test-dataset">
@@ -308,8 +308,7 @@ outlier;</p></li>
 </section>
 <section id="minimal-example">
 <h2>Minimal Example<a class="headerlink" href="#minimal-example" title="Link to this heading">¶</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># -------------------------------------------------------------------------</span>
-<span class="c1"># STEP-1: LOAD LIBRARIES</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># STEP-1: LOAD LIBRARIES</span>
 <span class="c1"># Base libraries</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -456,7 +455,7 @@ outlier;</p></li>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Data-driven Prediction of Battery Cycle Life Dataset</a><ul>
+<li><a class="reference internal" href="#">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a><ul>
 <li><a class="reference internal" href="#train-and-test-dataset">Train and Test Dataset</a></li>
 <li><a class="reference internal" href="#standard-schema">Standard Schema</a></li>
 <li><a class="reference internal" href="#minimal-example">Minimal Example</a></li>
@@ -471,7 +470,7 @@ outlier;</p></li>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=8d563738"></script>
+</div><script src="_static/documentation_options.js?v=6efca38a"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

@@ -1,5 +1,5 @@
-Data-driven Prediction of Battery Cycle Life Dataset
-################################################################
+MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset
+####################################################################
 
 The first dataset used in this project is extracted from the publication by
 
@@ -10,10 +10,10 @@ The first dataset used in this project is extracted from the publication by
 The raw dataset was found to be contaminated with different anomalies.
 Due to the large number of cells used for the experiments in their works,
 we have only used the experimental dataset from 46 cells in this study.
-Each cell has an average of XXX cycles, which is more than sufficient for
+Each cell has an average of 845 cycles, which is more than sufficient for
 benchmarking anomaly detection algorithms in the present study.
 In addition, we have also enriched the raw dataset by manually
-labelling normal (denoted as `0`) vs anomalous cycle (denoted as `1`)
+labelling normal (denoted as 0) vs anomalous cycle (denoted as 1)
 for each cycle in these 46 cells. The outliers that we have labelled
 manually were provided in the ``cycle_outlier_inventory.csv``.
 
@@ -46,7 +46,6 @@ Minimal Example
 
 .. code-block:: python
 
-   # -------------------------------------------------------------------------
    # STEP-1: LOAD LIBRARIES
    # Base libraries
    import os

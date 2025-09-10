@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="osbad.model" href="../model/index.html" /><link rel="prev" title="osbad.database" href="../database/index.html" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
-        <title>osbad.hyperparam - osbad 1.0.0 documentation</title>
+        <title>osbad.hyperparam - osbad 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">osbad 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">osbad 1.2.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">osbad 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">osbad 1.2.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -202,7 +202,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../dataset.html">Datasets Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Datasets Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../severson.html">Data-driven Prediction of Battery Cycle Life Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../severson.html">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tohoku.html">Tohoku Dataset</a></li>
 </ul>
 </li>
@@ -274,12 +274,11 @@ covers six anomaly-detection models: Isolation Forest, KNN, GMM, LOF, PCA,
 and AutoEncoder.</p>
 <dl class="simple">
 <dt>Key features:</dt><dd><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_customize_logger</span></code>: Create a configured logger with a custom
-formatter and stdout handler; clears existing handlers to avoid
-duplicates.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass</span></code>: Frozen dataclass bundling the Optuna
-search-space function (<code class="docutils literal notranslate"><span class="pre">hp_space</span></code>), the model factory
-(<code class="docutils literal notranslate"><span class="pre">model_param</span></code>), and the probability column index (<code class="docutils literal notranslate"><span class="pre">proba_col</span></code>).</p></li>
+search-space function (<code class="docutils literal notranslate"><span class="pre">hp_space</span></code>), model configuration with
+tuned hyperparameters (<code class="docutils literal notranslate"><span class="pre">model_param</span></code>), model configuration without
+hyperparameters tuning (<code class="docutils literal notranslate"><span class="pre">baseline_model_param</span></code>) and the probability
+column index for outliers (<code class="docutils literal notranslate"><span class="pre">proba_col</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">MODEL_CONFIG</span></code>: Registry mapping model IDs (<code class="docutils literal notranslate"><span class="pre">iforest</span></code>, <code class="docutils literal notranslate"><span class="pre">knn</span></code>,
 <code class="docutils literal notranslate"><span class="pre">gmm</span></code>, <code class="docutils literal notranslate"><span class="pre">lof</span></code>, <code class="docutils literal notranslate"><span class="pre">pca</span></code>, <code class="docutils literal notranslate"><span class="pre">autoencoder</span></code>) to their
 <code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass</span></code>.</p></li>
@@ -290,8 +289,6 @@ the model, predicts outliers, and returns (recall, precision).</p></li>
 <code class="docutils literal notranslate"><span class="pre">mode</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">aggregate_best_trials</span></code>: Collect parameters from <code class="docutils literal notranslate"><span class="pre">study.best_trials</span></code>
 and produce a single-row DataFrame of aggregated hyperparameters.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_artifacts_output_dir</span></code>: Ensure a per-cell artifacts directory
-exists under <code class="docutils literal notranslate"><span class="pre">bconf.PIPELINE_OUTPUT_DIR</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">evaluate_hp_perfect_score_pct</span></code>: Compute the percentage of trials
 with perfect recall and precision (value == 1) and log per-trial
 scores.</p></li>
@@ -356,9 +353,7 @@ values <code class="docutils literal notranslate"><span class="pre">Any</span></
 <dd><p>A type alias for a function type that takes a dictionary of hyperparameters
 as input <code class="docutils literal notranslate"><span class="pre">Dict[str,</span> <span class="pre">Any]</span></code> and returns a model instance
 (e.g., KNN, IForest, GMM) <code class="docutils literal notranslate"><span class="pre">Any</span></code>.</p>
-<blockquote>
-<div><p>Example:
-.. code-block:</p>
+<p class="rubric">Example</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">input_hyperparam_dict</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;contamination&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
     <span class="s2">&quot;n_neighbors&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
@@ -384,7 +379,27 @@ as input <code class="docutils literal notranslate"><span class="pre">Dict[str,<
 <span class="c1"># metric=&quot;euclidean&quot;, n_jobs=-1)</span>
 </pre></div>
 </div>
-</div></blockquote>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="osbad.hyperparam.PyODModelType">
+<span class="sig-prename descclassname"><span class="pre">osbad.hyperparam.</span></span><span class="sig-name descname"><span class="pre">PyODModelType</span></span><a class="headerlink" href="#osbad.hyperparam.PyODModelType" title="Link to this definition">¶</a></dt>
+<dd><p>Type alias for supported PyOD anomaly detection models.</p>
+<p>This alias unifies the set of PyOD estimators commonly used in the
+benchmarking pipeline, enabling consistent type annotations and
+improved readability.</p>
+<dl class="simple">
+<dt>Supported models:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">IForest</span></code>: Isolation Forest model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">KNN</span></code>: K-Nearest Neighbors–based outlier detector.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GMM</span></code>: Gaussian Mixture Model for density-based detection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LOF</span></code>: Local Outlier Factor for neighborhood-based detection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PCA</span></code>: Principal Component Analysis for subspace-based detection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AutoEncoder</span></code>: Neural network–based autoencoder for
+reconstruction-based detection.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -404,6 +419,12 @@ PyOD estimators.</p>
 <dt class="sig sig-object py" id="osbad.hyperparam.ModelConfigDataClass.model_param">
 <span class="sig-name descname"><span class="pre">model_param</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ModelParamFuncType</span></em><a class="headerlink" href="#osbad.hyperparam.ModelConfigDataClass.model_param" title="Link to this definition">¶</a></dt>
 <dd><p>Function that builds a model instance from a set of hyperparameters.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="osbad.hyperparam.ModelConfigDataClass.baseline_model_param">
+<span class="sig-name descname"><span class="pre">baseline_model_param</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">PyODModelType</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#osbad.hyperparam.ModelConfigDataClass.baseline_model_param" title="Link to this definition">¶</a></dt>
+<dd><p>Function that builds a model instance without hyperparameter tuning.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -852,9 +873,11 @@ both existing and current evaluations.</p>
 <li><a class="reference internal" href="#osbad.hyperparam.RANDOM_STATE"><code class="docutils literal notranslate"><span class="pre">RANDOM_STATE</span></code></a></li>
 <li><a class="reference internal" href="#osbad.hyperparam.HpSpaceFuncType"><code class="docutils literal notranslate"><span class="pre">HpSpaceFuncType</span></code></a></li>
 <li><a class="reference internal" href="#osbad.hyperparam.ModelParamFuncType"><code class="docutils literal notranslate"><span class="pre">ModelParamFuncType</span></code></a></li>
+<li><a class="reference internal" href="#osbad.hyperparam.PyODModelType"><code class="docutils literal notranslate"><span class="pre">PyODModelType</span></code></a></li>
 <li><a class="reference internal" href="#osbad.hyperparam.ModelConfigDataClass"><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass</span></code></a><ul>
 <li><a class="reference internal" href="#osbad.hyperparam.ModelConfigDataClass.hp_space"><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass.hp_space</span></code></a></li>
 <li><a class="reference internal" href="#osbad.hyperparam.ModelConfigDataClass.model_param"><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass.model_param</span></code></a></li>
+<li><a class="reference internal" href="#osbad.hyperparam.ModelConfigDataClass.baseline_model_param"><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass.baseline_model_param</span></code></a></li>
 <li><a class="reference internal" href="#osbad.hyperparam.ModelConfigDataClass.proba_col"><code class="docutils literal notranslate"><span class="pre">ModelConfigDataClass.proba_col</span></code></a></li>
 </ul>
 </li>
@@ -880,7 +903,7 @@ both existing and current evaluations.</p>
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=6efca38a"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

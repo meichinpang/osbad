@@ -14,12 +14,11 @@ osbad.hyperparam
    and AutoEncoder.
 
    Key features:
-       - ``_customize_logger``: Create a configured logger with a custom
-         formatter and stdout handler; clears existing handlers to avoid
-         duplicates.
        - ``ModelConfigDataClass``: Frozen dataclass bundling the Optuna
-         search-space function (``hp_space``), the model factory
-         (``model_param``), and the probability column index (``proba_col``).
+         search-space function (``hp_space``), model configuration with
+         tuned hyperparameters (``model_param``), model configuration without
+         hyperparameters tuning (``baseline_model_param``) and the probability
+         column index for outliers (``proba_col``).
        - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
          ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
          ``ModelConfigDataClass``.
@@ -30,8 +29,6 @@ osbad.hyperparam
          ``mode``).
        - ``aggregate_best_trials``: Collect parameters from ``study.best_trials``
          and produce a single-row DataFrame of aggregated hyperparameters.
-       - ``_artifacts_output_dir``: Ensure a per-cell artifacts directory
-         exists under ``bconf.PIPELINE_OUTPUT_DIR``.
        - ``evaluate_hp_perfect_score_pct``: Compute the percentage of trials
          with perfect recall and precision (value == 1) and log per-trial
          scores.
@@ -102,32 +99,50 @@ Module Contents
    as input ``Dict[str, Any]`` and returns a model instance
    (e.g., KNN, IForest, GMM) ``Any``.
 
-       Example:
-       .. code-block::
+   .. rubric:: Example
 
-           input_hyperparam_dict = {
-               "contamination": 0.1,
-               "n_neighbors": 10,
-               "method": "mean",
-               "metric": "euclidean",
-               "threshold": 0.5,
-           }
+   .. code-block::
 
-           def knn_model_param(param: Dict[str, Any]) -> Any:
+       input_hyperparam_dict = {
+           "contamination": 0.1,
+           "n_neighbors": 10,
+           "method": "mean",
+           "metric": "euclidean",
+           "threshold": 0.5,
+       }
 
-               model_instance = KNN(
-                   contamination=param["contamination"],
-                   n_neighbors=param["n_neighbors"],
-                   method=param["method"],
-                   metric=param["metric"],
-                   n_jobs=-1,
-               )
+       def knn_model_param(param: Dict[str, Any]) -> Any:
 
-               return model_instance
+           model_instance = KNN(
+               contamination=param["contamination"],
+               n_neighbors=param["n_neighbors"],
+               method=param["method"],
+               metric=param["metric"],
+               n_jobs=-1,
+           )
 
-           # output will be:
-           # KNN(contamination=0.1, n_neighbors=10, method="mean",
-           # metric="euclidean", n_jobs=-1)
+           return model_instance
+
+       # output will be:
+       # KNN(contamination=0.1, n_neighbors=10, method="mean",
+       # metric="euclidean", n_jobs=-1)
+
+.. py:data:: PyODModelType
+
+   Type alias for supported PyOD anomaly detection models.
+
+   This alias unifies the set of PyOD estimators commonly used in the
+   benchmarking pipeline, enabling consistent type annotations and
+   improved readability.
+
+   Supported models:
+       * ``IForest``: Isolation Forest model.
+       * ``KNN``: K-Nearest Neighbors–based outlier detector.
+       * ``GMM``: Gaussian Mixture Model for density-based detection.
+       * ``LOF``: Local Outlier Factor for neighborhood-based detection.
+       * ``PCA``: Principal Component Analysis for subspace-based detection.
+       * ``AutoEncoder``: Neural network–based autoencoder for
+         reconstruction-based detection.
 
 .. py:class:: ModelConfigDataClass
 
@@ -148,6 +163,14 @@ Module Contents
       :type:  ModelParamFuncType
 
       Function that builds a model instance from a set of hyperparameters.
+
+
+   .. py:attribute:: baseline_model_param
+      :type:  Optional[Callable[[], PyODModelType]]
+      :value: None
+
+
+      Function that builds a model instance without hyperparameter tuning.
 
 
    .. py:attribute:: proba_col

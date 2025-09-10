@@ -9,18 +9,18 @@ Prerequisites
 
   * ``database/train_dataset_severson.db`` (benchmark labels per cycle)
   * ``database/train_features_severson.db`` (engineered features per cycle)
-  * ``PIPELINE_OUTPUT_DIR/hyperparams_iforest.csv`` (An example of tuned 
+  * ``PIPELINE_OUTPUT_DIR/hyperparams_iforest.csv`` (An example of tuned
     hyperparameters per cell for Isolation Forest)
 
-* (Optional) LaTeX installation if you want Matplotlib to render text with 
+* (Optional) LaTeX installation if you want Matplotlib to render text with
   LaTeX:
 
-  * A TeX distribution (e.g., TeX Live/MacTeX/MiKTeX), dvipng, and fonts 
+  * A TeX distribution (e.g., TeX Live/MacTeX/MiKTeX), dvipng, and fonts
     like cm-super.
-  * Don’t have LaTeX installed? Either install it, or set 
+  * Don’t have LaTeX installed? Either install it, or set
     ``rcParams["text.usetex"] = False``.
 
-Before running the example in the ``quick_start_tutorials`` section, please 
+Before running the example in the ``quick_start_tutorials`` section, please
 evaluate whether the global directory path specified in ``src/osbad/config.py``
 needs to be updated:
 
@@ -29,8 +29,8 @@ needs to be updated:
     # Modify this global directory path if needed
     PIPELINE_OUTPUT_DIR = Path.cwd().joinpath("artifacts_output_dir")
 
-The following example of running a model with probabilistic outlier prediction 
-is also provided as a notebook in 
+The following example of running a model with probabilistic outlier prediction
+is also provided as a notebook in
 ``quick_start_tutorials/02_run_model_tutorial.ipynb``.
 
 Step-1: Load libraries
@@ -41,13 +41,13 @@ Import the libraries into your local development environment, including the
 
 * ``Path`` is used for robust, cross-platform file paths.
 * ``duckdb`` is the embedded analytical database engine storing the dataset.
-* ``fireducks.pandas as pd`` gives you a pandas-compatible API; 
+* ``fireducks.pandas as pd`` gives you a pandas-compatible API;
   you can usually treat it like import pandas as pd.
-* ``rcParams["text.usetex"] = True`` tells Matplotlib to render text via 
+* ``rcParams["text.usetex"] = True`` tells Matplotlib to render text via
   LaTeX. If you don’t have LaTeX installed, flip this to False.
 * ``bconf``: project config utilities (e.g., where to write artifacts).
 * ``BenchDB``: a thin layer around DuckDB that provides convenience loaders.
-* ``ModelRunner``, ``hp``, ``modval``: modeling, hyperparameters, and 
+* ``ModelRunner``, ``hp``, ``modval``: modeling, hyperparameters, and
   model validation helpers for benchmarking study in this project.
 
 .. code-block:: python
@@ -75,13 +75,13 @@ Import the libraries into your local development environment, including the
 Step-2: Load Benchmarking Dataset
 ------------------------------------
 
-* Pick a specific cell based on the ``cell_index``, which identifies the 
-  experimental data corresponding to one unique cell. 
-* Create an artifacts folder for that cell, where you can save figures, 
+* Pick a specific cell based on the ``cell_index``, which identifies the
+  experimental data corresponding to one unique cell.
+* Create an artifacts folder for that cell, where you can save figures,
   tables, or model outputs related to this cell.
-* Initialize ``BenchDB`` for the selected cell and path to the DuckDB file: 
+* Initialize ``BenchDB`` for the selected cell and path to the DuckDB file:
   ``train_dataset_severson.db``.
-* Loads all data related to ``selected_cell_label`` from the training 
+* Loads all data related to ``selected_cell_label`` from the training
   partition.
 
 .. code-block:: python
@@ -89,12 +89,12 @@ Step-2: Load Benchmarking Dataset
     # Get the cell-ID from unique_cell_index_train
     selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
-    # Create a subfolder to store fig output 
+    # Create a subfolder to store fig output
     # corresponding to each cell-index
     selected_cell_artifacts_dir = bconf.artifacts_output_dir(
         selected_cell_label)
 
-    # Path to the DuckDB file: 
+    # Path to the DuckDB file:
     # "train_dataset_severson.db"
     db_filepath = (
         Path.cwd()
@@ -114,19 +114,19 @@ Step-2: Load Benchmarking Dataset
 Step-3: Load the Features DB
 ------------------------------------
 
-* Load the features (e.g., ``log_max_diff_dQ``, ``log_max_diff_dV``) based 
+* Load the features (e.g., ``log_max_diff_dQ``, ``log_max_diff_dV``) based
   on ``selected_cell_label`` in ``BenchDB``.
 * To make the chart more informative, bubble sizes are scaled by ratios
   calculated from the distributions of feature values (``max_diff_dQ`` and
   ``max_diff_dV``). Using absolute values ensures all sizes are positive.
-* Plot the bubble chart using the logarithmic features ``log_max_diff_dQ`` 
+* Plot the bubble chart using the logarithmic features ``log_max_diff_dQ``
   and ``log_max_diff_dV`` as the x and y axes. Bubble sizes are
   determined by the calculated ratios. Cycles flagged as outliers are
   highlighted via their indices.
 
 .. code-block:: python
 
-    # Define the filepath to ``train_features_severson.db`` 
+    # Define the filepath to ``train_features_severson.db``
     # DuckDB instance.
     db_features_filepath = (
         Path.cwd()
@@ -171,8 +171,8 @@ Step-3: Load the Features DB
         fontsize=12)
 
     output_fig_filename = (
-        "log_bubble_plot_" 
-        + selected_cell_label 
+        "log_bubble_plot_"
+        + selected_cell_label
         + ".png")
 
     fig_output_path = (
@@ -186,7 +186,7 @@ Step-3: Load the Features DB
     plt.show()
 
 .. image:: docs_figure/log_bubble_plot_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 450px
+   :height: 480px
    :width: 600 px
    :alt: Bubble plot from ``2017-05-12_5_4C-70per_3C_CH17``
    :align: center
@@ -194,28 +194,28 @@ Step-3: Load the Features DB
 Step-4: Train model with tuned hyperparameters
 -----------------------------------------------------
 
-* Resolves PIPELINE_OUTPUT_DIR and reads ``hyperparams_iforest.csv`` and 
+* Resolves PIPELINE_OUTPUT_DIR and reads ``hyperparams_iforest.csv`` and
   filters the CSV to the row for ``selected_cell_label``.
 
 * Extracts the hyperparameter dictionary:
 
-  * ``contamination``, 
+  * ``contamination``,
   * ``n_estimators``,
   * ``max_samples``,
   * ``threshold``.
 
 * Loads the Isolation Forest config from ``hp.MODEL_CONFIG["iforest"]``.
-* Builds a ModelRunner with the cell label, feature DataFrame, and 
+* Builds a ModelRunner with the cell label, feature DataFrame, and
   selected features.
-* Calls ``runner.create_model_x_input()`` to get the X matrix 
+* Calls ``runner.create_model_x_input()`` to get the X matrix
   (shape: n_cycles × n_features).
-* Instantiates the model with ``cfg.model_param(param_dict)``, 
+* Instantiates the model with ``cfg.model_param(param_dict)``,
   fits it, and computes probabilities with predict_proba.
 * Converts probabilities into outlier indices and associated outlier scores.
 
 .. code-block:: python
 
-    # Access the global filepath variable PIPELINE_OUTPUT_DIR defined 
+    # Access the global filepath variable PIPELINE_OUTPUT_DIR defined
     # in config.py
     PIPELINE_OUTPUT_DIR = bconf.PIPELINE_OUTPUT_DIR
 
@@ -246,7 +246,7 @@ Step-4: Train model with tuned hyperparameters
         "log_max_diff_dV")
 
     # Create a ModelRunner instance based on selected_cell_label,
-    # df_features_per_cell and 
+    # df_features_per_cell and
     # selected_feature_cols
     runner = ModelRunner(
         cell_label=selected_cell_label,
@@ -263,10 +263,10 @@ Step-4: Train model with tuned hyperparameters
 
     # Fit the model and get probabilistic outliers prediction
     model.fit(Xdata)
-    proba = model.predict_proba(Xdata) 
+    proba = model.predict_proba(Xdata)
 
     # Get the predicted outlier indices (pred_outlier_indices)
-    # pred_outlier_indices correspond to predicted anomalous cycles in the 
+    # pred_outlier_indices correspond to predicted anomalous cycles in the
     # first example
     (pred_outlier_indices,
      pred_outlier_score) = runner.pred_outlier_indices_from_proba(
@@ -278,13 +278,13 @@ Step-4: Train model with tuned hyperparameters
 Step-5: Predict Probabilistic Anomaly Score Map
 -----------------------------------------------------
 
-* ``pred_outlier_indices`` is a list of cycle indices predicted as 
-  anomalous by the Isolation Forest model. Using ``.isin()``, we filter the 
+* ``pred_outlier_indices`` is a list of cycle indices predicted as
+  anomalous by the Isolation Forest model. Using ``.isin()``, we filter the
   dataframe to keep only the cycles identified as anomalies.
-* A new column, ``outlier_prob``, is added to store the outliers probability 
-  computed by the model, making it easy to track how confidently the 
+* A new column, ``outlier_prob``, is added to store the outliers probability
+  computed by the model, making it easy to track how confidently the
   algorithm flags each cycle.
-* ``runner.predict_anomaly_score_map`` generates a 2D contour map of anomaly 
+* ``runner.predict_anomaly_score_map`` generates a 2D contour map of anomaly
   scores (outlier probability).
 
 .. code-block:: python
@@ -305,7 +305,7 @@ Step-5: Predict Probabilistic Anomaly Score Map
       threshold=param_dict["threshold"])
 
 .. image:: docs_figure/isolation_forest_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 480px
+   :height: 450px
    :width: 600 px
    :alt: Anomaly score map with iForest from ``2017-05-12_5_4C-70per_3C_CH17``
    :align: center
@@ -318,7 +318,7 @@ The figure shows the anomaly score map produced by the Isolation Forest model:
   * Blue/white regions: low anomaly probability (normal cycles).
 * Dashed Black Contour:
 
-  * Represents the decision boundary defined by the Isolation Forest 
+  * Represents the decision boundary defined by the Isolation Forest
     threshold. Points outside are considered anomalies.
 * Black Dots:
 
@@ -326,7 +326,7 @@ The figure shows the anomaly score map produced by the Isolation Forest model:
 * Yellow Stars with Labels:
 
   * Mark the detected anomalous cycles (0, 40, 147, 148).
-  * Their positions in the 2D feature space highlight where they deviate from 
+  * Their positions in the 2D feature space highlight where they deviate from
     typical battery behavior.
 * Colorbar (right):
 
@@ -335,9 +335,9 @@ The figure shows the anomaly score map produced by the Isolation Forest model:
 
   * Summarizes the predicted anomalous cycles.
 
-Cycles 0 and 40 show unusually high voltage deviations, while 147 and 148 
-show strong deviations in charge capacity. These anomalies might correspond 
-to specific battery degradation events, sensor errors, or experimental 
+Cycles 0 and 40 show unusually high voltage deviations, while 147 and 148
+show strong deviations in charge capacity. These anomalies might correspond
+to specific battery degradation events, sensor errors, or experimental
 disturbances.
 
 
@@ -346,9 +346,9 @@ Step-6: Model performance evaluation
 
 * Map predicted outlier indices to the benchmark dataset:
 
-  * ``df_selected_cell`` holds cycle-level records and the ground-truth label 
+  * ``df_selected_cell`` holds cycle-level records and the ground-truth label
     (e.g., ``outlier`` = 1 for anomalous cycles, else 0).
-  * ``pred_outlier_indices`` is the list of cycle indices flagged by the 
+  * ``pred_outlier_indices`` is the list of cycle indices flagged by the
     model.
 * ``modval.evaluate_pred_outliers(...)`` returns a tidy DataFrame with:
 
@@ -380,8 +380,8 @@ Step-6: Model performance evaluation
         fontsize=16)
 
     output_fig_filename = (
-        "conf_matrix_iforest_" 
-        + selected_cell_label 
+        "conf_matrix_iforest_"
+        + selected_cell_label
         + ".png")
 
     fig_output_path = (
@@ -402,7 +402,7 @@ Step-6: Model performance evaluation
         df_eval_outliers=df_eval_outlier)
 
 .. image:: docs_figure/conf_matrix_iforest_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 480px
+   :height: 420px
    :width: 550 px
    :alt: Confusion matrix with iForest from ``2017-05-12_5_4C-70per_3C_CH17``
    :align: center

@@ -6,8 +6,8 @@ Overview
 In this open-source anomaly detection benchmarking project, we only work with
 publicly available published dataset:
 
-* Data-driven Prediction of Battery Cycle Life Dataset
-* Tohoku Dataset
+* :doc:`severson`
+* :doc:`tohoku`
 
 Data management toolstack
 ============================

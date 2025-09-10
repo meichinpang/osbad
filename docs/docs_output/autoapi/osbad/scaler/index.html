@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="osbad.stats" href="../stats/index.html" /><link rel="prev" title="osbad.modval" href="../modval/index.html" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
-        <title>osbad.scaler - osbad 1.0.0 documentation</title>
+        <title>osbad.scaler - osbad 1.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../../index.html"><div class="brand">osbad 1.0.0 documentation</div></a>
+      <a href="../../../index.html"><div class="brand">osbad 1.2.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -190,7 +190,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
   
-  <span class="sidebar-brand-text">osbad 1.0.0 documentation</span>
+  <span class="sidebar-brand-text">osbad 1.2.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -202,7 +202,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../dataset.html">Datasets Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Datasets Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../severson.html">Data-driven Prediction of Battery Cycle Life Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../severson.html">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../tohoku.html">Tohoku Dataset</a></li>
 </ul>
 </li>
@@ -276,7 +276,7 @@ methods in this benchmarking study.</p>
 <h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="osbad.scaler.CycleScaling">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">osbad.scaler.</span></span><span class="sig-name descname"><span class="pre">CycleScaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_selected_cell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#osbad.scaler.CycleScaling" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">osbad.scaler.</span></span><span class="sig-name descname"><span class="pre">CycleScaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_selected_cell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fireducks.pandas.DataFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#osbad.scaler.CycleScaling" title="Link to this definition">¶</a></dt>
 <dd><p>Implement statistical feature transformation methods on the selected
 dataframe.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Only select the relevant features for the models while excluding</span>
@@ -299,7 +299,7 @@ dataframe.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="osbad.scaler.CycleScaling.median_IQR_scaling">
-<span class="sig-name descname"><span class="pre">median_IQR_scaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.median_IQR_scaling" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">median_IQR_scaling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">fireducks.pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.median_IQR_scaling" title="Link to this definition">¶</a></dt>
 <dd><p>Implement median-IQR-scaling on the selected feature from the
 dataframe to help with the marginal histogram separation of
 abnormal cycles from normal cycles.</p>
@@ -338,7 +338,7 @@ Defaults to False.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="osbad.scaler.CycleScaling.calculate_max_diff_per_cycle">
-<span class="sig-name descname"><span class="pre">calculate_max_diff_per_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_scaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.calculate_max_diff_per_cycle" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">calculate_max_diff_per_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_scaled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fireducks.pandas.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">fireducks.pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.calculate_max_diff_per_cycle" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the maximum feature difference per cycle to transform
 collective anomalies of a given cycle into cycle-wise point anomalies.
 If continuous abnormal voltage and current measurements are recorded
@@ -383,7 +383,7 @@ from the dataframe.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="osbad.scaler.CycleScaling.calculate_max_feature_derivative_per_cycle">
-<span class="sig-name descname"><span class="pre">calculate_max_feature_derivative_per_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xfeature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yfeature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.calculate_max_feature_derivative_per_cycle" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">calculate_max_feature_derivative_per_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xfeature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fireducks.pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yfeature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fireducks.pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fireducks.pandas.Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">fireducks.pandas.DataFrame</span></span></span><a class="headerlink" href="#osbad.scaler.CycleScaling.calculate_max_feature_derivative_per_cycle" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the derivative of Yfeature and Xfeature (dYdX)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -483,7 +483,7 @@ from the dataframe.</p>
       
     </aside>
   </div>
-</div><script src="../../../_static/documentation_options.js?v=8d563738"></script>
+</div><script src="../../../_static/documentation_options.js?v=6efca38a"></script>
     <script src="../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>

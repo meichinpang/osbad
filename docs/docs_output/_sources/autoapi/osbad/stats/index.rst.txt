@@ -21,7 +21,7 @@ osbad.stats
 Module Contents
 ---------------
 
-.. py:function:: calculate_IQR_bound(df_variable: pandas.Series) -> tuple
+.. py:function:: calculate_IQR_bound(df_variable: fireducks.pandas.Series) -> tuple
 
    Calculate the IQR first and third quantile with the corresponding IQR
    lower and upper bounds.
@@ -34,7 +34,7 @@ Module Contents
    :rtype: tuple
 
 
-.. py:function:: calculate_sd_outliers(df_variable: pandas.Series | numpy.ndarray) -> tuple
+.. py:function:: calculate_sd_outliers(df_variable: fireducks.pandas.Series | numpy.ndarray) -> tuple
 
    Use the 3 standard deviation method to detect outliers.
 
@@ -52,7 +52,7 @@ Module Contents
        SD_max_limit_dQ) = sd.calculate_sd_outliers(df_max_dQ["max_diff"])
 
 
-.. py:function:: calculate_bubble_size_ratio(df_variable: pandas.Series | numpy.ndarray) -> pandas.Series
+.. py:function:: calculate_bubble_size_ratio(df_variable: fireducks.pandas.Series | numpy.ndarray) -> fireducks.pandas.Series
 
    Calculate the bubble size of the feature in the bubble plot depending
    on the anomaly score by using the feature standardization method.
@@ -72,7 +72,7 @@ Module Contents
            df_variable=df_max_dV["max_diff"])
 
 
-.. py:function:: calculate_feature_stats(df_variable: pandas.Series | numpy.ndarray, new_col_name: str = None) -> pandas.DataFrame
+.. py:function:: calculate_feature_stats(df_variable: fireducks.pandas.Series | numpy.ndarray, new_col_name: str = None) -> fireducks.pandas.DataFrame
 
    Calculate the statistics (max, min, mean and standard deviation) of
    the selected feature.
@@ -94,7 +94,7 @@ Module Contents
            new_col_name="dV")
 
 
-.. py:function:: calculate_MAD_outliers(df_variable: pandas.Series | numpy.ndarray, MAD_factor: float = None)
+.. py:function:: calculate_MAD_outliers(df_variable: fireducks.pandas.Series | numpy.ndarray, MAD_factor: float = None)
 
    Use Median Absolute Deviation (MAD) method to detect outliers.
 
@@ -131,7 +131,7 @@ Module Contents
            MAD_factor=1.4826)
 
 
-.. py:function:: calculate_modified_zscore_outliers(df_variable: pandas.Series | numpy.ndarray, MAD_factor: float = None) -> tuple
+.. py:function:: calculate_modified_zscore_outliers(df_variable: fireducks.pandas.Series | numpy.ndarray, MAD_factor: float = None) -> tuple
 
    Use modified Z-score method to detect outliers.
 
@@ -156,7 +156,7 @@ Module Contents
            MAD_factor=None)
 
 
-.. py:function:: calculate_zscore_outliers(df_variable: pandas.Series | numpy.ndarray) -> tuple
+.. py:function:: calculate_zscore_outliers(df_variable: fireducks.pandas.Series | numpy.ndarray) -> tuple
 
    Use Z-score method to detect outliers.
 
@@ -176,7 +176,7 @@ Module Contents
 
 
 
-.. py:function:: calculate_zscore(df_variable: pandas.Series | numpy.ndarray) -> pandas.Series | numpy.ndarray
+.. py:function:: calculate_zscore(df_variable: fireducks.pandas.Series | numpy.ndarray) -> fireducks.pandas.Series | numpy.ndarray
 
    Calculate the Z-score of the selected feature.
 
@@ -187,7 +187,7 @@ Module Contents
    :rtype: pd.Series|np.ndarray
 
 
-.. py:function:: calculate_IQR_outliers(df_variable: pandas.Series | numpy.ndarray)
+.. py:function:: calculate_IQR_outliers(df_variable: fireducks.pandas.Series | numpy.ndarray)
 
    Use the Interquartile Range (IQR) method to detect outliers.
 

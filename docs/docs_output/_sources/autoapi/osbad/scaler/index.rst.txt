@@ -21,7 +21,7 @@ osbad.scaler
 Module Contents
 ---------------
 
-.. py:class:: CycleScaling(df_selected_cell: pandas.DataFrame)
+.. py:class:: CycleScaling(df_selected_cell: fireducks.pandas.DataFrame)
 
    Implement statistical feature transformation methods on the selected
    dataframe.
@@ -46,7 +46,7 @@ Module Contents
        ``df_selected_cell["outlier"]``.
 
 
-   .. py:method:: median_IQR_scaling(variable: str, validate: bool = False) -> pandas.DataFrame
+   .. py:method:: median_IQR_scaling(variable: str, validate: bool = False) -> fireducks.pandas.DataFrame
 
       Implement median-IQR-scaling on the selected feature from the
       dataframe to help with the marginal histogram separation of
@@ -79,7 +79,7 @@ Module Contents
 
 
 
-   .. py:method:: calculate_max_diff_per_cycle(df_scaled: pandas.DataFrame, variable_name: str) -> pandas.DataFrame
+   .. py:method:: calculate_max_diff_per_cycle(df_scaled: fireducks.pandas.DataFrame, variable_name: str) -> fireducks.pandas.DataFrame
 
       Calculate the maximum feature difference per cycle to transform
       collective anomalies of a given cycle into cycle-wise point anomalies.
@@ -118,7 +118,7 @@ Module Contents
 
 
 
-   .. py:method:: calculate_max_feature_derivative_per_cycle(Xfeature: pandas.Series, Yfeature: pandas.Series, cycle_index: pandas.Series) -> pandas.DataFrame
+   .. py:method:: calculate_max_feature_derivative_per_cycle(Xfeature: fireducks.pandas.Series, Yfeature: fireducks.pandas.Series, cycle_index: fireducks.pandas.Series) -> fireducks.pandas.DataFrame
 
       Calculate the derivative of Yfeature and Xfeature (dYdX)
 
