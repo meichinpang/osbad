@@ -361,11 +361,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             "contamination": trial.suggest_float("contamination", 0.0, 0.5),
             "threshold": trial.suggest_float("threshold", 0.0, 1.0),
         },
-        model_param=lambda param: PCAOD(
+        model_param=lambda param: PCA(
             n_components=param["n_components"],
             contamination=param["contamination"]
         ),
-        baseline_model_param=lambda: PCAOD(
+        baseline_model_param=lambda: PCA(
             n_components=2,
         ),
     ),
