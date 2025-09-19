@@ -5,7 +5,7 @@ import pathlib
 from pathlib import Path
 
 
-SHOW_FIG_STATUS = True
+SHOW_FIG_STATUS = False
 """
 Global flag to control whether Matplotlib figures are displayed.
 
