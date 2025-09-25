@@ -427,13 +427,16 @@ def objective(
     selected_cell_label: str,
     df_benchmark_dataset: Optional[pd.DataFrame] = None,
 ) -> Tuple[float, float]:
+    
     """
     Optimize model hyperparameters using Optuna trial.
 
     This function evaluates a given anomaly detection model by sampling
     hyperparameters from the trial, training the model, predicting
-    outliers, and computing recall and precision against a benchmark
-    dataset.
+    outliers, and computing evaluation metrics. If a benchmark dataset
+    is provided, recall and precision are computed. Otherwise, proxy
+    evaluation metrics are used based on cycle index and model input 
+    features.
 
     Args:
         trial (optuna.trial.Trial): Optuna trial object used to
@@ -443,11 +446,16 @@ def objective(
             "autoencoder".
         df_feature_dataset (pd.DataFrame): Feature dataset containing
             model input features.
-        df_benchmark_dataset (pd.DataFrame): Benchmark dataset used to
-            evaluate predicted outliers.
+        selected_feature_cols (list): List of selected feature column names.
+        selected_cell_label (str): Label identifying the cell for which
+            the model is being trained.
+        df_benchmark_dataset (Optional[pd.DataFrame]): Benchmark dataset used to
+            evaluate predicted outliers. If None, proxy evaluation is performed.
 
     Returns:
-        Tuple[float, float]: Recall and precision scores of the model.
+        Tuple[float, float]: If benchmark dataset is provided, returns recall and
+        precision scores. Otherwise, returns loss score and inliers score from
+        proxy evaluation.
 
     Example:
         .. code-block::
@@ -472,6 +480,7 @@ def objective(
                     df_selected_cell),
                 n_trials=20)
     """
+    
     cfg = MODEL_CONFIG[model_id]
     params = cfg.hp_space(trial)
 
