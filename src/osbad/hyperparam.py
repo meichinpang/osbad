@@ -59,6 +59,7 @@ import fireducks.pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage import uniform_filter1d
 import optuna
 from matplotlib import rcParams
 import pyod
@@ -361,11 +362,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             "contamination": trial.suggest_float("contamination", 0.0, 0.5),
             "threshold": trial.suggest_float("threshold", 0.0, 1.0),
         },
-        model_param=lambda param: PCAOD(
+        model_param=lambda param: PCA(
             n_components=param["n_components"],
             contamination=param["contamination"]
         ),
-        baseline_model_param=lambda: PCAOD(
+        baseline_model_param=lambda: PCA(
             n_components=2,
         ),
     ),
@@ -423,8 +424,8 @@ def objective(
     model_id: Literal["iforest","knn","gmm","lof","pca","autoencoder"],
     df_feature_dataset: pd.DataFrame,
     selected_feature_cols: list,
-    df_benchmark_dataset: pd.DataFrame,
     selected_cell_label: str,
+    df_benchmark_dataset: Optional[pd.DataFrame] = None,
 ) -> Tuple[float, float]:
     """
     Optimize model hyperparameters using Optuna trial.
@@ -479,22 +480,161 @@ def objective(
         df_input_features=df_feature_dataset,
         selected_feature_cols=selected_feature_cols)
 
+    if df_benchmark_dataset is not None:
+        
+        Xdata = runner.create_model_x_input()
+        model = cfg.model_param(params)
+        model.fit(Xdata)
 
-    Xdata = runner.create_model_x_input()
-    model = cfg.model_param(params)
-    model.fit(Xdata)
+        proba = model.predict_proba(Xdata)  # shape (n_samples, 2)
+        (pred_outlier_indices,
+        pred_outlier_score) = runner.pred_outlier_indices_from_proba(
+            proba=proba,
+            threshold=params["threshold"],
+            outlier_col=cfg.proba_col
+        )
+        recall, precision = runner.evaluate_indices(
+            df_benchmark_dataset, pred_outlier_indices)
 
-    proba = model.predict_proba(Xdata)  # shape (n_samples, 2)
-    (pred_outlier_indices,
-     pred_outlier_score) = runner.pred_outlier_indices_from_proba(
-        proba=proba,
-        threshold=params["threshold"],
-        outlier_col=cfg.proba_col
-    )
-    recall, precision = runner.evaluate_indices(
-        df_benchmark_dataset, pred_outlier_indices)
+        return recall, precision
+    
+    else:
 
-    return recall, precision
+        # Xdata: with cycle index and two anomaly detection features
+        Xdata = runner.create_model_x_input()
+
+        #extract cycle index predictor for regression proxy
+        cycle_idx = Xdata[:,0].reshape(-1,1)
+
+        #extract target features for Pyod model and regression proxy 
+        features = Xdata[:,1:]
+        
+        model = cfg.model_param(params)
+        model.fit(features)
+
+        proba = model.predict_proba(features)  # shape (n_samples, 2)
+        (pred_outlier_indices,
+        pred_outlier_score) = runner.pred_outlier_indices_from_proba(
+            proba=proba,
+            threshold=params["threshold"],
+            outlier_col=cfg.proba_col
+        )
+
+        loss_score, inliers_score = runner.proxy_evaluate_indices(
+            pred_outlier_indices, cycle_idx, features)
+        
+        return loss_score, inliers_score
+    
+# Getting best trials from pareto-optimal trials using curvature analysis ----
+
+def curvature(target_x: Union[List[float], np.ndarray], 
+              target_y: Union[List[float], np.ndarray],
+              window_size: int=5
+              ) -> np.ndarray: 
+        
+    """
+    Calculates the curvature values of a smoothed loss_score 
+    vs inlier_score plot.
+
+    This function estimates the curvature of a 2D curve defined 
+    by `target_x` and `target_y`, which represents the trade-off 
+    between regression loss and inlier count in outlier detection
+    evaluation. The curvature is computed after applying a uniform 
+    smoothing filter to reduce noise.
+
+    Args:
+        target_x (Union[List[float], np.ndarray]): List or array 
+        of x-values (e.g., loss scores).
+        target_y (Union[List[float], np.ndarray]): List or array 
+        of y-values (e.g., inlier scores).
+
+    Returns:
+        float: Array of curvature values at each point on the smoothed 
+        curve. These values indicate how sharply the curve bends at each
+        location.
+
+    .. note::
+    - A smoothing window is applied to reduce noise before computing 
+    gradients.
+    - The curvature is calculated using the standard 2D curvature formula:
+        κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)
+    - Division by zero is safely handled using NumPy's error state
+    management.
+
+    """
+
+    x_smooth = uniform_filter1d(target_x, size=window_size)
+    y_smooth = uniform_filter1d(target_y, size=window_size)
+
+    dx = np.gradient(x_smooth)
+    dy = np.gradient(y_smooth)
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+    
+    numerator = dx * ddy - dy * ddx
+    denominator = (dx**2 + dy**2)**1.5
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        kappa = np.where(denominator != 0, numerator / denominator, 0.0)
+
+    return kappa
+
+def optimal_trails_detection(
+        study: optuna.study.Study
+        ) -> List[optuna.trial.FrozenTrial]:
+    
+    """
+
+    Identifies the most representative Pareto-optimal trials based 
+    on curvature analysis of the loss_score vs inlier_score trade-off 
+    curve.The curvature-based selection helps identify the "elbow point" 
+    in the trade-off curve, which often represents the best balance
+    between minimizing regression loss and maximizing inlier retention.
+
+    This function performs the following steps:
+    1. Sorts Pareto-optimal trials in descending order of loss_score.
+    2. Extracts loss_score and inlier_score values from the sorted trials.
+    3. Computes the curvature of the smoothed loss vs inlier score plot
+       to identify the point of maximum curvature (inflection point).
+    4. Selects the trial at the inflection point as the optimal trade-off 
+       between model performance and data retention.
+    5. Returns all trials that share the same loss_score and inlier_score 
+       as the identified optimal trial.
+
+    Args:
+        study (optuna.study.study.Study)
+        An Optuna study object containing multiple trials, including
+        Pareto-optimal ones.
+
+    Returns:
+        List[optuna.trial.FrozenTrial]
+        A list of trials that match the optimal trade-off point, 
+        determined by the maximum curvature in the loss vs inlier score 
+        plot.
+    
+    """
+
+    sorted_best_trails = sorted(study.best_trials, 
+                                    key=lambda t: t.values[0], 
+                                    reverse=True)
+    
+    loss_scores = [trial.values[0] for trial in sorted_best_trails]
+    inlier_scores = [trial.values[1] for trial in sorted_best_trails]
+
+    kappa = curvature(loss_scores, inlier_scores, window_size=5)
+
+    inflection_index = np.argmax(np.abs(kappa)) - 1
+
+    optimal_trial = sorted_best_trails[inflection_index]
+
+    optimal_trials_list = [trial for trial in sorted_best_trails 
+                            if round(trial.values[0], 4) == 
+                            round(optimal_trial.values[0], 4)
+                            and trial.values[1] ==
+                            optimal_trial.values[1]]
+
+    return optimal_trials_list
+
 
 # Generic aggregation of best trials -----------------------------------------
 
@@ -554,7 +694,7 @@ def aggregate_param_method(values: List[Any], how: Agg):
     raise ValueError(how)
 
 def aggregate_best_trials(
-    study: optuna.study.Study,
+    best_trials: List[optuna.trial.FrozenTrial],
     cell_label: str,
     model_id: str,
     schema: Dict[str, Agg],
@@ -597,8 +737,7 @@ def aggregate_best_trials(
                 schema=schema_knn)
         """
 
-    trials = study.best_trials
-    if not trials:
+    if not best_trials:
         return pd.DataFrame(
             [{"ml_model": model_id, "cell_index": cell_label}])
 
@@ -620,7 +759,7 @@ def aggregate_best_trials(
 
     # Extract the parameters from the best trial of the optuna optimization
     # And store them in collected_param_dict
-    for tr in trials:
+    for tr in best_trials:
         for p in schema.keys():
             collected_param_dict[p].append(tr.params[p])
 
@@ -858,6 +997,129 @@ def plot_pareto_front(
             alpha=0.2))
 
     axplot.set_xlim([0,1.4])
+
+    axplot.patch.set_facecolor("white")
+    axplot.spines["bottom"].set_color("black")
+    axplot.spines["top"].set_color("black")
+    axplot.spines["left"].set_color("black")
+    axplot.spines["right"].set_color("black")
+
+    axplot.grid(
+        color="grey",
+        linestyle="-",
+        linewidth=0.25,
+        alpha=0.7)
+
+    # convert the fig title to snake_case for filepath standardization
+    output_fig_filename = (
+        fig_title.casefold().replace(" ","_")
+        + "_" + selected_cell_label
+        + ".png")
+
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
+
+    fig_output_path = (
+        selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+    plt.savefig(
+        fig_output_path,
+        dpi=200,
+        bbox_inches="tight")
+
+    if bconf.SHOW_FIG_STATUS:
+        plt.show()
+
+def plot_proxy_pareto_front(
+    model_study: optuna.study.study.Study,
+    selected_cell_label: str,
+    fig_title: str) -> None:
+
+    """
+    Plot and save the Pareto front of proxy evaluation metrics 
+    i.e. loss scores vs. inliers count scores.
+
+    This function generates a Pareto front plot from an Optuna study
+    that optimizes for both regression loss and predicted inlier count. 
+    The plot includes an annotation showing the best compromised solution
+    or trade-off solution obtained at the knee or inflection point of 
+    the curve out of pareto-optimal trials.
+
+    Args:
+        model_study (optuna.study.study.Study): Optuna study object
+            containing trials with recall and precision scores as
+            objectives.
+        selected_cell_label (str): Identifier for the evaluated cell,
+            used to generate the output file path.
+        fig_title (str): Title of the plot and basis for the output file
+            name.
+        output_log_status (bool, optional): If True, enables logging of
+            intermediate evaluation steps. Defaults to False.
+
+    Returns:
+        None: The function saves the Pareto front plot as a PNG file in
+        the artifacts directory associated with the selected cell.
+
+    Example:
+        .. code-block::
+
+            hp.plot_proxy_pareto_front(
+                if_study,
+                selected_cell_label,
+                fig_title="Isolation Forest Pareto Front")
+    """
+    sorted_best_trails = sorted(model_study.best_trials, 
+                                key=lambda t: t.values[0], 
+                                reverse=True)
+    
+    loss_scores = [trial.values[0] for trial in sorted_best_trails]
+    inlier_scores = [trial.values[1] for trial in sorted_best_trails]
+
+    kappa = curvature(loss_scores, inlier_scores, window_size=5)
+
+    inflection_index = np.argmax(np.abs(kappa)) - 1
+
+    loss_infl = loss_scores[inflection_index]
+    inlier_infl = inlier_scores[inflection_index]
+
+    axplot = optuna.visualization.matplotlib.plot_pareto_front(
+        model_study,
+        target_names=[
+            "pred_mse_score",
+            "pred_inlier_score"])
+    
+    axplot.scatter(loss_infl, inlier_infl, 
+                marker='X', 
+                color='green',
+                label='Best Compromise Solution')
+    
+    # Add an arrow and text annotation
+    axplot.annotate(text="Knee Point",
+                xy=(loss_infl, inlier_infl), 
+                xytext=(loss_infl+0.15, inlier_infl-0.15),
+                fontsize=12,
+                arrowprops=dict(facecolor='black', shrink=0.05))
+
+    #axplot.axis("equal")
+    axplot.set_xlim([0,1.05])
+
+    axplot.set_xlabel(
+        "Regression loss score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_ylabel(
+        "Inlier count score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_title(
+        fig_title,
+        fontsize=16)
+
+    axplot.legend(
+        loc='right',
+        fontsize=10)
 
     axplot.patch.set_facecolor("white")
     axplot.spines["bottom"].set_color("black")
