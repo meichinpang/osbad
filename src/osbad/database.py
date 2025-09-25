@@ -77,10 +77,8 @@ class BenchDB:
         # create a new folder for each evaluated cell
         # store all figures output for each evaluated
         # cell into its corresponding folder
-        self._selected_cell_artifacts = bconf.PIPELINE_OUTPUT_DIR.joinpath(
+        self._selected_cell_artifacts = bconf.artifacts_output_dir(
             self._selected_cell_label)
-        if not os.path.exists(self._selected_cell_artifacts):
-            os.mkdir(self._selected_cell_artifacts)
 
     def load_benchmark_dataset(
         self,
