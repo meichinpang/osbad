@@ -16,8 +16,15 @@ Key features:
     - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
       ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
       ``ModelConfigDataClass``.
-    - ``objective``: Generic Optuna objective that samples params, builds
-      the model, predicts outliers, and returns (recall, precision).
+    - ``objective``: Generic Optuna objective function that can handle both 
+      supervised hyperparameter tuning and unsupervised hyperparameter tuning.
+      Samples params, builds the model, predicts outliers, and returns 
+      performance metrics.
+    - ``curvature``: calculates value of curvature of the loss score vs. 
+      inlier score curve at each pareto-optimal point.
+    - ``trade_off_trails_detection``: Finds best compromised solutions or 
+      trials based on the maximum curvature or elbow point of two objective 
+      targets.   
     - ``aggregate_param_method``: Aggregate a list of values via ``median``,
       ``median_int``, or ``mode`` (with deterministic tie-breaking by
       ``mode``).
@@ -28,6 +35,9 @@ Key features:
       scores.
     - ``plot_pareto_front``: Plot the Pareto front (recall vs. precision),
       annotate perfect-score percentages, and save to the artifacts folder.
+    - ``plot_proxy_pareto_front``: Plot the Pareto front for proxy metrics
+      (loss score vs. inlier score), annotates best compromised solution, 
+      and save to the artifacts folder.
     - ``export_current_hyperparam``: Append best hyperparameters for a cell
       to a CSV (skips if already present) and return the updated DataFrame.
     - ``export_current_model_metrics``: Append evaluation metrics for a
@@ -588,7 +598,7 @@ def curvature(target_x: Union[List[float], np.ndarray],
 
     return kappa
 
-def optimal_trails_detection(
+def trade_off_trails_detection(
         study: optuna.study.Study
         ) -> List[optuna.trial.FrozenTrial]:
     
@@ -627,10 +637,10 @@ def optimal_trails_detection(
                                     key=lambda t: t.values[0], 
                                     reverse=True)
     
-    loss_scores = [trial.values[0] for trial in sorted_best_trails]
-    inlier_scores = [trial.values[1] for trial in sorted_best_trails]
+    obj0_scores = [trial.values[0] for trial in sorted_best_trails]
+    obj1_scores = [trial.values[1] for trial in sorted_best_trails]
 
-    kappa = curvature(loss_scores, inlier_scores, window_size=5)
+    kappa = curvature(obj0_scores, obj1_scores, window_size=5)
 
     inflection_index = np.argmax(np.abs(kappa)) - 1
 
