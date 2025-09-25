@@ -599,7 +599,8 @@ def curvature(target_x: Union[List[float], np.ndarray],
     return kappa
 
 def trade_off_trails_detection(
-        study: optuna.study.Study
+        study: optuna.study.Study,
+        window_size: int=5,
         ) -> List[optuna.trial.FrozenTrial]:
     
     """
@@ -640,7 +641,7 @@ def trade_off_trails_detection(
     obj0_scores = [trial.values[0] for trial in sorted_best_trails]
     obj1_scores = [trial.values[1] for trial in sorted_best_trails]
 
-    kappa = curvature(obj0_scores, obj1_scores, window_size=5)
+    kappa = curvature(obj0_scores, obj1_scores, window_size=window_size)
 
     inflection_index = np.argmax(np.abs(kappa)) - 1
 
@@ -1179,6 +1180,7 @@ def export_current_hyperparam(
     df_best_param_current_cell: pd.DataFrame,
     selected_cell_label: str,
     export_csv_filepath: Union[pathlib.PosixPath, str],
+    replace_hp: bool=False,
     output_log_bool: bool=True):
     """
     Export best hyperparameters for a cell to a CSV file.
@@ -1251,11 +1253,26 @@ def export_current_hyperparam(
             export_csv_filepath,
             index=False)
     else:
-        logger.info("Hyperparameters for "
-            + f"{selected_cell_label} already exists "
-            +"in the CSV file!")
+        if not replace_hp:
+            logger.info("Hyperparameters for "
+                + f"{selected_cell_label} already exists "
+                +"in the CSV file!")
+            logger.info("Not updating Hyperparameters "
+                        + f"for {selected_cell_label}")
+            df_updated_hyperparam = df_best_param_from_csv.copy()
+        else:
+            logger.info("Updating Hyperparameters "
+                        + f"for {selected_cell_label}")
+            mask = (df_best_param_from_csv["cell_index"] 
+                    == selected_cell_label)
+            new_hp_values = df_best_param_current_cell.iloc[0].values
+            df_best_param_from_csv.loc[mask] = new_hp_values
+            df_updated_hyperparam = df_best_param_from_csv.copy()
 
-        df_updated_hyperparam = df_best_param_from_csv.copy()
+            # Export metrics to CSV with updated hyperparameters
+            df_updated_hyperparam.to_csv(
+            export_csv_filepath,
+            index=False)
 
     return df_updated_hyperparam
 
@@ -1264,6 +1281,7 @@ def export_current_model_metrics(
     selected_cell_label: str,
     df_current_eval_metrics: pd.DataFrame,
     export_csv_filepath: Union[pathlib.PosixPath, str],
+    replace_metrics: bool=False,
     output_log_bool: bool=True):
     """
     Export current model evaluation metrics to a CSV file.
@@ -1346,9 +1364,25 @@ def export_current_model_metrics(
             export_csv_filepath,
             index=False)
     else:
-        logger.info(f"{selected_cell_label} has been evaluated "
-                + "in the CSV output!")
-        df_updated_metrics = df_eval_metrics_from_csv.copy()
-        logger.info("-"*70)
+        if not replace_metrics:
+            logger.info(f"{selected_cell_label} has been evaluated "
+                    + "in the CSV output!")
+            df_updated_metrics = df_eval_metrics_from_csv.copy()
+            logger.info("-"*70)
+        else:
+            logger.info("Updating metrics "
+                        + f"for {selected_cell_label}")
+            mask = ((df_eval_metrics_from_csv["cell_index"] 
+                    == selected_cell_label) &
+                    (df_eval_metrics_from_csv["ml_model"]
+                     == model_name))
+            new_metric_values = df_current_eval_metrics.iloc[0].values
+            df_eval_metrics_from_csv.loc[mask] = new_metric_values
+            df_updated_metrics = df_eval_metrics_from_csv.copy()
+
+            # Export metrics to CSV with updated hyperparameters
+            df_updated_metrics.to_csv(
+            export_csv_filepath,
+            index=False)
 
     return df_updated_metrics
