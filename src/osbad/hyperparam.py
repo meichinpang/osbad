@@ -717,7 +717,10 @@ def aggregate_best_trials(
     median_int, or mode.
 
     Args:
-        study (optuna.study.Study): Optuna study object containing best trials.
+        best_trials (List[optuna.trial.FrozenTrial]): A list of best 
+        trials obtained using Pareto optimization or the additional 
+        curvature analysis step in case of proxy hyperparameter tuning 
+        method.
         cell_label (str): Identifier for the experimental cell.
         model_id (str): Identifier of the ML-model. Allowed values are
                         "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
@@ -740,7 +743,7 @@ def aggregate_best_trials(
                 "threshold": "median"}
 
             df_knn = hp.aggregate_best_trials(
-                study,
+                study.best_trails,
                 cell_label=selected_cell_label,
                 model_id="knn",
                 schema=schema_knn)
