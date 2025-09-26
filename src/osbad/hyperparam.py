@@ -1188,8 +1188,9 @@ def export_current_hyperparam(
     This function checks if the best hyperparameters for a given cell are
     already stored in the CSV file. If not found, the function appends the
     current cell's hyperparameters to the file. If the cell already exists,
-    the existing CSV content is returned without modification. Logging is
-    used to track the export status and duplication checks.
+    the existing CSV content is returned without modification or replaced 
+    with the new values if replace argument is True. Logging is used to 
+    track the export status and duplication checks.
 
     Args:
         df_best_param_current_cell (pd.DataFrame): DataFrame containing the
@@ -1197,6 +1198,9 @@ def export_current_hyperparam(
         selected_cell_label (str): Identifier for the evaluated cell.
         export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the
             CSV file where hyperparameters are stored.
+        replace_hp (bool, optional): If True, replaces or updates the already 
+        existing hyperparameter values in the csv file with the new best 
+        hyperparameters obtained for the selected cell label.
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
@@ -1289,7 +1293,8 @@ def export_current_model_metrics(
     This function logs the status of existing metrics, checks for duplicate
     entries in the CSV, and updates the file with new evaluation metrics if
     necessary. If the model and cell label already exist in the CSV, the
-    existing file is returned without modification.
+    existing file is returned without modification or updated if replace 
+    argument is True.
 
     Args:
         model_name (str): Name of the machine learning model.
@@ -1298,6 +1303,9 @@ def export_current_model_metrics(
             evaluation metrics to be exported.
         export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the CSV
             file where evaluation metrics are stored.
+        replace_metrics (bool, optional): If True, replaces or updates the 
+        already existing model evaluation metrics in the csv file for the 
+        model and the selected cell label.
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
