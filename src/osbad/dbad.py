@@ -9,6 +9,8 @@ import numpy as np
 from matplotlib import cm
 from matplotlib import rcParams
 
+from osbad.stats import _compute_mad_outliers
+
 rcParams["text.usetex"] = True
 
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
@@ -33,25 +35,31 @@ def calculate_distance(
 
     return np.array(distance)
 
-def calculate_threshold(distance: np.ndarray) -> float:
+# def calculate_threshold(distance: np.ndarray) -> float:
 
-    mean_dist = np.mean(distance)
-    std_dist = np.std(distance)
+#     median_dist = np.median(distance)
+#     std_dist = np.std(distance)
 
-    threshold = mean_dist + 2 * std_dist
+#     threshold = mean_dist + 2 * std_dist
 
-    return threshold
+#     return threshold
 
 def predict_outliers(distance: np.ndarray,
-                     threshold: float,
                      features: np.ndarray) -> tuple:
-
-    pred_outlier_indices = np.where(distance > threshold)[0]
+    
+    (pred_outlier_indices,
+     mad_min_limit,
+     mad_max_limit) = _compute_mad_outliers(distance, 
+                                            mad_threshold=3,
+                                            mad_factor=None)
 
     outlier_features = features[pred_outlier_indices]
     outlier_distance = distance[pred_outlier_indices]
 
-    return pred_outlier_indices, outlier_distance, outlier_features
+    return (pred_outlier_indices, 
+            outlier_distance,
+            outlier_features, 
+            mad_max_limit)
 
 def plot_hist_distance(distance: np.ndarray,
                        threshold: float) -> Figure:
