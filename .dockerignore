@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.venv/
+dist/
+build/
+.eggs/
+*.egg-info/
+.env
+# DO NOT ignore .git here because builder needs it for dynamic versioning
+# .git/
