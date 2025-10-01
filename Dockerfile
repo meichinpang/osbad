@@ -24,23 +24,32 @@ COPY .git ./.git
 # Source (needed to build the wheel)
 COPY . .
 
-# Create venv and install deps + project as NON-EDITABLE
+# Create venv and install deps + project as NON-EDITABLE (cleaner runtime)
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv .venv \
  && uv sync --no-dev --no-editable
-# (no uv cache clean: keeps BuildKit cache effective)
 
 # ---------- Runtime ----------
 FROM python:3.12-slim AS final
 WORKDIR /app
 
-# Bring only the ready venv and your entrypoint
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/main.py ./main.py
-# No need to copy the package — it's installed into .venv
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 CMD ["python", "main.py"]
+
+# ---------- Notebook (Jupyter) ----------
+FROM builder AS notebook
+WORKDIR /app
+
+RUN uv pip install --python .venv/bin/python --no-cache-dir jupyterlab
+
+ENV PATH="/app/.venv/bin:$PATH"
+EXPOSE 8888
+
+# Jupyter reads JUPYTER_TOKEN at runtime; no token flag here
+CMD ["jupyter","lab","--ip=0.0.0.0","--no-browser","--allow-root","--ServerApp.root_dir=/app","--LabApp.default_url=/lab/tree/osbad%23/machine_learning/baseline_models/ml_01_isolation_forest.ipynb"]
