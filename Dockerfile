@@ -51,5 +51,22 @@ RUN uv pip install --python .venv/bin/python --no-cache-dir jupyterlab
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8888
 
-# Jupyter reads JUPYTER_TOKEN at runtime; no token flag here
-CMD ["jupyter","lab","--ip=0.0.0.0","--no-browser","--allow-root","--ServerApp.root_dir=/app","--LabApp.default_url=/lab/tree/osbad%23/machine_learning/baseline_models/ml_01_isolation_forest.ipynb"]
+# Startup script with echo banners + Jupyter launch
+RUN echo '#!/bin/sh\n\
+echo "==============================================="\n\
+echo "       ██████  ███████ ██████   █████  ██████  "\n\
+echo "      ██    ██ ██      ██   ██ ██   ██ ██   ██ "\n\
+echo "      ██    ██ ███████ ██████  ███████ ██   ██ "\n\
+echo "      ██    ██      ██ ██   ██ ██   ██ ██   ██ "\n\
+echo "       ██████  ███████ ██████  ██   ██ ██████  "\n\
+echo "-----------------------------------------------"\n\
+echo " OSBAD installed successfully! 🐳"\n\
+echo " Opening deployed Jupyter notebook for experiments..."\n\
+echo " Documentation: https://pypi.org/project/osbad/"\n\
+echo "==============================================="\n\
+exec jupyter lab --ip=0.0.0.0 --no-browser --allow-root \\\n\
+  --ServerApp.root_dir=/app \\\n\
+  --LabApp.default_url=/lab/tree/machine_learning/baseline_models/ml_01_isolation_forest.ipynb\n' \
+> /app/start-notebook.sh && chmod +x /app/start-notebook.sh
+
+CMD ["/app/start-notebook.sh"]
