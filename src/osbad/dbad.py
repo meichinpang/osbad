@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import cm
 from matplotlib import rcParams
 
-from osbad.stats import _compute_mad_outliers
+from osbad.stats import _compute_mad_outliers, _compute_sd_outliers, _compute_modified_z_outliers
 
 rcParams["text.usetex"] = True
 
@@ -28,35 +28,68 @@ def calculate_distance(
                              "minkowski",
                              "mahalanobis"],
         features: np.ndarray,
-        centroid: np.ndarray) -> np.ndarray:
+        centroid: np.ndarray,
+        p: int = None,
+        inv_cov_matrix: np.ndarray=None
+        ) -> np.ndarray:
     
     metric = distance_metrics[metric_name]
-    distance = [metric(point, centroid) for point in features]
+    if metric_name == "minkowski":
+        distance = [metric(point, centroid, p) 
+                    for point in features]
+    elif metric_name == "mahalanobis":        
+        distance = [metric(point, centroid, inv_cov_matrix) 
+                    for point in features]
+
+    else:
+        distance = [metric(point, centroid) 
+                    for point in features]
 
     return np.array(distance)
 
-# def calculate_threshold(distance: np.ndarray) -> float:
-
-#     median_dist = np.median(distance)
-#     std_dist = np.std(distance)
-
-#     threshold = mean_dist + 2 * std_dist
-
-#     return threshold
 
 def predict_outliers(distance: np.ndarray,
-                     features: np.ndarray) -> tuple:
+                     features: np.ndarray
+                     ) -> tuple:
     
-    (pred_outlier_indices,
+    #ourlier_dict = {}
+    
+    # (SD_outlier_indices,
+    #  SD_min_limit,
+    #  SD_max_limit) = _compute_sd_outliers(distance, 
+    #                                     std_dev_threshold=3,
+    #                                     )
+    
+    (mad_outlier_indices,
      mad_min_limit,
      mad_max_limit) = _compute_mad_outliers(distance, 
-                                            mad_threshold=3,
-                                            mad_factor=None)
+                                        mad_threshold=1,
+                                        mad_factor=None,
+                                        )
+    # (mzs_outlier_indices,
+    #  mzs_min_limit,
+    #  mzs_max_limit) = _compute_modified_z_outliers(distance, 
+    #                                     mod_zscore_threshold=3.5)
+    
+    
+    # ourlier_dict["SD"] = (SD_outlier_indices, 
+    #                       SD_min_limit,
+    #                       SD_max_limit)
+    
+    # ourlier_dict["MAD"] = (mad_outlier_indices, 
+    #                       mad_min_limit,
+    #                       mad_max_limit)
+    
+    # ourlier_dict["MZS"] = (mzs_outlier_indices, 
+    #                       mzs_min_limit,
+    #                       mzs_max_limit)
 
-    outlier_features = features[pred_outlier_indices]
-    outlier_distance = distance[pred_outlier_indices]
+    outlier_features = features[mad_outlier_indices]
+    outlier_distance = distance[mad_outlier_indices]
 
-    return (pred_outlier_indices, 
+    # return ourlier_dict
+
+    return (mad_outlier_indices, 
             outlier_distance,
             outlier_features, 
             mad_max_limit)
@@ -68,7 +101,7 @@ def plot_hist_distance(distance: np.ndarray,
 
     ax.hist(distance, color="b",
         edgecolor="black",
-        bins=100)
+        bins=200)
 
     ax.grid(
         color="grey",
@@ -78,7 +111,7 @@ def plot_hist_distance(distance: np.ndarray,
 
     ax.axvline(threshold, linestyle="--", color='r')
 
-    ax.set_xlabel("Euclidean Distance from Centroid", fontsize=12)
+    ax.set_xlabel("Distance from Centroid", fontsize=12)
     ax.set_ylabel("Count", fontsize=12)
 
     return fig
@@ -93,6 +126,7 @@ def plot_distance_score_map(
         centroid: np.ndarray,
         threshold: np.ndarray,
         pred_outlier_indices: np.ndarray,
+        max_outlier_dist: float,
         ) -> Figure: 
     
     zz_grid_dist = meshgrid_distance.reshape(xx.shape)
@@ -111,8 +145,9 @@ def plot_distance_score_map(
         yy,
         zz_grid_dist,
         cmap=selected_colormap,
+        levels=50,
         #vmin=0,
-        #vmax=1
+        vmax=max_outlier_dist
         )
 
     ax.contour(
@@ -122,12 +157,13 @@ def plot_distance_score_map(
         levels=[threshold],
         linewidths=2,
         linestyles="dashed",
-        colors='black')
+        colors='black',
+        )
 
     # Set the limits for the colorbar
     cbar_limit = plt.cm.ScalarMappable(cmap=selected_colormap)
     cbar_limit.set_array(zz_grid_dist)
-    #cbar_limit.set_clim(0., 1.)
+    cbar_limit.set_clim(0., max_outlier_dist)
 
     cbar = plt.colorbar(cbar_limit, ax = ax, shrink=0.9)
     cbar.ax.set_ylabel(
