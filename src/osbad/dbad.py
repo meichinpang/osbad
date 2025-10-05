@@ -210,7 +210,7 @@ def predict_outliers(distance: np.ndarray,
             mad_max_limit)
 
 def plot_hist_distance(distance: np.ndarray,
-                       outlier_indices: np.ndarray,
+                       #outlier_indices: np.ndarray,
                        threshold: float,
                        ) -> mpl.axes._axes.Axes:
     
