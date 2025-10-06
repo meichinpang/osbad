@@ -17,7 +17,6 @@ rcParams["text.usetex"] = True
 import osbad.config as bconf
 import osbad.hyperparam as hp
 import osbad.modval as modval
-import osbad.stats_old as bstats
 import osbad.viz as bviz
 from osbad.database import BenchDB
 from osbad.model import ModelRunner
@@ -260,7 +259,7 @@ if __name__ == "__main__":
         }
 
         df_iforest_hyperparam = hp.aggregate_best_trials(
-            if_study,
+            if_study.best_trials,
             cell_label=selected_cell_label,
             model_id="iforest",
             schema=schema_iforest)
