@@ -1,0 +1,50 @@
+name: Publish Docker image (Notebook)
+
+on:
+  push:
+    tags:
+      - 'v*'    # e.g. v1.3.3
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # include tags for semver detection
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: achalshakywar
+          password: dckr_pat_17X4xORXRNTeVcxUOXhrSnGGJwI
+
+      - name: Generate Docker metadata (latest + semver tags)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: achalshakywar/osbad-app
+          flavor: |
+            latest=true
+          tags: |
+            type=semver,pattern={{version}},prefix=,enable=true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: notebook          # build only the notebook stage
+          platforms: linux/amd64    # single architecture
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
