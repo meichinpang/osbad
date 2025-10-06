@@ -36,8 +36,6 @@ Key features:
 
 Configuration:
     - ``RANDOM_STATE``: Shared random seed used by model factories.
-    - ``bconf.SHOW_FIG_STATUS``: When True, figures are displayed after
-      saving.
     - ``bconf.PIPELINE_OUTPUT_DIR``: Base directory where per-cell figures
       are saved.
 
@@ -51,6 +49,7 @@ import os
 import pathlib
 import sys
 from dataclasses import dataclass
+from importlib import reload
 from statistics import mode
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
@@ -258,18 +257,84 @@ class ModelConfigDataClass:
     """
 
 # Model registry -------------------------------------------------------------
+# Taking external hp schema as input to the hyperparameter tuning
+
+def _suggest_float(trial, schema, name: str):
+    params = {**schema.get(name)}
+    suggest_float_trial = trial.suggest_float(
+        name,
+        low=params["low"],
+        high=params["high"])
+
+    return suggest_float_trial
+
+def _suggest_int(trial, schema, name: str):
+    params = {**schema.get(name)}
+    suggest_int_trial = trial.suggest_int(
+        name,
+        low=params["low"],
+        high=params["high"])
+
+    return suggest_int_trial
+
+def _suggest_categorical(trial, schema, name: str):
+    """
+    Suggest a categorical parameter using a list from schema.
+
+    Args:
+        trial (optuna.trial.Trial): Optuna trial object used to suggest
+            parameters.
+        schema (dict): Dictionary containing hyperparameter schema. For
+            categorical parameters, the value should be a list of choices.
+        name (str): Name of the hyperparameter to retrieve.
+
+    Returns:
+        Any: The value selected from the list of categorical choices.
+
+    Raises:
+        ValueError: If the schema value for the given name is not a list.
+    """
+    choices = schema.get(name)
+
+    if not isinstance(choices, list):
+        raise ValueError(
+            f"Expected a list of choices for '{name}', "
+            f"but got {type(choices).__name__}"
+        )
+
+    return trial.suggest_categorical(name, choices)
+
+# ----------------------------------------------------------------------------
+# Reload the config module to refresh in-memory variables
+# especially after updating parameters during runtime
+reload(bconf)
+
+DataSource = Literal["tohoku", "severson"]
+DATA_SOURCE: DataSource = bconf.HP_DATA_SOURCE
+
+def grab(model: str):
+    suffix = DATA_SOURCE.lower()
+    attr = f"{model}_hp_config_{suffix}"
+    return getattr(bconf, attr)
+
+IFOREST_HP_CONFIG = grab("iforest")
+KNN_HP_CONFIG = grab("knn")
+GMM_HP_CONFIG = grab("gmm")
+LOF_HP_CONFIG = grab("lof")
+PCA_HP_CONFIG = grab("pca")
+AUTOENCODER_HP_CONFIG = grab("autoencoder")
 
 MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "iforest": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "n_estimators": trial.suggest_int(
-                "n_estimators", 100, 500, step=50),
-            "max_samples": trial.suggest_int(
-                "max_samples", 100, 500, step=50),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "contamination": _suggest_float(
+                trial, IFOREST_HP_CONFIG, "contamination"),
+            "n_estimators": _suggest_int(
+                trial, IFOREST_HP_CONFIG, "n_estimators"),
+            "max_samples": _suggest_int(
+                trial, IFOREST_HP_CONFIG, "max_samples"),
+            "threshold": _suggest_float(
+                trial, IFOREST_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: IForest(
             behaviour="new",
@@ -287,16 +352,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "knn": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "n_neighbors": trial.suggest_int(
-                "n_neighbors", 2, 50, step=2),
-            "method": trial.suggest_categorical(
-                "method", ["largest","mean","median"]),
-            "metric": trial.suggest_categorical(
-                "metric", ["minkowski","euclidean","manhattan"]),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "contamination": _suggest_float(
+                trial, KNN_HP_CONFIG, "contamination"),
+            "n_neighbors": _suggest_int(
+                trial, KNN_HP_CONFIG, "n_neighbors"),
+            "method": _suggest_categorical(
+                trial, KNN_HP_CONFIG, "method"),
+            "metric": _suggest_categorical(
+                trial, KNN_HP_CONFIG, "metric"),
+            "threshold": _suggest_float(
+                trial, KNN_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: KNN(
             contamination=param["contamination"],
@@ -311,15 +376,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "gmm": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_components": trial.suggest_int("n_components", 1, 6),
-            "covariance_type": trial.suggest_categorical(
-                "covariance_type", ["spherical","diag","tied","full"]),
-            "init_param": trial.suggest_categorical(
-                "init_param", ["kmeans","random"]),
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "n_components": _suggest_int(
+                trial, GMM_HP_CONFIG, "n_components"),
+            "covariance_type": _suggest_categorical(
+                trial, GMM_HP_CONFIG, "covariance_type"),
+            "init_param": _suggest_categorical(
+                trial, GMM_HP_CONFIG, "init_param"),
+            "contamination": _suggest_float(
+                trial, GMM_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, GMM_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: GMM(
             n_components=param["n_components"],
@@ -335,12 +401,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "lof": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_neighbors": trial.suggest_int("n_neighbors", 10, 100, step=5),
-            "leaf_size": trial.suggest_int("leaf_size", 10, 100, step=5),
-            "metric": trial.suggest_categorical(
-                "metric", ["minkowski","euclidean","manhattan"]),
-            "contamination": trial.suggest_float("contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "n_neighbors": _suggest_int(
+                trial, LOF_HP_CONFIG, "n_neighbors"),
+            "leaf_size": _suggest_int(
+                trial, LOF_HP_CONFIG, "leaf_size"),
+            "metric": _suggest_categorical(
+                trial, LOF_HP_CONFIG, "metric"),
+            "contamination": _suggest_float(
+                trial, LOF_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, LOF_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: LOF(
             n_neighbors=param["n_neighbors"],
@@ -357,9 +427,12 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "pca": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_components": trial.suggest_int("n_components", 1, 2),
-            "contamination": trial.suggest_float("contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "n_components": _suggest_int(
+                trial, PCA_HP_CONFIG, "n_components"),
+            "contamination": _suggest_float(
+                trial, PCA_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, PCA_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: PCA(
             n_components=param["n_components"],
@@ -371,11 +444,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "autoencoder": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "batch_size": trial.suggest_int("batch_size", 8, 32, step=8),
-            "epoch_num": trial.suggest_int("epoch_num", 10, 50, step=5),
-            "learning_rate": trial.suggest_float("learning_rate", 0.0, 0.1),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "batch_size": _suggest_int(
+                trial, AUTOENCODER_HP_CONFIG, "batch_size"),
+            "epoch_num": _suggest_float(
+                trial, AUTOENCODER_HP_CONFIG, "epoch_num"),
+            "learning_rate": _suggest_float(
+                trial, AUTOENCODER_HP_CONFIG, "learning_rate"),
+            "dropout_rate": _suggest_float(
+                trial, AUTOENCODER_HP_CONFIG, "dropout_rate"),
+            "threshold": _suggest_float(
+                trial, AUTOENCODER_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: AutoEncoder(
             batch_size=param["batch_size"],
@@ -498,14 +576,16 @@ def objective(
 
 # Generic aggregation of best trials -----------------------------------------
 
-Agg = Literal["median", "median_int", "mode"]
+Agg = Literal["median", "mean", "median_int", "mean_int", "mode"]
 """
 Type alias for the aggregation methods.
 
 Represents allowed strategies for aggregating a list of values:
 
     - "median": Returns the median as a float.
+    - "mean": Returns the mean as a float.
     - "median_int": Returns the median as an integer.
+    - "mean_int": Returns the mean as an integer.
     - "mode": Returns the most frequent value.
 """
 
@@ -518,8 +598,8 @@ def aggregate_param_method(values: List[Any], how: Agg):
 
     Args:
         values (List[Any]): List of values to aggregate.
-        how (Agg): Aggregation method, one of ``median``, ``median_int``,
-                   or ``mode``.
+        how (Agg): Aggregation method, one of ``median``, ``mean``,
+            ``median_int``, ``mean_int`` or ``mode``.
 
     Returns:
         Any: Aggregated result based on the specified method.
@@ -547,8 +627,12 @@ def aggregate_param_method(values: List[Any], how: Agg):
         """
     if how == "median":
         return float(np.median(values))
+    if how == "mean":
+        return float(np.mean(values))
     if how == "median_int":
         return int(np.median(values))
+    if how == "mean_int":
+        return int(np.mean(values))
     if how == "mode":
         return mode(values)
     raise ValueError(how)
@@ -885,25 +969,24 @@ def plot_pareto_front(
 
     plt.savefig(
         fig_output_path,
-        dpi=200,
+        dpi=600,
         bbox_inches="tight")
 
-    if bconf.SHOW_FIG_STATUS:
-        plt.show()
 
 def export_current_hyperparam(
     df_best_param_current_cell: pd.DataFrame,
     selected_cell_label: str,
     export_csv_filepath: Union[pathlib.PosixPath, str],
+    if_exists: Literal["replace", "keep"] = "replace",
     output_log_bool: bool=True):
     """
     Export best hyperparameters for a cell to a CSV file.
 
-    This function checks if the best hyperparameters for a given cell are
-    already stored in the CSV file. If not found, the function appends the
-    current cell's hyperparameters to the file. If the cell already exists,
-    the existing CSV content is returned without modification. Logging is
-    used to track the export status and duplication checks.
+    This function manages the storage of best hyperparameters for a
+    specified cell. If the cell's hyperparameters already exist in the
+    CSV file, the behavior depends on ``if_exists``: either the rows are
+    replaced or kept. If the cell is not found, a new row is created.
+    Logging tracks the export status and duplication handling.
 
     Args:
         df_best_param_current_cell (pd.DataFrame): DataFrame containing the
@@ -911,6 +994,9 @@ def export_current_hyperparam(
         selected_cell_label (str): Identifier for the evaluated cell.
         export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the
             CSV file where hyperparameters are stored.
+        if_exists (Literal["replace", "keep"], optional): Action to take
+            if the cell already exists in the CSV. Defaults to
+            ``"replace"``.
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
@@ -918,17 +1004,21 @@ def export_current_hyperparam(
         pd.DataFrame: Updated DataFrame containing hyperparameters from both
         existing records and the current cell.
 
+    Raises:
+        ValueError: If ``if_exists`` is not ``"replace"`` or ``"keep"``.
+
     Example:
         .. code-block::
 
             # Export current hyperparameters to CSV
             hyperparam_filepath =  PIPELINE_OUTPUT_DIR.joinpath(
-                "hyperparams_iforest_new.csv")
+                "hyperparams_autoencoder_tohoku.csv")
 
             hp.export_current_hyperparam(
-                df_iforest_hyperparam,
+                df_autoencoder_hyperparam,
                 selected_cell_label,
-                export_csv_filepath=hyperparam_filepath)
+                export_csv_filepath=hyperparam_filepath,
+                if_exists="replace")
     """
 
     logger = _customize_logger(
@@ -936,42 +1026,62 @@ def export_current_hyperparam(
         output_log=output_log_bool)
 
     if os.path.exists(export_csv_filepath):
-        df_best_param_from_csv = pd.read_csv(
+        df_csv = pd.read_csv(
             export_csv_filepath)
 
         # Status check if the current model hyperparam
         # already exists in the hyperparam inventories
-        check_cell_bool = (
-            selected_cell_label in
-            df_best_param_from_csv["cell_index"].unique())
+        existed_before = (
+            df_csv["cell_index"].astype(str).eq(selected_cell_label).any())
+
         logger.info("Have the hyperparam for "
                 + f"{selected_cell_label} been evaluated?")
-        logger.info(check_cell_bool)
+        logger.info(existed_before)
         logger.info("*"*70)
     else:
-        check_cell_bool = False
-        df_best_param_from_csv = None
+        df_csv = None
+        existed_before = False
 
-    if not check_cell_bool:
-        logger.info("Exporting hyperparameters for "
-                + f"{selected_cell_label} to CSV file.")
+    # Decide action based on if_exists
+    if existed_before:
+        if if_exists == "replace":
+            logger.info(f"Replacing existing rows for {selected_cell_label}.")
 
-        # concat current hyperparam with hyperparam
-        # from other cells
-        df_updated_hyperparam = pd.concat(
-            [df_best_param_from_csv,
-            df_best_param_current_cell], axis=0)
+            # Exclude row that has the same selected_cell_label
+            df_without_cell = df_csv.loc[
+                ~df_csv["cell_index"].astype(str).eq(selected_cell_label)]
 
-        # Export metrics to CSV
-        df_updated_hyperparam.to_csv(
-            export_csv_filepath,
-            index=False)
+            df_updated_hyperparam = pd.concat(
+                [df_without_cell,
+                 df_best_param_current_cell],
+                 axis=0,
+                 ignore_index=True)
+            action = "replaced"
+        elif if_exists == "keep":
+            logger.info(f"Keeping existing rows for {selected_cell_label};"
+                        + "incoming rows ignored.")
+            df_updated_hyperparam = df_csv.copy()
+            action = "kept"
+        else:
+            raise ValueError('if_exists must be "replace" or "keep"')
     else:
-        logger.info("Hyperparameters for "
-            + f"{selected_cell_label} already exists "
-            +"in the CSV file!")
+        logger.info(f"Creating new row for cell {selected_cell_label}.")
+        df_updated_hyperparam = pd.concat(
+            [df_csv,
+             df_best_param_current_cell],
+             axis=0,
+             ignore_index=True)
+        action = "created"
 
-        df_updated_hyperparam = df_best_param_from_csv.copy()
+    logger.info(
+        f"Hyperparameters for {selected_cell_label} "
+        + f"have been {action} in the CSV file."
+    )
+
+    # Export metrics to CSV
+    df_updated_hyperparam.to_csv(
+        export_csv_filepath,
+        index=False)
 
     return df_updated_hyperparam
 
@@ -980,22 +1090,27 @@ def export_current_model_metrics(
     selected_cell_label: str,
     df_current_eval_metrics: pd.DataFrame,
     export_csv_filepath: Union[pathlib.PosixPath, str],
-    output_log_bool: bool=True):
+    if_exists: Literal["replace", "keep"] = "replace",
+    output_log_bool: bool = True,
+):
     """
     Export current model evaluation metrics to a CSV file.
 
-    This function logs the status of existing metrics, checks for duplicate
-    entries in the CSV, and updates the file with new evaluation metrics if
-    necessary. If the model and cell label already exist in the CSV, the
-    existing file is returned without modification.
+    This function checks if the evaluation metrics for a given model and
+    cell are already stored in the CSV file. Based on the ``if_exists``
+    flag, it either replaces existing rows, keeps them unchanged, or
+    creates a new entry. Logging tracks the status of the export process.
 
     Args:
         model_name (str): Name of the machine learning model.
         selected_cell_label (str): Identifier for the evaluated cell.
-        df_current_eval_metrics (pd.DataFrame): DataFrame containing current
-            evaluation metrics to be exported.
-        export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the CSV
-            file where evaluation metrics are stored.
+        df_current_eval_metrics (pd.DataFrame): DataFrame containing
+            current evaluation metrics to be exported.
+        export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the
+            CSV file where evaluation metrics are stored.
+        if_exists (Literal["replace", "keep"], optional): Action to take
+            if the model-cell combination already exists in the CSV.
+            Defaults to "replace".
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
@@ -1003,68 +1118,88 @@ def export_current_model_metrics(
         pd.DataFrame: Updated DataFrame containing evaluation metrics from
         both existing and current evaluations.
 
+    Raises:
+        ValueError: If ``if_exists`` is not "replace" or "keep".
+
     Example:
         .. code-block::
 
             # Export current metrics to CSV
             hyperparam_eval_filepath =  Path.cwd().joinpath(
-                "eval_metrics_hp_single_cell_new.csv")
+                "eval_metrics_hp_single_cell_tohoku.csv")
 
             hp.export_current_model_metrics(
                 model_name="iforest",
                 selected_cell_label=selected_cell_label,
                 df_current_eval_metrics=df_current_eval_metrics,
-                export_csv_filepath=hyperparam_eval_filepath)
-        """
-
+                export_csv_filepath=hyperparam_eval_filepath,
+                if_exists="replace")
+    """
     logger = _customize_logger(
-        logger_name="export_current_hyperparam",
-        output_log=output_log_bool)
+        logger_name="export_current_model_metrics",
+        output_log=output_log_bool
+    )
 
     if os.path.exists(export_csv_filepath):
-        df_eval_metrics_from_csv = pd.read_csv(
-            export_csv_filepath)
+        df_csv = pd.read_csv(export_csv_filepath)
 
-        # Status check if the current model metrics
-        # already exists in the metric inventories
-        duplicated_metric_check = (model_name in
-            df_eval_metrics_from_csv["ml_model"]
-            .unique())
-        logger.info("Is this metric already saved in the CSV output?")
-        logger.info(duplicated_metric_check)
-        logger.info("-"*70)
+        # Check if this model-cell pair already exists
+        existed_before = (
+            (df_csv["ml_model"].astype(str) == model_name) &
+            (df_csv["cell_index"].astype(str) == selected_cell_label)
+        ).any()
 
-        # Status check if the current selected cell
-        # already exists in the metric inventories
-        duplicated_cell_check = (selected_cell_label in
-            df_eval_metrics_from_csv["cell_index"]
-            .unique())
-        logger.info("Is this cell already saved in the CSV output?")
-        logger.info(duplicated_cell_check)
-        logger.info("-"*70)
-
+        logger.info("Have the metrics for "
+                    f"{model_name} on cell {selected_cell_label} "
+                    "been evaluated before?")
+        logger.info(existed_before)
+        logger.info("-" * 70)
     else:
-        duplicated_cell_check = False
-        duplicated_metric_check = False
-        df_eval_metrics_from_csv = None
+        df_csv = None
+        existed_before = False
 
-    if (not duplicated_metric_check) | (not duplicated_cell_check):
-        logger.info("Exporting evaluation metrics to CSV:")
+    # Decide action based on if_exists
+    if existed_before:
+        if if_exists == "replace":
+            logger.info(f"Replacing existing row for {model_name}, "
+                        f"{selected_cell_label}.")
 
-        # concat current metrics with metrics
-        # from other models
+            # Exclude row that has the same model_name and selected_cell_label
+            df_without_entry = df_csv.loc[
+                ~(
+                    (df_csv["ml_model"].astype(str) == model_name) &
+                    (df_csv["cell_index"].astype(str) == selected_cell_label)
+                )
+            ]
+
+            df_updated_metrics = pd.concat(
+                [df_without_entry, df_current_eval_metrics],
+                axis=0,
+                ignore_index=True
+            )
+            action = "replaced"
+
+        elif if_exists == "keep":
+            logger.info(f"Keeping existing row for {model_name}, "
+                        f"{selected_cell_label}; incoming metrics ignored.")
+            df_updated_metrics = df_csv.copy()
+            action = "kept"
+
+        else:
+            raise ValueError('if_exists must be "replace" or "keep"')
+    else:
+        logger.info(f"Creating new row for {model_name}, "
+                    f"{selected_cell_label}.")
         df_updated_metrics = pd.concat(
-            [df_eval_metrics_from_csv,
-            df_current_eval_metrics], axis=0)
+            [df_csv, df_current_eval_metrics],
+            axis=0,
+            ignore_index=True
+        )
+        action = "created"
 
-        # Export metrics to CSV
-        df_updated_metrics.to_csv(
-            export_csv_filepath,
-            index=False)
-    else:
-        logger.info(f"{selected_cell_label} has been evaluated "
-                + "in the CSV output!")
-        df_updated_metrics = df_eval_metrics_from_csv.copy()
-        logger.info("-"*70)
+    logger.info(f"Metrics for {model_name}, {selected_cell_label} have been "
+                f"{action} in the CSV file.")
+
+    df_updated_metrics.to_csv(export_csv_filepath, index=False)
 
     return df_updated_metrics
