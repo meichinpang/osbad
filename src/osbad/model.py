@@ -118,7 +118,6 @@ class ModelRunner:
         self._selected_cell_label = cell_label
         self.df_input_features = df_input_features
         self.selected_features = selected_feature_cols
-        self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
         # store all figures output for each evaluated
@@ -255,7 +254,9 @@ class ModelRunner:
 
 
     def create_2d_mesh_grid(
-        self):
+        self,
+        square_grid: bool=True,
+        grid_offset:Union[int, float] =1):
         """
         Create a 2D mesh grid for visualization of anomaly scores.
 
@@ -276,23 +277,32 @@ class ModelRunner:
                   (n_points, 2) where each row is a (x, y) coordinate pair.
 
         """
+        if square_grid:
+            # Define the boundaries of the grid
+            # Extend the grid boundaries by -1 and +1 to
+            # ensure full coverage
+            min_xrange = np.min(self.Xdata[:,0]) - grid_offset
+            max_xrange = np.max(self.Xdata[:,0]) + grid_offset
+            min_yrange = np.min(self.Xdata[:,1]) - grid_offset
+            max_yrange = np.max(self.Xdata[:,1]) + grid_offset
 
-        # Define the boundaries of the grid
-        # Extend the grid boundaries by -1 and +1 to
-        # ensure full coverage
-        min_xrange = np.min(self.Xdata[:,0]) - 1
-        max_xrange = np.max(self.Xdata[:,0]) + 1
-        min_yrange = np.min(self.Xdata[:,1]) - 1
-        max_yrange = np.max(self.Xdata[:,1]) + 1
+            min_ax = np.min([min_xrange, min_yrange])
+            max_ax = np.max([max_xrange, max_yrange])
 
-        min_ax = np.min([min_xrange, min_yrange])
-        max_ax = np.max([max_xrange, max_yrange])
+            # Create a linearly spaced square xgrid and ygrid
+            # using the min and max values from xdata and ydata
+            xgrid = np.linspace(min_ax, max_ax, 100)
+            ygrid = np.linspace(min_ax, max_ax, 100)
+        else:
+            min_xrange = np.min(self.Xdata[:,0]) - grid_offset
+            max_xrange = np.max(self.Xdata[:,0]) + grid_offset
+            min_yrange = np.min(self.Xdata[:,1]) - grid_offset
+            max_yrange = np.max(self.Xdata[:,1]) + grid_offset
 
-        # Create a linearly spaced square xgrid and ygrid
-        # using the min and max values from xdata and ydata
-        xgrid = np.linspace(min_ax, max_ax, 100)
-        ygrid = np.linspace(min_ax, max_ax, 100)
-
+            # Create a linearly spaced xgrid and ygrid
+            # using the min and max values from xdata and ydata
+            xgrid = np.linspace(min_xrange, max_xrange, 100)
+            ygrid = np.linspace(min_yrange, max_yrange, 100)
 
         # Create 2D meshgrid
         xx, yy = np.meshgrid(
@@ -317,6 +327,26 @@ class ModelRunner:
 
         return (xx, yy, meshgrid)
 
+    def _split_list(
+        self,
+        cycle_list,
+        chunk_size=5):
+
+        all_sublists_list = []
+
+        if len(cycle_list) <= chunk_size:
+            list_to_string = str(cycle_list)
+
+        else:
+            for i in range(0, len(cycle_list), chunk_size):
+                sublist = cycle_list[i:i+chunk_size]
+                all_sublists_list.append(sublist)
+
+            list_to_string = "\n".join(
+                str(sublist) for sublist in all_sublists_list)
+
+        return list_to_string
+
     def predict_anomaly_score_map(
         self,
         selected_model: PyODModelType,
@@ -324,7 +354,9 @@ class ModelRunner:
         xoutliers: pd.Series,
         youtliers: pd.Series,
         pred_outliers_index: np.ndarray,
-        threshold: float= 0.7):
+        threshold: float= 0.7,
+        square_grid=True,
+        grid_offset=1):
         """
         Plot a 2D anomaly score map with decision boundaries.
 
@@ -374,7 +406,9 @@ class ModelRunner:
                 * ``pyod.models.pca.PCA``
                 * ``pyod.models.auto_encoder.Autoencoder``
         """
-        xx, yy, meshgrid = self.create_2d_mesh_grid()
+        xx, yy, meshgrid = self.create_2d_mesh_grid(
+            square_grid,
+            grid_offset)
 
         selected_colormap = cm.RdBu_r
 
@@ -480,10 +514,12 @@ class ModelRunner:
                 facecolor='white',
                 alpha=0.8)
 
+            label_pred_outliers_index = self._split_list(pred_outliers_index)
+
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
                 r"\textbf{Predicted anomalous cycles:}",
-                f"{str(pred_outliers_index)}"))
+                f"{label_pred_outliers_index}"))
 
             # first text value corresponds to the left right
             # alignment starting from left
@@ -498,35 +534,6 @@ class ModelRunner:
                 ha="center", va='top',
                 bbox=props)
 
-            # ----------------------------------------------------------------
-
-            ax.set_xlabel(
-                r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-                fontsize=12)
-            ax.set_ylabel(
-                r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-                fontsize=12)
-
             ax.set_title(model_name, fontsize=16)
-
-            # convert model name to snake case
-            # standardize all filename of the exported figures
-            filename = model_name.replace(" ", "_").lower()
-
-            output_fig_filename = (
-                filename + "_"
-                + self._selected_cell_label
-                + ".png")
-
-            fig_output_path = (
-                self._selected_cell_artifacts.joinpath(output_fig_filename))
-
-            plt.savefig(
-                fig_output_path,
-                dpi=200,
-                bbox_inches="tight")
-
-            if self._show_fig_status:
-                plt.show()
 
         return ax
