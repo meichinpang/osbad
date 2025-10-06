@@ -104,7 +104,7 @@ def plot_cycle_data(
     ax.scatter(
         xoutlier,
         youtlier,
-        s=10,
+        s=20,
         marker="o",
         c="black")
 
@@ -126,16 +126,6 @@ def plot_cycle_data(
         rotation=90,
         labelpad=15,
         fontdict = {"size":14})
-
-    xlabel = xseries.name
-    ylabel = yseries.name
-
-    ax.set_xlabel(
-        xlabel,
-        fontsize=12)
-    ax.set_ylabel(
-        ylabel,
-        fontsize=12)
 
     ax.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
 
@@ -1069,47 +1059,48 @@ def plot_bubble_chart(
         xseries.index = unique_cycle_count
         unique_cycle_count.index = unique_cycle_count
 
-        for cycle in unique_cycle_count:
-            if cycle in cycle_outlier_idx_label:
-                print(f"Potential anomalous cycle: {cycle}")
-                print(f"x-position of the text: {xseries[int(cycle)]}")
-                print(f"y-position of the text: {yseries[int(cycle)]}")
-                print("-"*70)
-                ax.text(
-                    # x-position of the text
-                    x = xseries[int(cycle)],
-                    # y-position of the text
-                    y = yseries[int(cycle)],
-                    # text-string is the cycle number
-                    s = unique_cycle_count[int(cycle)],
-                    horizontalalignment='center',
-                    size='medium',
-                    color='black',
-                    weight='bold')
+        if cycle_outlier_idx_label is not None:
+            for cycle in unique_cycle_count:
+                if cycle in cycle_outlier_idx_label:
+                    print(f"Potential anomalous cycle: {cycle}")
+                    print(f"x-position of the text: {xseries[int(cycle)]}")
+                    print(f"y-position of the text: {yseries[int(cycle)]}")
+                    print("-"*70)
+                    ax.text(
+                        # x-position of the text
+                        x = xseries[int(cycle)],
+                        # y-position of the text
+                        y = yseries[int(cycle)],
+                        # text-string is the cycle number
+                        s = unique_cycle_count[int(cycle)],
+                        horizontalalignment='center',
+                        size='medium',
+                        color='black',
+                        weight='bold')
 
-        # properties for bbox
-        props = dict(
-            boxstyle='round',
-            facecolor='wheat',
-            alpha=0.5)
+            # properties for bbox
+            props = dict(
+                boxstyle='round',
+                facecolor='wheat',
+                alpha=0.5)
 
-        # Create textbox to annotate anomalous cycle
-        textstr = '\n'.join((
-            r"\textbf{Anomalous cycles:}",
-            f"{cycle_outlier_idx_label}"))
+            # Create textbox to annotate anomalous cycle
+            textstr = '\n'.join((
+                r"\textbf{Anomalous cycles:}",
+                f"{cycle_outlier_idx_label}"))
 
-        # first text value corresponds to the left right
-        # alignment starting from left
-        # second second value corresponds to up down
-        # alignment starting from bottom
-        ax.text(
-            0.75, 0.95,
-            textstr,
-            transform=ax.transAxes,
-            fontsize=12,
-            # ha means right alignment of the text
-            ha="center", va='top',
-            bbox=props)
+            # first text value corresponds to the left right
+            # alignment starting from left
+            # second second value corresponds to up down
+            # alignment starting from bottom
+            ax.text(
+                0.75, 0.95,
+                textstr,
+                transform=ax.transAxes,
+                fontsize=12,
+                # ha means right alignment of the text
+                ha="center", va='top',
+                bbox=props)
 
     ax.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
 
