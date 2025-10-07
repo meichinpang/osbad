@@ -493,6 +493,32 @@ Example:
         """
 # ----------------------------------------------------------------------------
 
+def calculate_zscore(
+    df_variable: pd.Series|np.ndarray) -> pd.Series|np.ndarray:
+    """
+    Calculate the Z-score of the selected feature.
+
+    Args:
+        df_variable (pd.Series | np.ndarray): Selected feature.
+
+    Returns:
+        pd.Series|np.ndarray: Z-score of selected feature.
+    """
+    # Calculate the mean and std deviation
+    # from the max diff feature
+    feature_mean = np.mean(df_variable)
+    feature_std = np.std(df_variable, ddof=1)
+    print(f"Feature mean: {feature_mean}")
+    print(f"Feature std: {feature_std}")
+
+    feature_zscore = (df_variable - feature_mean)/feature_std
+    print("After Z-transformation, feature mean should be close to 0 "
+            + "and feature std should be close to 1.")
+    print(f"Zscore feature mean: {np.mean(feature_zscore)}")
+    print(f"Zscore feature std: {np.std(feature_zscore, ddof=1)}")
+
+    return feature_zscore
+
 def calculate_feature_stats(
     df_variable: ArrayLike,
     new_col_name: str=None) -> pd.DataFrame:

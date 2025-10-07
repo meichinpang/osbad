@@ -61,9 +61,6 @@ class BenchDB:
         input_db_filepath (str): Path to the DuckDB benchmarking database
             file.
         cell_label (str): Label of the cell to be analyzed.
-        show_fig_status (bool, optional): Whether to show generated
-            figures interactively. Defaults to False when running the
-            pipeline in the batch mode for multiple cells.
     """
     def __init__(
         self,
@@ -72,7 +69,6 @@ class BenchDB:
 
         self._db_filepath = input_db_filepath
         self._selected_cell_label = cell_label
-        self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
         # store all figures output for each evaluated
@@ -362,24 +358,8 @@ class BenchDB:
             f"Cell {self._selected_cell_label}",
             fontsize=16)
 
-        # Use pdf for figures in the paper, but loading pdf output
-        # can take time
-        # Use png for normal plot
-        output_fig_filename = (
-            "plot_cycles_"
-            + self._selected_cell_label
-            + ".png")
+        return axplot
 
-        fig_output_path = (
-            self._selected_cell_artifacts.joinpath(output_fig_filename))
-
-        plt.savefig(
-            fig_output_path,
-            dpi=200,
-            bbox_inches="tight")
-
-        if self._show_fig_status:
-            plt.show()
 
     def load_features_db(
         self,

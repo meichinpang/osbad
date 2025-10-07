@@ -16,7 +16,6 @@ rcParams["text.usetex"] = True
 import osbad.config as bconf
 import osbad.hyperparam as hp
 import osbad.modval as modval
-import osbad.stats_old as bstats
 import osbad.viz as bviz
 from osbad.database import BenchDB
 from osbad.model import ModelRunner
@@ -37,12 +36,19 @@ hyperparam_eval_metrics_filepath =  bconf.PIPELINE_OUTPUT_DIR.joinpath(
 
 # --------------------------------------------------------------------------
 # Load only the training dataset
-
-db_filepath = str(
+# Path to the DuckDB instance:
+# "/osbad_development/osbad/database/train_dataset_severson.db"
+db_filepath = (
     Path.cwd()
-    .parent.parent
+    .parent.parent.parent
     .joinpath("database","train_dataset_severson.db"))
-print(db_filepath)
+
+# Define the filepath to ``train_features_severson.db``
+# "/osbad_development/osbad/database/train_features_severson.db"
+db_features_filepath = (
+    Path.cwd()
+    .parent.parent.parent
+    .joinpath("database","train_features_severson.db"))
 
 # Create a DuckDB connection
 con = duckdb.connect(
@@ -101,16 +107,31 @@ if __name__ == "__main__":
             print(df_selected_cell_without_labels.head(10).to_markdown())
             print("-"*70)
 
-        # ----------------------------------------------------------------
-        # Custom features transformation pipeline
-        # Load only the training features dataset
-        # Define the filepath to ``train_features_severson.db``
-        # DuckDB instance.
-        db_features_filepath = (
-            Path.cwd()
-            .parent.parent
-            .joinpath("database","train_features_severson.db"))
+        # --------------------------------------------------------------------
+        # Plot cycle data without labels
+        # If the true outlier cycle index is not known,
+        # cycling data will be plotted without labels
+        benchdb.plot_cycle_data(
+            df_selected_cell_without_labels)
 
+        output_fig_filename = (
+            "cycle_data_without_labels_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir
+            .joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
+
+        # --------------------------------------------------------------------
+        # Custom features transformation pipeline
         # Load only the training features dataset
         df_features_per_cell = benchdb.load_features_db(
             db_features_filepath,
@@ -124,12 +145,50 @@ if __name__ == "__main__":
         # --------------------------------------------------------------------
         # Hyperparameter tuning with Bayesian optimization
 
+        # Update the HP config for max_samples depending on the cycle numbers
+        total_cycle_count = len(
+            df_selected_cell_without_labels["cycle_index"].unique())
+
+        hp_config_iforest = {
+            "contamination": {"low": 0.0, "high": 0.5},
+            "n_estimators": {"low": 100, "high": 500},
+            "max_samples": {"low": 100, "high": total_cycle_count},
+            "threshold": {"low": 0.0, "high": 1.0}
+        }
+
+        iforest_hp_config_filepath = (
+            Path.cwd()
+            .parent.parent.parent
+            .joinpath(
+                "machine_learning",
+                "hp_config_schema",
+                "severson_hp_config",
+                "iforest_hp_config.json"))
+
+        bconf.create_json_hp_config(
+            iforest_hp_config_filepath,
+            hp_dict=hp_config_iforest)
+
+        # Reload the hp module to refresh in-memory variables
+        # especially after updating parameters
+        from importlib import reload
+        reload(hp)
+
+        # Check if the schema in the script has been updated
+        # based on the current constraints specified
+        # from the notebook
+        print("Current hyperparameter config:")
+        print(hp.IFOREST_HP_CONFIG)
+        print("-"*70)
+
+        # --------------------------------------------------------------------
         sampler = optuna.samplers.TPESampler(seed=42)
 
         selected_feature_cols = (
             "log_max_diff_dQ",
             "log_max_diff_dV")
 
+        # Instantiate an optuna study
         if_study = optuna.create_study(
             study_name="iforest_hyperparam",
             sampler=sampler,
@@ -155,7 +214,7 @@ if __name__ == "__main__":
         }
 
         df_iforest_hyperparam = hp.aggregate_best_trials(
-            if_study,
+            if_study.best_trials,
             cell_label=selected_cell_label,
             model_id="iforest",
             schema=schema_iforest)
@@ -176,7 +235,8 @@ if __name__ == "__main__":
         hp.export_current_hyperparam(
             df_iforest_hyperparam,
             selected_cell_label,
-            export_csv_filepath=hyperparam_filepath)
+            export_csv_filepath=hyperparam_filepath,
+            if_exists="replace")
 
         # -------------------------------------------------------------------
         # Read hyperparameter from stored CSV
@@ -232,6 +292,30 @@ if __name__ == "__main__":
             threshold=param_dict["threshold"]
         )
 
+        axplot.set_xlabel(
+            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+            fontsize=12)
+        axplot.set_ylabel(
+            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+            fontsize=12)
+
+        output_fig_filename = (
+            "iforest_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir
+            .joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
+
+
         # -------------------------------------------------------------------
         # Model performance evaluation
         df_eval_outlier = modval.evaluate_pred_outliers(
@@ -262,6 +346,8 @@ if __name__ == "__main__":
             dpi=600,
             bbox_inches="tight")
 
+        plt.close()
+
         # -------------------------------------------------------------------
         # Evaluate model performance
         df_current_eval_metrics = modval.eval_model_performance(
@@ -273,9 +359,10 @@ if __name__ == "__main__":
         # Export model performance metrics to CSV output
         hp.export_current_model_metrics(
             model_name="iforest",
-            df_current_eval_metrics=df_current_eval_metrics,
             selected_cell_label=selected_cell_label,
-            export_csv_filepath=hyperparam_eval_metrics_filepath)
+            df_current_eval_metrics=df_current_eval_metrics,
+            export_csv_filepath=hyperparam_eval_metrics_filepath,
+            if_exists="replace")
 
         # -------------------------------------------------------------------
         # Finally: check with true labels
@@ -291,6 +378,21 @@ if __name__ == "__main__":
         benchdb.plot_cycle_data(
             df_selected_cell_without_labels,
             true_outlier_cycle_index)
+
+        output_fig_filename = (
+            "cycle_data_with_labels_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
 
         # -------------------------------------------------------------------
         # Plot the bubble chart and label the true outliers
@@ -333,8 +435,10 @@ if __name__ == "__main__":
 
         plt.savefig(
             fig_output_path,
-            dpi=200,
+            dpi=600,
             bbox_inches="tight")
 
+        plt.close()
+
         print(f"END OF CELL EVALUATION {selected_cell_label}")
-        print("*"*100)
+        print("*"*170)

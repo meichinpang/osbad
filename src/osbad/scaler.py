@@ -98,7 +98,6 @@ class CycleScaling:
 
             # use median_square to keep the physical unit consistent
             var_scaled = (df_cycle[variable] - median_square_IQR_ratio)
-            # var_scaled = (df_cycle[variable] - median)**2/IQR
 
             if validate:
 
@@ -182,7 +181,7 @@ class CycleScaling:
 
             # Drop the first and last 10 data point
             df_cycle = df_scaled[
-                df_scaled["cycle_index"] == cycle_count].iloc[10:-10]
+                df_scaled["cycle_index"] == cycle_count]
 
             # Calculate the pointwise feature difference
             feature_diff = np.diff(df_cycle[variable_name])
@@ -196,13 +195,17 @@ class CycleScaling:
             # Calculate max diff per cycle
             max_diff = np.max(updated_diff)
 
+            # Make sure that the max difference is always positive before
+            # log transformation.
+            abs_max_diff = np.abs(max_diff)
+
             # Calculate log max diff per cycle
-            log_max_diff = np.log(max_diff)
+            log_max_diff = np.log(abs_max_diff)
 
             # Create a dict to keep track of max_dV and
             # the corresponding cycle index
             diff_dict = {
-                "max_diff": [max_diff],
+                "max_diff": [abs_max_diff],
                 "log_max_diff": [log_max_diff],
                 "cycle_index": cycle_count
             }
