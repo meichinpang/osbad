@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
         trade_off_trials_list = hp.trade_off_trails_detection(
             if_study,
-            window_size=5)
+            window_size=7)
 
         df_iforest_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,
@@ -171,6 +171,7 @@ if __name__ == "__main__":
         # Plot Pareto Front for proxy performance metrics
         hp.plot_proxy_pareto_front(
             if_study,
+            trade_off_trials_list,
             selected_cell_label,
             fig_title="Isolation Forest Pareto Front")
 
@@ -288,7 +289,6 @@ if __name__ == "__main__":
             selected_cell_label=selected_cell_label,
             export_csv_filepath=hyperparam_eval_metrics_filepath,
             replace_metrics=True)
-
         # -------------------------------------------------------------------
         # Finally: check with true labels
         # Extract true outliers cycle index from benchmarking dataset
