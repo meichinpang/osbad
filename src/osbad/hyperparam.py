@@ -542,6 +542,9 @@ def objective(
         loss_score, inliers_score = runner.proxy_evaluate_indices(
             pred_outlier_indices, cycle_idx, features)
         
+        if inliers_score < 0.5:
+            raise optuna.TrialPruned()
+
         return loss_score, inliers_score
     
 # Getting best trials from pareto-optimal trials using curvature analysis ----
@@ -566,6 +569,8 @@ def curvature(target_x: Union[List[float], np.ndarray],
         of x-values (e.g., loss scores).
         target_y (Union[List[float], np.ndarray]): List or array 
         of y-values (e.g., inlier scores).
+        window_size (int): Width of the moving average window used to 
+        smooth the data.
 
     Returns:
         float: Array of curvature values at each point on the smoothed 
@@ -582,8 +587,12 @@ def curvature(target_x: Union[List[float], np.ndarray],
 
     """
 
-    x_smooth = uniform_filter1d(target_x, size=window_size)
-    y_smooth = uniform_filter1d(target_y, size=window_size)
+    x_smooth = uniform_filter1d(target_x, 
+                                size=window_size, 
+                                mode='mirror')
+    y_smooth = uniform_filter1d(target_y, 
+                                size=window_size, 
+                                mode='mirror')
 
     dx = np.gradient(x_smooth)
     dy = np.gradient(y_smooth)
@@ -622,18 +631,17 @@ def trade_off_trails_detection(
        as the identified optimal trial.
 
     Args:
-        study (optuna.study.study.Study)
-        An Optuna study object containing multiple trials, including
-        Pareto-optimal ones.
+        study (optuna.study.study.Study): An Optuna study object containing
+        multiple trials, including Pareto-optimal ones.
+        window_size (int): Width of the moving average window used to 
+        smooth the data.
 
     Returns:
-        List[optuna.trial.FrozenTrial]
-        A list of trials that match the optimal trade-off point, 
-        determined by the maximum curvature in the loss vs inlier score 
-        plot.
+        List[optuna.trial.FrozenTrial]: A list of trials that match the 
+        optimal trade-off point, determined by the maximum curvature in the
+        loss vs inlier score plot.
     
     """
-
     sorted_best_trails = sorted(study.best_trials, 
                                     key=lambda t: t.values[0], 
                                     reverse=True)
@@ -641,17 +649,22 @@ def trade_off_trails_detection(
     obj0_scores = [trial.values[0] for trial in sorted_best_trails]
     obj1_scores = [trial.values[1] for trial in sorted_best_trails]
 
-    kappa = curvature(obj0_scores, obj1_scores, window_size=window_size)
-
-    inflection_index = np.argmax(np.abs(kappa)) - 1
+    kappa = curvature(obj0_scores, 
+                      obj1_scores, 
+                      window_size=window_size)
+    
+    # removing first and the last values of curvature due to possible 
+    # unstable boundary effects
+    kappa_trimmed = kappa[1:-1]
+    inflection_index = np.argmax(np.abs(kappa_trimmed)) + 1
 
     optimal_trial = sorted_best_trails[inflection_index]
 
     optimal_trials_list = [trial for trial in sorted_best_trails 
                             if round(trial.values[0], 4) == 
                             round(optimal_trial.values[0], 4)
-                            and trial.values[1] ==
-                            optimal_trial.values[1]]
+                            and round(trial.values[1], 4) ==
+                            round(optimal_trial.values[1], 4)]
 
     return optimal_trials_list
 
@@ -1055,6 +1068,7 @@ def plot_pareto_front(
 
 def plot_proxy_pareto_front(
     model_study: optuna.study.study.Study,
+    best_trials_list: List[optuna.trial.FrozenTrial],
     selected_cell_label: str,
     fig_title: str) -> None:
 
@@ -1072,6 +1086,9 @@ def plot_proxy_pareto_front(
         model_study (optuna.study.study.Study): Optuna study object
             containing trials with recall and precision scores as
             objectives.
+        best_trials_list (List[optuna.trial.FrozenTrial]): A list of best 
+        trials obtained using curvature analysis step in case of proxy 
+        hyperparameter tuning method.
         selected_cell_label (str): Identifier for the evaluated cell,
             used to generate the output file path.
         fig_title (str): Title of the plot and basis for the output file
@@ -1091,20 +1108,11 @@ def plot_proxy_pareto_front(
                 selected_cell_label,
                 fig_title="Isolation Forest Pareto Front")
     """
-    sorted_best_trails = sorted(model_study.best_trials, 
-                                key=lambda t: t.values[0], 
-                                reverse=True)
-    
-    loss_scores = [trial.values[0] for trial in sorted_best_trails]
-    inlier_scores = [trial.values[1] for trial in sorted_best_trails]
+    # extracting loss score value and inlier score value at knee point
+    loss_infl = best_trials_list[0].values[0]
+    inlier_infl = best_trials_list[0].values[1]
 
-    kappa = curvature(loss_scores, inlier_scores, window_size=5)
-
-    inflection_index = np.argmax(np.abs(kappa)) - 1
-
-    loss_infl = loss_scores[inflection_index]
-    inlier_infl = inlier_scores[inflection_index]
-
+    # plotting pareto front with proxy metrics
     axplot = optuna.visualization.matplotlib.plot_pareto_front(
         model_study,
         target_names=[
