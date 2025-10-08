@@ -282,17 +282,16 @@ class ModelRunner:
         Returns:
             Tuple[float, float]:
                 - loss_score: Normalized MSE regression loss for predicted
-                inliers.
-                A lower value (closer to 0) indicates that the
-                outlier detection model performed well in excluding true
-                positives (points that were indeed outliers. A value closer
-                to 1 implies model was unable to remove true positives.
+                  inliers. A lower value (closer to 0) indicates that the
+                  outlier detection model performed well in excluding true
+                  positives (points that were indeed outliers. A value closer
+                  to 1 implies model was unable to remove true positives.
 
-                - inlier_score: Normalized inlier count score.
-                It represents the proportion of data points retained after
-                excluding predicted outliers. A higher value (closer to 1)
-                means fewer points were removed, while a lower value indicates
-                more aggressive outlier removal.
+                - inlier_score: Normalized inlier count score. It represents
+                  the proportion of data points retained after
+                  excluding predicted outliers. A higher value (closer to 1)
+                  means fewer points were removed, while a lower value
+                  indicates more aggressive outlier removal.
         """
 
         features_in = np.delete(features, pred_indices, axis=0)
@@ -325,24 +324,22 @@ class ModelRunner:
         square_grid: bool=True,
         grid_offset:Union[int, float] =1):
         """
-        Create a 2D mesh grid for visualization of anomaly scores.
+        Create a mesh grid spanning the first two feature dimensions.
 
-        This function generates a square mesh grid covering the range of the
-        first two features in ``self.Xdata``. The grid is expanded by ±1 unit
-        beyond the min and max values to ensure full coverage. The resulting
-        grid can be used for plotting decision boundaries and anomaly score
-        heatmaps.
+        Generates linearly spaced grids from ``self.Xdata`` that are padded
+        by ``grid_offset`` units. When ``square_grid`` is True, both axes
+        share the combined min and max range to form a square plotting area.
 
         Args:
-            None
+            square_grid (bool, optional): Enforce equal axis bounds for a
+                square grid. Defaults to True.
+            grid_offset (Union[int, float], optional): Margin added to each
+                axis bound to expand the plotting coverage. Defaults to 1.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]:
-                - xx (np.ndarray): 2D array of x-coordinates.
-                - yy (np.ndarray): 2D array of y-coordinates.
-                - meshgrid (np.ndarray): Flattened 2D grid of shape
-                  (n_points, 2) where each row is a (x, y) coordinate pair.
-
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: ``xx`` and ``yy`` mesh
+                arrays plus a flattened ``meshgrid`` suitable for contour
+                evaluation.
         """
         if square_grid:
             # Define the boundaries of the grid
@@ -447,6 +444,10 @@ class ModelRunner:
                 anomalous samples.
             threshold (np.float64, optional): Probability threshold for the
                 anomaly decision boundary. Defaults to 0.7.
+            square_grid (bool, optional): Use shared bounds for both axes to
+                render a square mesh. Defaults to True.
+            grid_offset (Union[int, float], optional): Margin added to axis
+                limits when constructing the mesh grid. Defaults to 1.
 
         Returns:
             matplotlib.axes.Axes: Axes object containing the anomaly score
@@ -460,7 +461,9 @@ class ModelRunner:
                 xoutliers=df_outliers_pred["log_max_diff_dQ"],
                 youtliers=df_outliers_pred["log_max_diff_dV"],
                 pred_outliers_index=pred_outlier_indices,
-                threshold=param_dict["threshold"]
+                threshold=param_dict["threshold"],
+                square_grid=True,
+                grid_offset=1
             )
 
         .. note::

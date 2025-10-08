@@ -107,11 +107,11 @@ class BenchDB:
         Example:
             .. code-block::
 
-                # Path to the DuckDB instance:
-                # "train_dataset_severson.db"
+                # Path to the DuckDB instance: "train_dataset_severson.db"
+                # osbad/database/train_dataset_severson.db
                 db_filepath = (
                     Path.cwd()
-                    .parent.parent
+                    .parent.parent.parent
                     .joinpath("database","train_dataset_severson.db"))
 
                 # Get the cell-ID from cell_inventory
@@ -182,13 +182,6 @@ class BenchDB:
 
         Example:
             .. code-block::
-
-                # Path to the DuckDB instance: "train_dataset_severson.db"
-                db_filepath = (
-                    Path.cwd()
-                    .parent.parent
-                    .joinpath("database","train_dataset_severson.db"))
-                print(db_filepath)
 
                 # Import the BenchDB class
                 # Load only the dataset based on the selected cell
@@ -394,9 +387,10 @@ class BenchDB:
 
                 # Define the filepath to ``train_features_severson.db``
                 # DuckDB instance.
+                # osbad/database/train_features_severson.db
                 db_features_filepath = (
                     Path.cwd()
-                    .parent.parent
+                    .parent.parent.parent
                     .joinpath("database","train_features_severson.db"))
 
                 # Load only the training features dataset

@@ -317,32 +317,68 @@ def _suggest_categorical(trial, schema, name: str):
 # especially after updating parameters during runtime
 reload(bconf)
 
-DataSource = Literal["tohoku", "severson"]
-DATA_SOURCE: DataSource = bconf.HP_DATA_SOURCE
+DATA_SOURCE: Literal["tohoku", "severson"] = bconf.HP_DATA_SOURCE
+"""
+Global selector for the active hyperparameter data source.
 
-def grab(model: str):
+Loaded from ``bconf.HP_DATA_SOURCE`` during import to keep module
+state aligned with the currently configured dataset registry.
+"""
+
+def _grab(model: str):
+    """
+    Retrieve hyperparameter configuration for a given model and data source.
+
+    This function dynamically retrieves the hyperparameter configuration
+    dictionary for a specified model by constructing the attribute name
+    based on the model identifier and the global DATA_SOURCE setting.
+
+    Args:
+        model (str): The model identifier (e.g., "iforest", "knn", "gmm",
+            "lof", "pca", "autoencoder").
+
+    Returns:
+        Dict[str, Any]: The hyperparameter configuration dictionary for the
+            specified model and data source combination.
+
+    Raises:
+        AttributeError: If the constructed attribute name does not exist in
+            the bconf module.
+
+    Example:
+        .. code-block::
+
+            DATA_SOURCE = "tohoku"
+            _IFOREST_HP_CONFIG = _grab("iforest")
+    """
     suffix = DATA_SOURCE.lower()
-    attr = f"{model}_hp_config_{suffix}"
+    attr = f"_{model}_hp_config_{suffix}"
     return getattr(bconf, attr)
 
-IFOREST_HP_CONFIG = grab("iforest")
-KNN_HP_CONFIG = grab("knn")
-GMM_HP_CONFIG = grab("gmm")
-LOF_HP_CONFIG = grab("lof")
-PCA_HP_CONFIG = grab("pca")
-AUTOENCODER_HP_CONFIG = grab("autoencoder")
+_IFOREST_HP_CONFIG = _grab("iforest")
+_KNN_HP_CONFIG = _grab("knn")
+_GMM_HP_CONFIG = _grab("gmm")
+_LOF_HP_CONFIG = _grab("lof")
+_PCA_HP_CONFIG = _grab("pca")
+_AUTOENCODER_HP_CONFIG = _grab("autoencoder")
+"""
+Hyperparameter schema cache for supported anomaly detection models.
+
+Each constant stores the preloaded hyperparameter configuration for a
+specific PyOD estimator under the active ``DATA_SOURCE`` selection.
+"""
 
 MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "iforest": ModelConfigDataClass(
         hp_space=lambda trial: {
             "contamination": _suggest_float(
-                trial, IFOREST_HP_CONFIG, "contamination"),
+                trial, _IFOREST_HP_CONFIG, "contamination"),
             "n_estimators": _suggest_int(
-                trial, IFOREST_HP_CONFIG, "n_estimators"),
+                trial, _IFOREST_HP_CONFIG, "n_estimators"),
             "max_samples": _suggest_int(
-                trial, IFOREST_HP_CONFIG, "max_samples"),
+                trial, _IFOREST_HP_CONFIG, "max_samples"),
             "threshold": _suggest_float(
-                trial, IFOREST_HP_CONFIG, "threshold"),
+                trial, _IFOREST_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: IForest(
             behaviour="new",
@@ -361,15 +397,15 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "knn": ModelConfigDataClass(
         hp_space=lambda trial: {
             "contamination": _suggest_float(
-                trial, KNN_HP_CONFIG, "contamination"),
+                trial, _KNN_HP_CONFIG, "contamination"),
             "n_neighbors": _suggest_int(
-                trial, KNN_HP_CONFIG, "n_neighbors"),
+                trial, _KNN_HP_CONFIG, "n_neighbors"),
             "method": _suggest_categorical(
-                trial, KNN_HP_CONFIG, "method"),
+                trial, _KNN_HP_CONFIG, "method"),
             "metric": _suggest_categorical(
-                trial, KNN_HP_CONFIG, "metric"),
+                trial, _KNN_HP_CONFIG, "metric"),
             "threshold": _suggest_float(
-                trial, KNN_HP_CONFIG, "threshold"),
+                trial, _KNN_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: KNN(
             contamination=param["contamination"],
@@ -385,15 +421,15 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "gmm": ModelConfigDataClass(
         hp_space=lambda trial: {
             "n_components": _suggest_int(
-                trial, GMM_HP_CONFIG, "n_components"),
+                trial, _GMM_HP_CONFIG, "n_components"),
             "covariance_type": _suggest_categorical(
-                trial, GMM_HP_CONFIG, "covariance_type"),
+                trial, _GMM_HP_CONFIG, "covariance_type"),
             "init_param": _suggest_categorical(
-                trial, GMM_HP_CONFIG, "init_param"),
+                trial, _GMM_HP_CONFIG, "init_param"),
             "contamination": _suggest_float(
-                trial, GMM_HP_CONFIG, "contamination"),
+                trial, _GMM_HP_CONFIG, "contamination"),
             "threshold": _suggest_float(
-                trial, GMM_HP_CONFIG, "threshold"),
+                trial, _GMM_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: GMM(
             n_components=param["n_components"],
@@ -410,15 +446,15 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "lof": ModelConfigDataClass(
         hp_space=lambda trial: {
             "n_neighbors": _suggest_int(
-                trial, LOF_HP_CONFIG, "n_neighbors"),
+                trial, _LOF_HP_CONFIG, "n_neighbors"),
             "leaf_size": _suggest_int(
-                trial, LOF_HP_CONFIG, "leaf_size"),
+                trial, _LOF_HP_CONFIG, "leaf_size"),
             "metric": _suggest_categorical(
-                trial, LOF_HP_CONFIG, "metric"),
+                trial, _LOF_HP_CONFIG, "metric"),
             "contamination": _suggest_float(
-                trial, LOF_HP_CONFIG, "contamination"),
+                trial, _LOF_HP_CONFIG, "contamination"),
             "threshold": _suggest_float(
-                trial, LOF_HP_CONFIG, "threshold"),
+                trial, _LOF_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: LOF(
             n_neighbors=param["n_neighbors"],
@@ -436,11 +472,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "pca": ModelConfigDataClass(
         hp_space=lambda trial: {
             "n_components": _suggest_int(
-                trial, PCA_HP_CONFIG, "n_components"),
+                trial, _PCA_HP_CONFIG, "n_components"),
             "contamination": _suggest_float(
-                trial, PCA_HP_CONFIG, "contamination"),
+                trial, _PCA_HP_CONFIG, "contamination"),
             "threshold": _suggest_float(
-                trial, PCA_HP_CONFIG, "threshold"),
+                trial, _PCA_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: PCA(
             n_components=param["n_components"],
@@ -453,15 +489,15 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "autoencoder": ModelConfigDataClass(
         hp_space=lambda trial: {
             "batch_size": _suggest_int(
-                trial, AUTOENCODER_HP_CONFIG, "batch_size"),
+                trial, _AUTOENCODER_HP_CONFIG, "batch_size"),
             "epoch_num": _suggest_float(
-                trial, AUTOENCODER_HP_CONFIG, "epoch_num"),
+                trial, _AUTOENCODER_HP_CONFIG, "epoch_num"),
             "learning_rate": _suggest_float(
-                trial, AUTOENCODER_HP_CONFIG, "learning_rate"),
+                trial, _AUTOENCODER_HP_CONFIG, "learning_rate"),
             "dropout_rate": _suggest_float(
-                trial, AUTOENCODER_HP_CONFIG, "dropout_rate"),
+                trial, _AUTOENCODER_HP_CONFIG, "dropout_rate"),
             "threshold": _suggest_float(
-                trial, AUTOENCODER_HP_CONFIG, "threshold"),
+                trial, _AUTOENCODER_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: AutoEncoder(
             batch_size=param["batch_size"],
@@ -550,21 +586,37 @@ def objective(
             import optuna
             import osbad.hyperparam as hp
 
-            # Use the TPESampler from optuna
+            # Reload the hp module to refresh in-memory variables
+            # especially after updating parameters
+            from importlib import reload
+            reload(hp)
+
+            # Check if the schema in the script has been updated
+            # based on the latest updated constraints
+            print("Current hyperparameter config:")
+            print(hp._IFOREST_HP_CONFIG)
+            print("-"*70)
+
+            # Instantiate an optuna study for iForest model
             sampler = optuna.samplers.TPESampler(seed=42)
 
-            # Create a study to maximize recall and precision score
-            study = optuna.create_study(
+            selected_feature_cols = (
+                "log_max_diff_dQ",
+                "log_max_diff_dV")
+
+            if_study = optuna.create_study(
+                study_name="iforest_hyperparam",
                 sampler=sampler,
                 directions=["maximize","maximize"])
 
-            # Optimize the hyperparameters for iforest using 20 trials
-            study.optimize(
-                lambda tr: hp.objective(
-                    tr,
-                    "iforest",
-                    df_features_per_cell,
-                    df_selected_cell),
+            if_study.optimize(
+                lambda trial: hp.objective(
+                    trial,
+                    model_id="iforest",
+                    df_feature_dataset=df_features_per_cell,
+                    selected_feature_cols=selected_feature_cols,
+                    df_benchmark_dataset=df_selected_cell,
+                    selected_cell_label=selected_cell_label),
                 n_trials=20)
     """
 
@@ -627,7 +679,6 @@ def trade_off_trials_detection(
         ) -> List[optuna.trial.FrozenTrial]:
 
     """
-
     Identifies the most representative Pareto-optimal trials based
     on curvature analysis of the loss_score vs inlier_score trade-off
     curve.The curvature-based selection helps identify the "elbow point"
@@ -638,7 +689,7 @@ def trade_off_trials_detection(
         1. Sorts Pareto-optimal trials in descending order of loss_score.
         2. Extracts loss_score and inlier_score values from the sorted trials.
         3. Computes the curvature of the smoothed loss vs inlier score plot
-        to identify the point of maximum curvature (inflection point).
+           to identify the point of maximum curvature (inflection point).
         4. Selects the trial at the inflection point as the optimal trade-off
            between model performance and data retention.
         5. Returns all trials that share the same loss_score and inlier_score
@@ -697,8 +748,9 @@ def aggregate_param_method(values: List[Any], how: Agg):
     """
     Aggregate a list of values using the given method.
 
-    Supports median, median as integer, and mode. Raises ValueError
-    if an unsupported method is provided.
+    Supports median and mean as float, median_int and mean_int as integer
+    and mode for strings. Raises ValueError if an unsupported method is
+    provided.
 
     Args:
         values (List[Any]): List of values to aggregate.
@@ -757,12 +809,12 @@ def aggregate_best_trials(
 
     Args:
         best_trials (List[optuna.trial.FrozenTrial]): A list of best
-        trials obtained using Pareto optimization or the additional
-        curvature analysis step in case of proxy hyperparameter tuning
-        method.
+            trials obtained using Pareto optimization or the additional
+            curvature analysis step in case of proxy hyperparameter tuning
+            method.
         cell_label (str): Identifier for the experimental cell.
         model_id (str): Identifier of the ML-model. Allowed values are
-                        "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
+            "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
         schema (Dict[str, Agg]): Mapping of parameter names to
             aggregation strategies. Allowed values are "median",
             "median_int", and "mode".
@@ -802,6 +854,7 @@ def aggregate_best_trials(
     # }
 
     collected_param_dict = {k: [] for k in schema.keys()}
+
     # Initialize an empty dict to store best trials hyperparameter
     # where k correspond to the keys from the schema:
     # collected_param_dict = {
@@ -860,10 +913,10 @@ def aggregate_best_trials(
 # ---------------------------------------------------------------------------
 # Getting best trials from pareto-optimal trials using curvature analysis
 
-def curvature(target_x: Union[List[float], np.ndarray],
-              target_y: Union[List[float], np.ndarray],
-              window_size: int=5
-              ) -> np.ndarray:
+def curvature(
+        target_x: Union[List[float], np.ndarray],
+        target_y: Union[List[float], np.ndarray],
+        window_size: int=5) -> np.ndarray:
 
     """
     Calculates the curvature values of a smoothed loss_score
@@ -876,10 +929,10 @@ def curvature(target_x: Union[List[float], np.ndarray],
     smoothing filter to reduce noise.
 
     Args:
-        target_x (Union[List[float], np.ndarray]): List or array
-        of x-values (e.g., loss scores).
-        target_y (Union[List[float], np.ndarray]): List or array
-        of y-values (e.g., inlier scores).
+        target_x (Union[List[float], np.ndarray]): List or array of
+            X-values (e.g., loss scores).
+        target_y (Union[List[float], np.ndarray]): List or array of Y-values
+            (e.g., inlier scores).
 
     Returns:
         float: Array of curvature values at each point on the smoothed
@@ -887,12 +940,13 @@ def curvature(target_x: Union[List[float], np.ndarray],
         location.
 
     .. note::
-    - A smoothing window is applied to reduce noise before computing
-    gradients.
-    - The curvature is calculated using the standard 2D curvature formula:
-        κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)
-    - Division by zero is safely handled using NumPy's error state
-    management.
+
+        - A smoothing window is applied to reduce noise before computing
+          gradients.
+        - The curvature is calculated using the standard 2D curvature formula:
+          ``κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)``
+        - Division by zero is safely handled using NumPy's error state
+          management.
 
     """
     x_smooth = uniform_filter1d(target_x, size=window_size)
