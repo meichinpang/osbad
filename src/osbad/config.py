@@ -42,6 +42,42 @@ not already exist, it will be created at runtime.
 if not os.path.exists(PIPELINE_OUTPUT_DIR):
     os.mkdir(PIPELINE_OUTPUT_DIR)
 
+def find_repo_root(marker: str = "pyproject.toml"):
+    """
+    Locate the root directory of the repository by searching for a marker file.
+
+    This function starts from the current working directory and traverses
+    upwards in the directory hierarchy until it finds a directory containing
+    the specified marker file (default is "pyproject.toml"). If the marker
+    file is not found, an exception is raised.
+
+    Args:
+        marker (str): The name of the marker file to search for. Default is
+            "pyproject.toml".
+
+    Returns:
+        pathlib.Path: The path to the root directory of the repository.
+
+    Raises:
+        FileNotFoundError: If the marker file is not found in any parent
+            directories up to the filesystem root.
+    """
+    current_path = Path(__file__).resolve()
+
+    for parent in current_path.parents:
+        if (parent / marker).exists():
+            return parent
+    raise FileNotFoundError(
+        f"Marker file '{marker}' not found in any parent directories.")
+
+# Define the root directory of the repository
+ROOT_DIR = find_repo_root()
+# print(f"Root directory of the repository: {ROOT_DIR}")
+
+# Path to the database directory
+DB_DIR = ROOT_DIR.joinpath("database")
+# print(f"DATABASE_DIRECTORY: {DB_DIR}")
+
 # ------------------------------------------------------------------------
 def artifacts_output_dir(selected_cell_label: str) -> pathlib.PosixPath:
     """
