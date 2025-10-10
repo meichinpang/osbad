@@ -490,7 +490,7 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         hp_space=lambda trial: {
             "batch_size": _suggest_int(
                 trial, _AUTOENCODER_HP_CONFIG, "batch_size"),
-            "epoch_num": _suggest_float(
+            "epoch_num": _suggest_int(
                 trial, _AUTOENCODER_HP_CONFIG, "epoch_num"),
             "learning_rate": _suggest_float(
                 trial, _AUTOENCODER_HP_CONFIG, "learning_rate"),
