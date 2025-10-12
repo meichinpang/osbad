@@ -10,23 +10,13 @@
 
 },
 
-"n_estimators": {
+"n_components": {
 
 
-"low": 100,
+"low": 1,
 
 
-"high": 500
-
-},
-
-"max_samples": {
-
-
-"low": 100,
-
-
-"high": 245
+"high": 2
 
 },
 

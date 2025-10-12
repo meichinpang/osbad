@@ -1,0 +1,55 @@
+{
+
+"contamination": {
+
+
+"low": 0.0,
+
+
+"high": 0.5
+
+},
+
+"n_neighbors": {
+
+
+"low": 10,
+
+
+"high": 50
+
+},
+
+"leaf_size": {
+
+
+"low": 10,
+
+
+"high": 100
+
+},
+
+"metric": [
+
+
+"minkowski",
+
+
+"euclidean",
+
+
+"manhattan"
+
+],
+
+"threshold": {
+
+
+"low": 0.0,
+
+
+"high": 1.0
+
+}
+}

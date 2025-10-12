@@ -1,0 +1,58 @@
+{
+
+"contamination": {
+
+
+"low": 0.0,
+
+
+"high": 0.5
+
+},
+
+"n_neighbors": {
+
+
+"low": 2,
+
+
+"high": 50
+
+},
+
+"method": [
+
+
+"largest",
+
+
+"mean",
+
+
+"median"
+
+],
+
+"metric": [
+
+
+"minkowski",
+
+
+"euclidean",
+
+
+"manhattan"
+
+],
+
+"threshold": {
+
+
+"low": 0.0,
+
+
+"high": 1.0
+
+}
+}
