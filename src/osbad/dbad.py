@@ -57,7 +57,7 @@ distance_metrics: Dict[str, Callable[..., float]] = {
     "mahalanobis": distance.mahalanobis,
 }
 
-def calculate_distance(
+def calculate_norm_distance(
         metric_name: Literal["euclidean",
                              "manhattan",
                              "minkowski",
@@ -65,7 +65,8 @@ def calculate_distance(
         features: np.ndarray,
         centroid: np.ndarray,
         p: int = None,
-        inv_cov_matrix: np.ndarray=None
+        inv_cov_matrix: np.ndarray=None,
+        max_distance: float=None,
         ) -> np.ndarray:
     
     """
@@ -118,8 +119,14 @@ def calculate_distance(
     else:
         distance = [metric(point, centroid) 
                     for point in features]
-
-    return np.array(distance)
+        
+    if max_distance: 
+        distance = np.array(distance)/max_distance
+        return distance
+    else: 
+        max_distance = max(distance)
+        distance = np.array(distance)/max_distance
+        return distance, max_distance
 
 
 def predict_outliers(distance: np.ndarray,
@@ -368,9 +375,9 @@ def plot_distance_score_map(
         yy,
         zz_grid_dist,
         cmap=selected_colormap,
-        levels=20,
-        #vmin=0,
-        #vmax=max_outlier_dist
+        levels=30,
+        vmin=0,
+        vmax=1
         )
 
     ax.contour(
@@ -386,11 +393,11 @@ def plot_distance_score_map(
     # Set the limits for the colorbar
     cbar_limit = plt.cm.ScalarMappable(cmap=selected_colormap)
     cbar_limit.set_array(zz_grid_dist)
-    #cbar_limit.set_clim(0., max_outlier_dist)
+    cbar_limit.set_clim(0., 1)
 
     cbar = plt.colorbar(cbar_limit, ax = ax, shrink=0.9)
     cbar.ax.set_ylabel(
-        'Distance from centroid',
+        'Normalized Distance from centroid',
         fontsize=14)
 
     ax.scatter(features[:,0], 
@@ -412,7 +419,7 @@ def plot_distance_score_map(
     ax.scatter(xoutliers, 
                 youtliers, 
                 color='gold',
-                edgecolors='red', 
+                edgecolors='black', 
                 s=150, 
                 alpha=1,
                 zorder=2,
@@ -440,9 +447,10 @@ def plot_distance_score_map(
                 # text-string is the cycle number
                 s = cycle,
                 horizontalalignment='left',
-                size='medium',
+                size=12,
                 color='black',
-                weight='bold')
+                weight='bold',
+                )
                 # print("*"*70)
         
         # Textbox for the legend to label anomalous cycles ---------------
