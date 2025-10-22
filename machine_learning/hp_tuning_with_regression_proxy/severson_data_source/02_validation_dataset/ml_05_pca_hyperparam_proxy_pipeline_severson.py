@@ -203,9 +203,10 @@ if __name__ == "__main__":
             "threshold": "median",
         }
 
-        trade_off_trials_list = hp.trade_off_trials_detection(
+        trade_off_trials_list = hp.trade_off_trials_detection_test(
             pca_study, 
-            window_size=7)
+            #window_size=7
+            )
 
         df_pca_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,

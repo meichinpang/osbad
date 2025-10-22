@@ -56,9 +56,6 @@ df_duckdb = con.execute(
 unique_cell_index_train = df_duckdb["cell_index"].unique()
 print(unique_cell_index_train)
 
-# unique_cell_index_train = ['2017-05-12_4C-80per_4C_CH6']
-# print(unique_cell_index_train)
-
 training_cell_count = len(unique_cell_index_train)
 print(f"Training cell count: {training_cell_count}")
 

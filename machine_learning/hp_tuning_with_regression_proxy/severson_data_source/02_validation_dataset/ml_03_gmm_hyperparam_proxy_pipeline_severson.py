@@ -142,7 +142,7 @@ if __name__ == "__main__":
         # Update the HP config (if needed)
         hp_config_gmm = {
             "contamination": {"low": 0.0, "high": 0.5},
-            "n_components": {"low": 1, "high": 2},
+            "n_components": {"low": 1, "high": 5},
             "covariance_type": ["spherical", "diag", "tied", "full"],
             "init_param": ["kmeans","random"],
             "threshold": {"low": 0.0, "high": 1.0}
@@ -207,9 +207,10 @@ if __name__ == "__main__":
             "threshold": "median",
         }
         
-        trade_off_trials_list = hp.trade_off_trials_detection(
+        trade_off_trials_list = hp.trade_off_trials_detection_test(
             gmm_study, 
-            window_size=7)
+            #window_size=7
+            )
 
         df_gmm_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,
