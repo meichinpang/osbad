@@ -65,6 +65,7 @@ import fireducks.pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import Counter
 import optuna
 from matplotlib import rcParams
 import pyod
@@ -675,63 +676,79 @@ def objective(
 
         return loss_score, inliers_score
 
+# def trade_off_trials_detection(
+#         study: optuna.study.Study,
+#         ) -> List[optuna.trial.FrozenTrial]:
+
+#     """
+#     Identifies the most representative Pareto-optimal trials based
+#     on curvature analysis of the loss_score vs inlier_score trade-off
+#     curve.The curvature-based selection helps identify the "elbow point"
+#     in the trade-off curve, which often represents the best balance
+#     between minimizing regression loss and maximizing inlier retention.
+
+#     This function performs the following steps:
+#         1. Sorts Pareto-optimal trials in descending order of loss_score.
+#         2. Extracts loss_score and inlier_score values from the sorted trials.
+#         3. Computes the curvature of the smoothed loss vs inlier score plot
+#            to identify the point of maximum curvature (inflection point).
+#         4. Selects the trial at the inflection point as the optimal trade-off
+#            between model performance and data retention.
+#         5. Returns all trials that share the same loss_score and inlier_score
+#            as the identified optimal trial.
+
+#     Args:
+#         study (optuna.study.study.Study): An Optuna study object containing
+#             multiple trials, including Pareto-optimal ones.
+#         window_size (int): Width of the moving average window used to
+#             smooth the data.
+
+#     Returns:
+#         List[optuna.trial.FrozenTrial]: A list of trials that match the
+#         optimal trade-off point, determined by the maximum curvature in the
+#         loss vs inlier score plot.
+
+#     """
+#     obj_scores = [[trial.values[0], trial.values[1]]
+#                 for trial in study.best_trials]
+
+#     unique_obj_scores = list(set(tuple(trial) for trial in obj_scores))
+#     unique_obj_scores.sort(key=lambda x: x[0], reverse=True)
+#     unique_obj_scores = [list(trial) for trial in unique_obj_scores]
+
+#     obj0_scores = [trial[0] for trial in unique_obj_scores]
+#     obj1_scores = [trial[1] for trial in unique_obj_scores]
+
+#     kappa = curvature(obj0_scores,
+#                     obj1_scores)
+
+#     kappa_trimmed = kappa[1:-1]
+#     inflection_index = np.argmax(np.abs(kappa_trimmed)) + 1
+#     optimal_obj_scores = unique_obj_scores[inflection_index]
+
+#     optimal_trials_list = [trial for trial in study.best_trials
+#                             if round(trial.values[0], 4) ==
+#                             round(optimal_obj_scores[0], 4)
+#                             and round(trial.values[1], 4) ==
+#                             round(optimal_obj_scores[1], 4)]
+#     return optimal_trials_list
+
 def trade_off_trials_detection(
         study: optuna.study.Study,
-        window_size: int=5,
         ) -> List[optuna.trial.FrozenTrial]:
 
-    """
-    Identifies the most representative Pareto-optimal trials based
-    on curvature analysis of the loss_score vs inlier_score trade-off
-    curve.The curvature-based selection helps identify the "elbow point"
-    in the trade-off curve, which often represents the best balance
-    between minimizing regression loss and maximizing inlier retention.
+    obj_scores = [(trial.values[0], trial.values[1])
+                for trial in study.best_trials]
+    
+    freq_counter = Counter(obj_scores)
 
-    This function performs the following steps:
-        1. Sorts Pareto-optimal trials in descending order of loss_score.
-        2. Extracts loss_score and inlier_score values from the sorted trials.
-        3. Computes the curvature of the smoothed loss vs inlier score plot
-           to identify the point of maximum curvature (inflection point).
-        4. Selects the trial at the inflection point as the optimal trade-off
-           between model performance and data retention.
-        5. Returns all trials that share the same loss_score and inlier_score
-           as the identified optimal trial.
+    high_frq_obj_score = list(freq_counter.most_common(1)[0][0])
 
-    Args:
-        study (optuna.study.study.Study): An Optuna study object containing
-            multiple trials, including Pareto-optimal ones.
-        window_size (int): Width of the moving average window used to
-            smooth the data.
-
-    Returns:
-        List[optuna.trial.FrozenTrial]: A list of trials that match the
-        optimal trade-off point, determined by the maximum curvature in the
-        loss vs inlier score plot.
-
-    """
-    sorted_best_trials = sorted(study.best_trials,
-                                    key=lambda t: t.values[0],
-                                    reverse=True)
-
-    obj0_scores = [trial.values[0] for trial in sorted_best_trials]
-    obj1_scores = [trial.values[1] for trial in sorted_best_trials]
-
-    kappa = curvature(obj0_scores,
-                      obj1_scores,
-                      window_size=window_size)
-
-    # removing first and the last values of curvature due to possible
-    # unstable boundary effects
-    kappa_trimmed = kappa[1:-1]
-    inflection_index = np.argmax(np.abs(kappa_trimmed)) + 1
-
-    optimal_trial = sorted_best_trials[inflection_index]
-
-    optimal_trials_list = [trial for trial in sorted_best_trials
-                            if round(trial.values[0], 4) ==
-                            round(optimal_trial.values[0], 4)
-                            and round(trial.values[1], 4) ==
-                            round(optimal_trial.values[1], 4)]
+    optimal_trials_list = [trial for trial in study.best_trials
+                                if round(trial.values[0], 4) ==
+                                round(high_frq_obj_score[0], 4)
+                                and round(trial.values[1], 4) ==
+                                round(high_frq_obj_score[1], 4)]
 
     return optimal_trials_list
 
@@ -919,63 +936,63 @@ def aggregate_best_trials(
 # ---------------------------------------------------------------------------
 # Getting best trials from pareto-optimal trials using curvature analysis
 
-def curvature(
-    target_x: Union[List[float], np.ndarray],
-    target_y: Union[List[float], np.ndarray],
-    window_size: int=5) -> np.ndarray:
+# def curvature(
+#     target_x: Union[List[float], np.ndarray],
+#     target_y: Union[List[float], np.ndarray],
+#     ) -> np.ndarray:
 
-    """
-    Calculates the curvature values of a smoothed loss_score
-    vs inlier_score plot.
+#     """
+#     Calculates the curvature values of a smoothed loss_score
+#     vs inlier_score plot.
 
-    This function estimates the curvature of a 2D curve defined
-    by `target_x` and `target_y`, which represents the trade-off
-    between regression loss and inlier count in outlier detection
-    evaluation. The curvature is computed after applying a uniform
-    smoothing filter to reduce noise.
+#     This function estimates the curvature of a 2D curve defined
+#     by `target_x` and `target_y`, which represents the trade-off
+#     between regression loss and inlier count in outlier detection
+#     evaluation. The curvature is computed after applying a uniform
+#     smoothing filter to reduce noise.
 
-    Args:
-        target_x (Union[List[float], np.ndarray]): List or array of
-            X-values (e.g., loss scores).
-        target_y (Union[List[float], np.ndarray]): List or array of Y-values
-            (e.g., inlier scores).
+#     Args:
+#         target_x (Union[List[float], np.ndarray]): List or array of
+#             X-values (e.g., loss scores).
+#         target_y (Union[List[float], np.ndarray]): List or array of Y-values
+#             (e.g., inlier scores).
 
-    Returns:
-        float: Array of curvature values at each point on the smoothed
-        curve. These values indicate how sharply the curve bends at each
-        location.
+#     Returns:
+#         float: Array of curvature values at each point on the smoothed
+#         curve. These values indicate how sharply the curve bends at each
+#         location.
 
-    .. note::
+#     .. note::
 
-        - A smoothing window is applied to reduce noise before computing
-          gradients.
-        - The curvature is calculated using the standard 2D curvature formula:
-          ``κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)``
-        - Division by zero is safely handled using NumPy's error state
-          management.
+#         - A smoothing window is applied to reduce noise before computing
+#           gradients.
+#         - The curvature is calculated using the standard 2D curvature formula:
+#           ``κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)``
+#         - Division by zero is safely handled using NumPy's error state
+#           management.
 
-    """
-    x_smooth = uniform_filter1d(
-        target_x,
-        size=window_size,
-        mode='mirror')
-    y_smooth = uniform_filter1d(
-        target_y,
-        size=window_size,
-        mode='mirror')
+#     """
+#     # x_smooth = uniform_filter1d(
+#     #     target_x,
+#     #     size=window_size,
+#     #     mode='mirror')
+#     # y_smooth = uniform_filter1d(
+#     #     target_y,
+#     #     size=window_size,
+#     #     mode='mirror')
 
-    dx = np.gradient(x_smooth)
-    dy = np.gradient(y_smooth)
-    ddx = np.gradient(dx)
-    ddy = np.gradient(dy)
+#     dx = np.gradient(target_x)
+#     dy = np.gradient(target_y)
+#     ddx = np.gradient(dx)
+#     ddy = np.gradient(dy)
 
-    numerator = dx * ddy - dy * ddx
-    denominator = (dx**2 + dy**2)**1.5
+#     numerator = dx * ddy - dy * ddx
+#     denominator = (dx**2 + dy**2)**1.5
 
-    with np.errstate(divide='ignore', invalid='ignore'):
-        kappa = np.where(denominator != 0, numerator / denominator, 0.0)
+#     with np.errstate(divide='ignore', invalid='ignore'):
+#         kappa = np.where(denominator != 0, numerator / denominator, 0.0)
 
-    return kappa
+#     return kappa
 
 def plot_proxy_pareto_front(
     model_study: optuna.study.study.Study,
@@ -1036,13 +1053,13 @@ def plot_proxy_pareto_front(
         color='green',
         label='Best Compromise Solution')
 
-    # Add an arrow and text annotation
-    axplot.annotate(
-        text="Knee Point",
-        xy=(loss_infl, inlier_infl),
-        xytext=(loss_infl+0.15, inlier_infl-0.15),
-        fontsize=12,
-        arrowprops=dict(facecolor='black', shrink=0.05))
+    # # Add an arrow and text annotation
+    # axplot.annotate(
+    #     text="Knee Point",
+    #     xy=(loss_infl, inlier_infl),
+    #     xytext=(loss_infl+0.15, inlier_infl-0.15),
+    #     fontsize=12,
+    #     arrowprops=dict(facecolor='black', shrink=0.05))
 
     #axplot.axis("equal")
     axplot.set_xlim([0,1.05])
