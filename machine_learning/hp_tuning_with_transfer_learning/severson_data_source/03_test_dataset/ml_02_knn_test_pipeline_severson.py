@@ -1,5 +1,6 @@
 # Standard library
 import pprint
+from joblib import dump, load
 from pathlib import Path
 
 # Third-party libraries
@@ -9,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import optuna
 from matplotlib import rcParams
-from statistics import mode
 
 rcParams["text.usetex"] = True
 
@@ -61,317 +61,223 @@ test_cell_count = len(unique_cell_index_test)
 print(f"Test cell count: {test_cell_count}")
 print("-"*70)
 
-if __name__ == "__main__":
+# --------------------------------------------------------------------------
+# Load trained model
+# Please change the cell-index name here if you change the cell-idx used for
+# training and exporting the model
+TRAINED_MODEL_FILEPATH = current_path.parent.parent.joinpath(
+    "02_validation_dataset",
+    "exported_models_dir",
+    "knn_train_2017-05-12_5_4C-70per_3C_CH17.joblib")
 
-    for idx, selected_cell_label in enumerate(unique_cell_index_test):
-        print("Evaluating cell now:")
-        print(idx, selected_cell_label)
+trained_model = load(TRAINED_MODEL_FILEPATH)
+print("Trained model configuration:")
+print(trained_model)
+print("-"*70)
 
-        # -------------------------------------------------------------------
-        # Create a subfolder to store fig output
-        # corresponding to each cell-index
-        selected_cell_artifacts_dir = bconf.artifacts_output_dir(
-            selected_cell_label)
 
-        # -------------------------------------------------------------------
-        # Import the BenchDB class
-        # Load only the dataset based on the selected cell
-        benchdb = BenchDB(
-            db_filepath,
-            selected_cell_label)
+for idx, selected_cell_label in enumerate(unique_cell_index_test):
 
-        # load the benchmarking dataset
-        df_selected_cell = benchdb.load_benchmark_dataset(
-            dataset_type="test")
+    print(f"Evaluating cell-{idx} now: {selected_cell_label}")
 
-        if df_selected_cell is not None:
+    # -------------------------------------------------------------------
+    # Create a subfolder to store fig output
+    # corresponding to each cell-index
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
 
-            filter_col = [
-                "cell_index",
-                "cycle_index",
-                "discharge_capacity",
-                "voltage"]
+    # -------------------------------------------------------------------
+    # Import the BenchDB class
+    # Load only the dataset based on the selected cell
+    benchdb = BenchDB(
+        db_filepath,
+        selected_cell_label)
 
-            # Drop true labels from the benchmarking dataset
-            # and filter for selected columns only
-            df_selected_cell_without_labels = benchdb.drop_labels(
-                df_selected_cell,
-                filter_col)
+    # load the benchmarking dataset
+    df_selected_cell = benchdb.load_benchmark_dataset(
+        dataset_type="test")
 
-            # print a subset of the dataframe
-            # for diagnostics running in terminals
-            print(df_selected_cell_without_labels.head(10).to_markdown())
-            print("-"*70)
+    if df_selected_cell is not None:
 
-        # --------------------------------------------------------------------
-        # Plot cycle data without labels
-        # If the true outlier cycle index is not known,
-        # cycling data will be plotted without labels
-        benchdb.plot_cycle_data(
-            df_selected_cell_without_labels)
+        filter_col = [
+            "cell_index",
+            "cycle_index",
+            "discharge_capacity",
+            "voltage"]
 
-        output_fig_filename = (
-            "cycle_data_without_labels_"
-            + selected_cell_label
-            + ".png")
+        # Drop true labels from the benchmarking dataset
+        # and filter for selected columns only
+        df_selected_cell_without_labels = benchdb.drop_labels(
+            df_selected_cell,
+            filter_col)
 
-        fig_output_path = (
-            selected_cell_artifacts_dir
-            .joinpath(output_fig_filename))
-
-        plt.savefig(
-            fig_output_path,
-            dpi=600,
-            bbox_inches="tight")
-
-        plt.close()
-
-        # --------------------------------------------------------------------
-        # Custom features transformation pipeline
-        # Load only the test features dataset
-        df_features_per_cell = benchdb.load_features_db(
-            db_features_filepath,
-            dataset_type="test")
-
-        print(df_features_per_cell.head(10).to_markdown())
+        # print a subset of the dataframe
+        # for diagnostics running in terminals
+        print(df_selected_cell_without_labels.head(10).to_markdown())
         print("-"*70)
 
-        unique_cycle_count = (
-            df_features_per_cell["cycle_index"].unique())
+    # --------------------------------------------------------------------
+    # Plot cycle data without labels
+    # If the true outlier cycle index is not known,
+    # cycling data will be plotted without labels
+    benchdb.plot_cycle_data(
+        df_selected_cell_without_labels)
 
-        # --------------------------------------------------------------------
-        # Test K Nearest Neighbors (KNN)
-        # Read hyperparameters values from CSV file
-        df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
+    output_fig_filename = (
+        "cycle_data_without_labels_"
+        + selected_cell_label
+        + ".png")
 
-        # Fit with mean hyperparameters from the training dataset
-        avg_contamination = np.mean(
-            df_hyperparam_from_csv["contamination"])
-        print(f"Average contamination: {avg_contamination}")
+    fig_output_path = (
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
 
-        # n_estimators must have the type int
-        avg_n_neighbors = int(np.mean(
-            df_hyperparam_from_csv["n_neighbors"]))
-        print(f"Average n_neighbors: {avg_n_neighbors}")
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
 
-        mode_freq_method = mode(
-            df_hyperparam_from_csv["method"])
-        print(f"Most freq method: {mode_freq_method}")
+    plt.close()
 
-        mode_freq_metric = mode(
-            df_hyperparam_from_csv["metric"])
-        print(f"Most freq metric: {mode_freq_metric}")
+    # --------------------------------------------------------------------
+    # Custom features transformation pipeline
+    # Load only the test features dataset
+    df_features_per_cell = benchdb.load_features_db(
+        db_features_filepath,
+        dataset_type="test")
 
-        avg_threshold = np.mean(
-            df_hyperparam_from_csv["threshold"])
-        print(f"Average threshold: {avg_threshold}")
+    print(df_features_per_cell.head(10).to_markdown())
+    print("-"*70)
 
-        param_dict = {
-            'ml_model': 'knn',
-            'cell_index': selected_cell_label,
-            'contamination': avg_contamination,
-            'n_neighbors': avg_n_neighbors,
-            'method': mode_freq_method,
-            'metric': mode_freq_metric,
-            'threshold': avg_threshold}
-        print("Parameter dictionary:")
-        pprint.pprint(param_dict)
-        print("-"*70)
+    unique_cycle_count = (
+        df_features_per_cell["cycle_index"].unique())
 
-        # -------------------------------------------------------------------
-        # Run the model with average best trial parameters
-        # (frozen from the training dataset)
-        cfg = hp.MODEL_CONFIG["knn"]
+    # --------------------------------------------------------------------
+    # Test K Nearest Neighbors (KNN) model
+    # Read hyperparameters values from CSV file
+    df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
 
-        selected_feature_cols = (
-            "log_max_diff_dQ",
-            "log_max_diff_dV")
+    # Get the average threshold tuned from the training dataset
+    avg_threshold = np.mean(
+        df_hyperparam_from_csv["threshold"])
 
-        runner = ModelRunner(
-            cell_label=selected_cell_label,
-            df_input_features=df_features_per_cell,
-            selected_feature_cols=selected_feature_cols
-        )
+    # -------------------------------------------------------------------
+    # Run the model with average best trial parameters
+    # (frozen from the training dataset)
+    cfg = hp.MODEL_CONFIG["knn"]
 
-        Xdata = runner.create_model_x_input()
+    selected_feature_cols = (
+        "log_max_diff_dQ",
+        "log_max_diff_dV")
 
-        model = cfg.model_param(param_dict)
-        print(model)
-        model.fit(Xdata)
-        proba = model.predict_proba(Xdata)
+    runner = ModelRunner(
+        cell_label=selected_cell_label,
+        df_input_features=df_features_per_cell,
+        selected_feature_cols=selected_feature_cols
+    )
 
-        (pred_outlier_indices,
-         pred_outlier_score) = runner.pred_outlier_indices_from_proba(
-            proba=proba,
-            threshold=param_dict["threshold"],
-            outlier_col=cfg.proba_col
-        )
+    # Create Xdata from test dataset
+    Xdata = runner.create_model_x_input()
 
-        # -------------------------------------------------------------------
-        # Get df_outliers_pred
-        df_outliers_pred = df_features_per_cell[
-            df_features_per_cell["cycle_index"].isin(
-                pred_outlier_indices)].copy()
+    # Predict with trained model
+    proba = trained_model.predict_proba(Xdata)
 
-        df_outliers_pred["outlier_prob"] = pred_outlier_score
+    (pred_outlier_indices,
+        pred_outlier_score) = runner.pred_outlier_indices_from_proba(
+        proba=proba,
+        threshold=avg_threshold,
+        outlier_col=cfg.proba_col
+    )
 
-        # -------------------------------------------------------------------
-        # Predict anomaly score map
-        axplot = runner.predict_anomaly_score_map(
-            selected_model=model,
-            model_name="K Nearest Neighbors (KNN)",
-            xoutliers=df_outliers_pred["log_max_diff_dQ"],
-            youtliers=df_outliers_pred["log_max_diff_dV"],
-            pred_outliers_index=pred_outlier_indices,
-            threshold=param_dict["threshold"]
-        )
+    # -------------------------------------------------------------------
+    # Get df_outliers_pred
+    df_outliers_pred = df_features_per_cell[
+        df_features_per_cell["cycle_index"].isin(
+            pred_outlier_indices)].copy()
 
-        axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
-        axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
+    df_outliers_pred["outlier_prob"] = pred_outlier_score
 
-        output_fig_filename = (
-            "knn_"
-            + selected_cell_label
-            + ".png")
+    # -------------------------------------------------------------------
+    # Predict anomaly score map
+    axplot = runner.predict_anomaly_score_map(
+        selected_model=trained_model,
+        model_name="K Nearest Neighbors (KNN)",
+        xoutliers=df_outliers_pred["log_max_diff_dQ"],
+        youtliers=df_outliers_pred["log_max_diff_dV"],
+        pred_outliers_index=pred_outlier_indices,
+        threshold=avg_threshold
+    )
 
-        fig_output_path = (
-            selected_cell_artifacts_dir
-            .joinpath(output_fig_filename))
+    axplot.set_xlabel(
+        r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+        fontsize=12)
+    axplot.set_ylabel(
+        r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+        fontsize=12)
 
-        plt.savefig(
-            fig_output_path,
-            dpi=600,
-            bbox_inches="tight")
+    output_fig_filename = (
+        "knn_"
+        + selected_cell_label
+        + ".png")
 
-        plt.close()
+    fig_output_path = (
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
 
-        # -------------------------------------------------------------------
-        # Model performance evaluation
-        df_eval_outlier = modval.evaluate_pred_outliers(
-            df_benchmark=df_selected_cell,
-            outlier_cycle_index=pred_outlier_indices)
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
 
-        # -------------------------------------------------------------------
-        # Confusion Matrix
-        axplot = modval.generate_confusion_matrix(
-            y_true=df_eval_outlier["true_outlier"],
-            y_pred=df_eval_outlier["pred_outlier"])
+    plt.close()
 
-        axplot.set_title(
-            "K Nearest Neighbors (KNN)",
-            fontsize=16)
+    # -------------------------------------------------------------------
+    # Model performance evaluation
+    df_eval_outlier = modval.evaluate_pred_outliers(
+        df_benchmark=df_selected_cell,
+        outlier_cycle_index=pred_outlier_indices)
 
-        output_fig_filename = (
-            "conf_matrix_knn_"
-            + selected_cell_label
-            + ".png")
+    # -------------------------------------------------------------------
+    # Confusion Matrix
+    axplot = modval.generate_confusion_matrix(
+        y_true=df_eval_outlier["true_outlier"],
+        y_pred=df_eval_outlier["pred_outlier"])
 
-        fig_output_path = (
-            selected_cell_artifacts_dir
-            .joinpath(output_fig_filename))
+    axplot.set_title(
+        "K Nearest Neighbors (KNN)",
+        fontsize=16)
 
-        plt.savefig(
-            fig_output_path,
-            dpi=600,
-            bbox_inches="tight")
+    output_fig_filename = (
+        "conf_matrix_knn_"
+        + selected_cell_label
+        + ".png")
 
-        plt.close()
+    fig_output_path = (
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
 
-        # -------------------------------------------------------------------
-        # Evaluate model performance
-        df_current_eval_metrics = modval.eval_model_performance(
-            model_name="knn",
-            selected_cell_label=selected_cell_label,
-            df_eval_outliers=df_eval_outlier)
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
 
-        # -------------------------------------------------------------------
-        # Export model performance metrics to CSV output
-        hp.export_current_model_metrics(
-            model_name="knn",
-            selected_cell_label=selected_cell_label,
-            df_current_eval_metrics=df_current_eval_metrics,
-            export_csv_filepath=hyperparam_eval_metrics_filepath,
-            if_exists="replace")
+    plt.close()
 
-        # -------------------------------------------------------------------
-        # Finally: check with true labels
-        # Extract true outliers cycle index from benchmarking dataset
-        true_outlier_cycle_index = benchdb.get_true_outlier_cycle_index(
-            df_selected_cell)
-        print(f"True outlier cycle index:")
-        print(true_outlier_cycle_index)
+    # -------------------------------------------------------------------
+    # Evaluate model performance
+    df_current_eval_metrics = modval.eval_model_performance(
+        model_name="knn",
+        selected_cell_label=selected_cell_label,
+        df_eval_outliers=df_eval_outlier)
 
-        # Plot cell data with true anomalies
-        # If the true outlier cycle index is not known,
-        # cycling data will be plotted without labels
-        benchdb.plot_cycle_data(
-            df_selected_cell_without_labels,
-            true_outlier_cycle_index)
+    # -------------------------------------------------------------------
+    # Export model performance metrics to CSV output
+    hp.export_current_model_metrics(
+        model_name="knn",
+        selected_cell_label=selected_cell_label,
+        df_current_eval_metrics=df_current_eval_metrics,
+        export_csv_filepath=hyperparam_eval_metrics_filepath,
+        if_exists="replace")
 
-        output_fig_filename = (
-            "cycle_data_with_labels_"
-            + selected_cell_label
-            + ".png")
-
-        fig_output_path = (
-            selected_cell_artifacts_dir.joinpath(output_fig_filename))
-
-        plt.savefig(
-            fig_output_path,
-            dpi=600,
-            bbox_inches="tight")
-
-        plt.close()
-
-        # -------------------------------------------------------------------
-        # Plot the bubble chart and label the true outliers
-        # Calculate the bubble size ratio for plotting
-        df_bubble_size_dQ = bviz.calculate_bubble_size_ratio(
-            df_variable=df_features_per_cell["max_diff_dQ"])
-
-        df_bubble_size_dV = bviz.calculate_bubble_size_ratio(
-            df_variable=df_features_per_cell["max_diff_dV"])
-
-        bubble_size = (
-            np.abs(df_bubble_size_dV)
-            * np.abs(df_bubble_size_dQ))
-
-        # Plot the bubble chart and label the outliers
-        axplot = bviz.plot_bubble_chart(
-            xseries=df_features_per_cell["log_max_diff_dQ"],
-            yseries=df_features_per_cell["log_max_diff_dV"],
-            bubble_size=bubble_size,
-            unique_cycle_count=unique_cycle_count,
-            cycle_outlier_idx_label=true_outlier_cycle_index)
-
-        axplot.set_title(
-            f"Cell {selected_cell_label}", fontsize=13)
-
-        axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
-        axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
-
-        output_fig_filename = (
-            "log_bubble_plot_"
-            + selected_cell_label
-            + ".png")
-
-        fig_output_path = (
-            selected_cell_artifacts_dir.joinpath(output_fig_filename))
-
-        plt.savefig(
-            fig_output_path,
-            dpi=600,
-            bbox_inches="tight")
-
-        plt.close()
-
-        print(f"END OF TEST CELL EVALUATION {selected_cell_label}")
-        print("*"*170)
+    print(f"END OF TEST CELL EVALUATION {selected_cell_label}")
+    print("*"*170)
