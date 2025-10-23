@@ -7,8 +7,8 @@ import duckdb
 import fireducks.pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import optuna
 from matplotlib import rcParams
+from joblib import load
 
 rcParams["text.usetex"] = True
 
@@ -24,11 +24,31 @@ from osbad.model import ModelRunner
 # Path to the database directory
 DB_DIR = bconf.DB_DIR
 
+# Import Isolation Forest model from the validation dataset
+current_path = Path(__file__).resolve()
+saved_model_filepath = current_path.parent.parent.joinpath(
+    "02_validation_dataset",
+    "01_iforest_model_train.joblib")
+
+model = load(saved_model_filepath)
+print("Trained model configuration:")
+print(model)
+print("-"*70)
+
 # Import frozen hyperparameters from the validation dataset
 current_path = Path(__file__).resolve()
 hyperparam_filepath = current_path.parent.parent.joinpath(
     "02_validation_dataset",
     "hp_01_iforest_hyperparam_proxy_severson.csv")
+
+# --------------------------------------------------------------------
+# Read threshold values from CSV file
+df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
+
+# Fit with mean threshold from the training dataset
+avg_threshold = np.mean(
+    df_hyperparam_from_csv["threshold"])
+print("Average threshold from saved hyperparams:", avg_threshold)
 
 # Export current metrics to CSV in the current working dir
 hyperparam_eval_metrics_filepath =  Path.cwd().joinpath(
@@ -138,40 +158,8 @@ if __name__ == "__main__":
         unique_cycle_count = (
             df_features_per_cell["cycle_index"].unique())
 
-        # --------------------------------------------------------------------
-        # Test Isolation Forest model
-        # Read hyperparameters values from CSV file
-        df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
-
-        # Fit with mean hyperparameters from the training dataset
-        avg_threshold = np.mean(
-            df_hyperparam_from_csv["threshold"])
-        print(f"Average threshold: {avg_threshold}")
-
-        avg_contamination = np.mean(
-            df_hyperparam_from_csv["contamination"])
-        print(f"Average contamination: {avg_contamination}")
-
-        # n_estimators must have the type int
-        avg_n_estimators = int(np.mean(
-            df_hyperparam_from_csv["n_estimators"]))
-        print(f"Average n_estimators: {avg_n_estimators}")
-
-        # max_samples must have the type int
-        avg_max_samples = int(np.mean(
-            df_hyperparam_from_csv["max_samples"]))
-        print(f"Average max_samples: {avg_max_samples}")
-
-        param_dict = {'ml_model': 'iforest',
-            'cell_index': selected_cell_label,
-            'threshold': avg_threshold,
-            'contamination': avg_contamination,
-            'n_estimators': avg_n_estimators,
-            'max_samples': avg_max_samples}
-
         # -------------------------------------------------------------------
-        # Run the model with average best trial parameters
-        # (frozen from the training dataset)
+        # Run the prediction with loaded model
         cfg = hp.MODEL_CONFIG["iforest"]
 
         selected_feature_cols = (
@@ -186,15 +174,12 @@ if __name__ == "__main__":
 
         Xdata = runner.create_model_x_input()
 
-        model = cfg.model_param(param_dict)
-        print(model)
-        model.fit(Xdata)
         proba = model.predict_proba(Xdata)
 
         (pred_outlier_indices,
          pred_outlier_score) = runner.pred_outlier_indices_from_proba(
             proba=proba,
-            threshold=param_dict["threshold"],
+            threshold=avg_threshold,
             outlier_col=cfg.proba_col
         )
         print(f"\n***Predicted outlier cycle index:***")
@@ -217,7 +202,7 @@ if __name__ == "__main__":
             xoutliers=df_outliers_pred["log_max_diff_dQ"],
             youtliers=df_outliers_pred["log_max_diff_dV"],
             pred_outliers_index=pred_outlier_indices,
-            threshold=param_dict["threshold"]
+            threshold=avg_threshold
         )
 
         axplot.set_xlabel(

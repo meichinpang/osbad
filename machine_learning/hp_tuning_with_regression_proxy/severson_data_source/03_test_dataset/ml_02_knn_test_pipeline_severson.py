@@ -7,9 +7,8 @@ import duckdb
 import fireducks.pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import optuna
 from matplotlib import rcParams
-from statistics import mode
+from joblib import load
 
 rcParams["text.usetex"] = True
 
@@ -25,11 +24,31 @@ from osbad.model import ModelRunner
 # Path to the database directory
 DB_DIR = bconf.DB_DIR
 
+# Import K Nearest Neighbor model from the validation dataset
+current_path = Path(__file__).resolve()
+saved_model_filepath = current_path.parent.parent.joinpath(
+    "02_validation_dataset",
+    "02_knn_model_train.joblib")
+
+model = load(saved_model_filepath)
+print("Trained model configuration:")
+print(model)
+print("-"*70)
+
 # Import frozen hyperparameters from the validation dataset
 current_path = Path(__file__).resolve()
 hyperparam_filepath = current_path.parent.parent.joinpath(
     "02_validation_dataset",
     "hp_02_knn_hyperparam_proxy_severson.csv")
+
+# --------------------------------------------------------------------
+# Read threshold values from CSV file
+df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
+
+# Fit with mean threshold from the training dataset
+avg_threshold = np.mean(
+    df_hyperparam_from_csv["threshold"])
+print("Average threshold from saved hyperparams:", avg_threshold)
 
 # Export current metrics to CSV in the current working dir
 hyperparam_eval_metrics_filepath =  Path.cwd().joinpath(
@@ -139,49 +158,9 @@ if __name__ == "__main__":
         unique_cycle_count = (
             df_features_per_cell["cycle_index"].unique())
 
-        # --------------------------------------------------------------------
-        # Test K Nearest Neighbors (KNN)
-        # Read hyperparameters values from CSV file
-        df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
-
-        # Fit with mean hyperparameters from the training dataset
-        avg_contamination = np.mean(
-            df_hyperparam_from_csv["contamination"])
-        print(f"Average contamination: {avg_contamination}")
-
-        # n_estimators must have the type int
-        avg_n_neighbors = int(np.mean(
-            df_hyperparam_from_csv["n_neighbors"]))
-        print(f"Average n_neighbors: {avg_n_neighbors}")
-
-        mode_freq_method = mode(
-            df_hyperparam_from_csv["method"])
-        print(f"Most freq method: {mode_freq_method}")
-
-        mode_freq_metric = mode(
-            df_hyperparam_from_csv["metric"])
-        print(f"Most freq metric: {mode_freq_metric}")
-
-        avg_threshold = np.mean(
-            df_hyperparam_from_csv["threshold"])
-        print(f"Average threshold: {avg_threshold}")
-
-        param_dict = {
-            'ml_model': 'knn',
-            'cell_index': selected_cell_label,
-            'contamination': avg_contamination,
-            'n_neighbors': avg_n_neighbors,
-            'method': mode_freq_method,
-            'metric': mode_freq_metric,
-            'threshold': avg_threshold}
-        print("Parameter dictionary:")
-        pprint.pprint(param_dict)
-        print("-"*70)
-
         # -------------------------------------------------------------------
-        # Run the model with average best trial parameters
-        # (frozen from the training dataset)
-        cfg = hp.MODEL_CONFIG["knn"]
+        # Run the prediction with loaded model
+        cfg = hp.MODEL_CONFIG["gmm"]
 
         selected_feature_cols = (
             "log_max_diff_dQ",
@@ -195,15 +174,12 @@ if __name__ == "__main__":
 
         Xdata = runner.create_model_x_input()
 
-        model = cfg.model_param(param_dict)
-        print(model)
-        model.fit(Xdata)
         proba = model.predict_proba(Xdata)
 
         (pred_outlier_indices,
          pred_outlier_score) = runner.pred_outlier_indices_from_proba(
             proba=proba,
-            threshold=param_dict["threshold"],
+            threshold=avg_threshold,
             outlier_col=cfg.proba_col
         )
         print(f"\n***Predicted outlier cycle index:***")
@@ -226,7 +202,7 @@ if __name__ == "__main__":
             xoutliers=df_outliers_pred["log_max_diff_dQ"],
             youtliers=df_outliers_pred["log_max_diff_dV"],
             pred_outliers_index=pred_outlier_indices,
-            threshold=param_dict["threshold"]
+            threshold=avg_threshold
         )
 
         axplot.set_xlabel(
