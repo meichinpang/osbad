@@ -207,10 +207,8 @@ if __name__ == "__main__":
             "threshold": "median",
         }
 
-        trade_off_trials_list = hp.trade_off_trials_detection_test(
-            lof_study, 
-            #window_size=5
-            )
+        trade_off_trials_list = hp.trade_off_trials_detection(
+            study=lof_study)
 
         df_lof_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,

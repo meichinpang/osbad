@@ -53,14 +53,7 @@ con = duckdb.connect(
 df_duckdb = con.execute(
     "SELECT * FROM df_train_dataset_sv").fetchdf()
 
-# unique_cell_index_train = df_duckdb["cell_index"].unique()
-# print(unique_cell_index_train)
-
-unique_cell_index_train = ['2017-05-12_5_4C-80per_5_4C_CH11',
- '2017-05-12_5_4C-80per_5_4C_CH12', '2017-05-12_3_6C-80per_3_6C_CH1',
- '2017-05-12_3_6C-80per_3_6C_CH2', '2017-05-12_3_6C-80per_3_6C_CH3',
- '2017-05-12_5_4C-40per_3_6C_CH19']
-
+unique_cell_index_train = df_duckdb["cell_index"].unique()
 print(unique_cell_index_train)
 
 training_cell_count = len(unique_cell_index_train)

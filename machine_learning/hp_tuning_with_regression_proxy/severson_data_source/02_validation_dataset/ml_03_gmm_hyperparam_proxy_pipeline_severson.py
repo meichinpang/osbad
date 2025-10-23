@@ -207,10 +207,8 @@ if __name__ == "__main__":
             "threshold": "median",
         }
         
-        trade_off_trials_list = hp.trade_off_trials_detection_test(
-            gmm_study, 
-            #window_size=7
-            )
+        trade_off_trials_list = hp.trade_off_trials_detection(
+            study=gmm_study)
 
         df_gmm_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,
