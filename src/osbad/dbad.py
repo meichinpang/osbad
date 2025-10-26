@@ -57,7 +57,7 @@ distance_metrics: Dict[str, Callable[..., float]] = {
     "mahalanobis": distance.mahalanobis,
 }
 
-def calculate_norm_distance(
+def calculate_distance(
         metric_name: Literal["euclidean",
                              "manhattan",
                              "minkowski",
@@ -67,6 +67,7 @@ def calculate_norm_distance(
         p: int = None,
         inv_cov_matrix: np.ndarray=None,
         max_distance: float=None,
+        norm: bool=True,
         ) -> np.ndarray:
     
     """
@@ -119,14 +120,17 @@ def calculate_norm_distance(
     else:
         distance = [metric(point, centroid) 
                     for point in features]
-        
-    if max_distance: 
-        distance = np.array(distance)/max_distance
+
+    if norm:    
+        if max_distance: 
+            distance = np.array(distance)/max_distance
+            return distance
+        else: 
+            max_distance = max(distance)
+            distance = np.array(distance)/max_distance
+            return distance, max_distance
+    else:
         return distance
-    else: 
-        max_distance = max(distance)
-        distance = np.array(distance)/max_distance
-        return distance, max_distance
 
 
 def predict_outliers(distance: np.ndarray,
@@ -285,7 +289,7 @@ def plot_distance_score_map(
         centroid: np.ndarray,
         threshold: np.ndarray,
         pred_outlier_indices: np.ndarray,
-        #max_outlier_dist: float,
+        norm: bool=True,
         ) -> mpl.axes._axes.Axes: 
     
     
@@ -396,9 +400,14 @@ def plot_distance_score_map(
     cbar_limit.set_clim(0., 1)
 
     cbar = plt.colorbar(cbar_limit, ax = ax, shrink=0.9)
-    cbar.ax.set_ylabel(
-        'Normalized Distance from centroid',
-        fontsize=14)
+    if norm:
+        cbar.ax.set_ylabel(
+            'Normalized Distance from centroid',
+            fontsize=14)
+    else: 
+        cbar.ax.set_ylabel(
+            'Distance from centroid',
+            fontsize=14)
 
     ax.scatter(features[:,0], 
                 features[:,1],
