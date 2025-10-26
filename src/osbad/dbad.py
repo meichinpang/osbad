@@ -5,32 +5,32 @@ using various metrics, identifying outliers using robust statistical methods,
 and visualizing the results through histograms and contour maps.
 
 Key Features:
-    - **Distance Computation**: Supports Euclidean, Manhattan, Minkowski,
-        and Mahalanobis metrics for calculating distances between data 
-        points and a centroid.
-    - **Outlier Detection**: Implements Median Absolute Deviation (MAD)-based 
-        outlier detection for non-gaussian distributions of distances.
+    - **Distance Computation**: Supports Euclidean, Manhattan, Minkowski, and
+      Mahalanobis metrics for calculating distances between data points and a
+      centroid. Also supports calculation normalized distances.
+    - **Outlier Detection**: Implements Median Absolute Deviation (MAD)-based
+      outlier detection for non-gaussian distributions of distances.
     - **Visualization**:
         - Histogram of distances with threshold indication.
-        - 2D contour map showing distance scores, decision boundaries, 
-        and annotated outliers.
+        - 2D contour map showing distance scores, decision boundaries, and 
+          annotated outliers.
 
 Intended Use:
-This module is designed for exploratory data analysis, benchmarking anomaly 
-detection in battery cycle data, and other applications where data is unimodal 
-and identifying deviations from a central tendency is critical.
+    This module is designed for exploratory data analysis, benchmarking 
+    anomaly detection in battery cycle data, and other applications where data 
+    is unimodal and identifying deviations from a central tendency is critical.
 
 Example Workflow:
-    1. Compute distances using `calculate_distance`.
-    2. Detect outliers with `predict_outliers`.
-    3. Visualize results using `plot_hist_distance` and
-      `plot_distance_score_map`.
+    1. Compute distances using ``calculate_distance``.
+    2. Detect outliers with ``predict_outliers``.
+    3. Visualize results using ``plot_hist_distance`` and 
+      ``plot_distance_score_map``.
 
 Note:
-- Ensure that input data is properly scaled and shaped before using 
-the functions.
-- Visualization for 2D contour map showing distance scores, assumes
- 2D feature space for plotting purposes.
+    - Ensure that input data is properly scaled and shaped before using the 
+      functions.
+    - Visualization for 2D contour map showing distance scores, assumes 2D 
+      feature space for plotting purposes.
 """
 
 
@@ -44,7 +44,8 @@ from matplotlib import rcParams
 
 # libraries for distance based anomaly detection
 from scipy.spatial import distance
-from osbad.stats import _compute_mad_outliers, _compute_sd_outliers, _compute_modified_z_outliers
+from osbad.stats import (_compute_mad_outliers, _compute_sd_outliers, 
+_compute_modified_z_outliers)
 
 rcParams["text.usetex"] = True
 
@@ -64,48 +65,50 @@ def calculate_distance(
                              "mahalanobis"],
         features: np.ndarray,
         centroid: np.ndarray,
-        p: int = None,
+        p: int=None,
         inv_cov_matrix: np.ndarray=None,
         max_distance: float=None,
         norm: bool=True,
         ) -> np.ndarray:
     
     """
-    Calculates the distance between each point in a feature set 
-    and a given centroid using the specified distance metric.
+    Calculates the distance between each point in a feature set and a given 
+    centroid using the specified distance metric.
 
     Args:
-        metric_name (Literal): The name of the distance metric to use.
-            - "euclidean": Euclidean distance
-            - "manhattan": Manhattan (L1) distance
-            - "minkowski": Minkowski distance (requires `p`)
-            - "mahalanobis": Mahalanobis distance 
-            (requires `inv_cov_matrix`)
+        metric_name (Literal): The name of the distance metric to use. 
+        Options include:
+            * ``euclidean``: Euclidean distance
+            * ``manhattan``: Manhattan (L1) distance
+            * ``minkowski``: Minkowski distance (requires ``p``)
+            * ``mahalanobis``: Mahalanobis distance
+              (requires ``inv_cov_matrix``)
     
-        features (np.ndarray): 
-            A 2D array of shape (n_samples, n_features) 
+        features (np.ndarray): A 2D array of shape (n_samples, n_features) 
             representing the dataset.
         
-        centroid (np.ndarray):
-            A 1D array of shape (n_features,) representing the centroid 
-            point of the data distribution.
+        centroid (np.ndarray): A 1D array of shape (n_features,) representing 
+            the centroid point of the data distribution.
         
-        p (int, optional):
-            The order parameter for Minkowski distance. Required if 
-            `metric_name` is "minkowski".
+        p (int, optional): The order parameter for Minkowski distance. Required 
+            if `metric_name` is ``minkowski``.
         
-        inv_cov_matrix(np.ndarray, optional):
-            The inverse of the covariance matrix. Required if 
-            `metric_name` is "mahalanobis".
-    
+        inv_cov_matrix (np.ndarray, optional): The inverse of the covariance 
+            matrix. Required if `metric_name` is ``mahalanobis``.
+
+        max_distance (float, optional): If provided, distances are normalized 
+            by dividing by the value of ``max_distance``. Else, the maximum 
+            value of calculated distance is used.
+        
+        norm (bool): If True, distance is normalized.
+
     Returns:
-        np.ndarray: A 1D array of distances between each feature vector 
-        and the centroid.
+        np.ndarray: A 1D array of distances between each feature vector and the 
+        centroid.
     
     Raises:
-        ValueError
-            If required parameters (`p` for Minkowski or `inv_cov_matrix` for Mahalanobis)
-            are not provided when needed.
+        ValueError: If required parameters (``p`` for Minkowski or 
+        ``inv_cov_matrix`` for Mahalanobis) are not provided.
     """
 
     
@@ -139,32 +142,31 @@ def predict_outliers(distance: np.ndarray,
                      ) -> tuple:
     
     """
-    Detects outliers in a dataset using the Median Absolute 
-    Deviation (MAD) method.
+    Detects outliers in a dataset using the Median Absolute Deviation (MAD) 
+    method.
 
-    This function identifies data points whose distance from a 
-    reference (e.g., centroid) exceeds a threshold based on the MAD, 
-    which is a robust measure of statistical dispersion. It is particularly
-    effective for detecting anomalies in skewed or non-Gaussian 
-    distributions.
+    This function identifies data points whose distance from a reference 
+    (e.g., centroid) exceeds a threshold based on the MAD, which is a robust 
+    measure of statistical dispersion. It is particularly effective for 
+    detecting anomalies in skewed or non-Gaussian distributions.
 
     Args:
-        distance (np.ndarray):
-            A 1D array of distance values for each data point, computed
-            using `calculate_distance` function based on selected distance metric.
+        distance (np.ndarray): A 1D array of distance values for each data 
+            point, computed using ``calculate_distance`` function based on 
+            selected distance metric.
         
-        features (np.ndarray):
-            A 2D array of shape (n_samples, n_features) representing the
-            original feature vectors corresponding to each distance value.
+        features (np.ndarray): A 2D array of shape (n_samples, n_features) 
+            representing the original feature vectors corresponding to each 
+            distance value.
         
-        mad_threshold (float, optional)
-            The threshold multiplier for MAD-based outlier detection. Default is 3.
-            A higher value results in fewer points being classified as outliers.
+        mad_threshold (float): The threshold multiplier for MAD-based outlier
+            detection. Default is 3. A higher value results in fewer points 
+            being classified as outliers.
 
     Returns:
-        tuple
-            A tuple containing:
-            - mad_outlier_indices (np.ndarray): Indices of the detected outliers.
+        Tuple[np.ndarray, np.ndarray, np.ndarray, float]: A tuple containing:
+            - mad_outlier_indices (np.ndarray): Indices of the detected 
+              outliers.
             - outlier_distance (np.ndarray): Distance values of the outliers.
             - outlier_features (np.ndarray): Feature vectors corresponding to 
               the outliers.
@@ -172,9 +174,9 @@ def predict_outliers(distance: np.ndarray,
               based on MAD.
 
     .. note::
-    - This function relies on `_compute_mad_outliers`, which calculates the 
-      MAD factor if not provided and applies the threshold to identify 
-      anomalous points.
+    - This function relies on ``_compute_mad_outliers`` from `stats` module, 
+      which calculates the MAD factor if not provided and applies the threshold
+      to identify anomalous points.
     """
 
 
@@ -225,26 +227,24 @@ def plot_hist_distance(distance: np.ndarray,
                        threshold: float,
                        ) -> mpl.axes._axes.Axes:
     
-    
     """
-    Plots a histogram of distances from a centroid and highlights the
-    outlier threshold. The histogram displays the distribution of distances 
-    and a vertical dashed red line marks the outlier threshold.
+    Plots a histogram of distances from a centroid and highlights the outlier
+    threshold. The histogram displays the distribution of distances and a 
+    vertical dashed red line marks the outlier threshold.
 
     Args:
-        distance (np.ndarray):
-            A 1D array of distance values for each data point.
+        distance (np.ndarray): A 1D array of distance values for each data
+            point.
         
-        outlier_indices (np.ndarray):
-            Indices of the data points identified as outliers.
+        outlier_indices (np.ndarray): Indices of the data points identified as 
+            outliers.
         
-        threshold (float):
-            The distance threshold used to classify outliers 
+        threshold (float): The distance threshold used to classify outliers 
             (e.g., based on MAD).
 
-    Returns;
-        mpl.axes._axes.Axes
-            The matplotlib Axes object containing the histogram plot.   
+    Returns:
+        mpl.axes._axes.Axes: The matplotlib Axes object containing the 
+        histogram plot.   
     """
 
     fig, ax = plt.subplots(figsize=(8,5))
@@ -294,46 +294,45 @@ def plot_distance_score_map(
     
     
     """
-    Plots a 2D contour map of distance scores over a meshgrid with a 
-    decision boundary and highlights inliers, outliers, and the centroid.
+    Plots a 2D contour map of distance scores over a meshgrid with a decision 
+    boundary and highlights inliers, outliers, and the centroid.
 
-    This function visualizes the distance landscape using a filled contour 
-    plot across a 2D mesh grid. It creates a contour plot showing anomaly 
-    distances, a dashed decision boundary at the specified threshold, and
-    highlights the predicted anomalous cycles. Inliers are shown as black 
-    dots, the centroid as a red 'x', and outliers as gold stars with red edges. 
+    This function visualizes the distance landscape using a filled contour plot
+    across a 2D mesh grid. It creates a contour plot showing anomaly distances,
+    a dashed decision boundary at the specified threshold, and highlights the
+    predicted anomalous cycles. 
    
     Args:
-        meshgrid_distance (np.ndarray):
-            Flattened array of distance scores computed over a meshgrid.
+        meshgrid_distance (np.ndarray): Flattened array of distance scores 
+            computed over a meshgrid.
     
-        xx (np.ndarray):
-            Meshgrid array for the x-axis.
+        xx (np.ndarray): Meshgrid array for the x-axis.
         
-        yy (np.ndarray):
-            Meshgrid array for the y-axis.
+        yy (np.ndarray): Meshgrid array for the y-axis.
         
-        features (np.ndarray):
-            2D array of shape (n_samples, 2) representing the feature vectors.
+        features (np.ndarray): 2D array of shape (n_samples, 2) representing 
+            the feature vectors.
+    
+        xoutliers (pd.Series): Series containing x-coordinates of detected 
+            outliers.
         
-        xoutliers (pd.Series):
-            Series containing x-coordinates of detected outliers.
+        youtliers (pd.Series): Series containing y-coordinates of detected 
+            outliers.
         
-        youtliers (pd.Series):
-            Series containing y-coordinates of detected outliers.
+        centroid (np.ndarray): 1D array of shape (2,) representing the centroid 
+            coordinates.
         
-        centroid (np.ndarray):
-            1D array of shape (2,) representing the centroid coordinates.
+        threshold (np.ndarray): Distance threshold used to identify outliers.
         
-        threshold (np.ndarray):
-            Distance threshold used to identify outliers.
+        pred_outlier_indices (np.ndarray): Indices of predicted outliers to be 
+            annotated on the plot.
         
-        pred_outlier_indices (np.ndarray):
-            Indices of predicted outliers to be annotated on the plot.
+        norm (bool): If normalized distances are used for contour plot set 
+        to `True`. Else `False`.
 
     Returns:
-        mpl.axes._axes.Axes
-            The matplotlib Axes object containing the contour and scatter plot.
+        mpl.axes._axes.Axes: The matplotlib Axes object containing the contour
+        and scatter plot.
 
     .. Note::
         This function assumes the dataset contains exactly two features, which 
@@ -349,7 +348,7 @@ def plot_distance_score_map(
                                     centroid=centroid
                                     )
 
-        axplot=  dbad.plot_distance_score_map(
+        axplot = dbad.plot_distance_score_map(
             meshgrid_distance = grid_euclidean_dist,
             xx = xx,
             yy = yy,
@@ -359,10 +358,10 @@ def plot_distance_score_map(
             centroid=centroid,
             threshold= euclidean_threshold,
             pred_outlier_indices= pred_outlier_indices,
+            norm=True
             )
     """
 
-    
     zz_grid_dist = meshgrid_distance.reshape(xx.shape)
 
     selected_colormap = cm.RdBu_r
@@ -487,9 +486,6 @@ def plot_distance_score_map(
             ha="center", va='top',
             bbox=props)
 
-    # Add legend and title
-    # plt.legend(handles=[scatter_data, scatter_centroid, scatter_outliers, contour_proxy],
-    #            labels=['Data Points', 'Centroid', 'Outliers', 'Manhattan Threshold Boundary'])
     ax.set_xlabel(
         r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
         fontsize=12)
