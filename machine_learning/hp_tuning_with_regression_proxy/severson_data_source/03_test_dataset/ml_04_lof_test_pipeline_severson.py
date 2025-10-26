@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import optuna
 from matplotlib import rcParams
+from statistics import mode
 
 rcParams["text.usetex"] = True
 
@@ -16,52 +17,53 @@ rcParams["text.usetex"] = True
 import osbad.config as bconf
 import osbad.hyperparam as hp
 import osbad.modval as modval
-import osbad.stats_old as bstats
 import osbad.viz as bviz
 from osbad.database import BenchDB
 from osbad.model import ModelRunner
 
-
 # ---------------------------------------------------------------------------
-# Define a global variable to save pipeline artifacts
-# Use pathlib to define OS independent
-# filepath navigation
+# Path to the database directory
+DB_DIR = bconf.DB_DIR
 
-# Export current hyperparameters to CSV
-hyperparam_filepath =  bconf.PIPELINE_OUTPUT_DIR.joinpath(
-    "hyperparams_iforest.csv")
+# Import frozen hyperparameters from the validation dataset
+current_path = Path(__file__).resolve()
+hyperparam_filepath = current_path.parent.parent.joinpath(
+    "02_validation_dataset",
+    "hp_04_lof_hyperparam_proxy_severson.csv")
 
-# Export current metrics to CSV
-hyperparam_eval_metrics_filepath =  bconf.PIPELINE_OUTPUT_DIR.joinpath(
-    "eval_metrics.csv")
+# Export current metrics to CSV in the current working dir
+hyperparam_eval_metrics_filepath =  Path.cwd().joinpath(
+    "eval_metrics_severson_test_multiple_cells.csv")
 
 # --------------------------------------------------------------------------
-# Load only the training dataset
+# Load only the test dataset
+# Path to the DuckDB instance:
+# "osbad/database/test_dataset_severson.db"
+db_filepath = DB_DIR.joinpath("test_dataset_severson.db")
 
-db_filepath = str(
-    Path.cwd()
-    .parent.parent
-    .joinpath("database","train_dataset_severson.db"))
-print(db_filepath)
+# Define the filepath to ``test_features_severson.db``
+# "osbad/database/test_features_severson.db"
+db_features_filepath = DB_DIR.joinpath("test_features_severson.db")
 
 # Create a DuckDB connection
 con = duckdb.connect(
     db_filepath,
     read_only=True)
 
-# Load all training dataset from duckdb
+# Load all test dataset from duckdb
 df_duckdb = con.execute(
-    "SELECT * FROM df_train_dataset_sv").fetchdf()
+    "SELECT * FROM df_test_dataset_sv").fetchdf()
 
-unique_cell_index_train = df_duckdb["cell_index"].unique()
-print(unique_cell_index_train)
+unique_cell_index_test = df_duckdb["cell_index"].unique()
+print(f"Unique cell index: {unique_cell_index_test}")
 
-training_cell_count = len(unique_cell_index_train)
-print(f"Training cell count: {training_cell_count}")
+test_cell_count = len(unique_cell_index_test)
+print(f"Test cell count: {test_cell_count}")
+print("-"*70)
 
 if __name__ == "__main__":
 
-    for idx, selected_cell_label in enumerate(unique_cell_index_train):
+    for idx, selected_cell_label in enumerate(unique_cell_index_test):
         print("Evaluating cell now:")
         print(idx, selected_cell_label)
 
@@ -80,7 +82,7 @@ if __name__ == "__main__":
 
         # load the benchmarking dataset
         df_selected_cell = benchdb.load_benchmark_dataset(
-            dataset_type="train")
+            dataset_type="test")
 
         if df_selected_cell is not None:
 
@@ -101,20 +103,36 @@ if __name__ == "__main__":
             print(df_selected_cell_without_labels.head(10).to_markdown())
             print("-"*70)
 
-        # ----------------------------------------------------------------
-        # Custom features transformation pipeline
-        # Load only the training features dataset
-        # Define the filepath to ``train_features_severson.db``
-        # DuckDB instance.
-        db_features_filepath = (
-            Path.cwd()
-            .parent.parent
-            .joinpath("database","train_features_severson.db"))
+        # --------------------------------------------------------------------
+        # Plot cycle data without labels
+        # If the true outlier cycle index is not known,
+        # cycling data will be plotted without labels
+        benchdb.plot_cycle_data(
+            df_selected_cell_without_labels)
 
-        # Load only the training features dataset
+        output_fig_filename = (
+            "cycle_data_without_labels_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir
+            .joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
+
+        # --------------------------------------------------------------------
+        # Custom features transformation pipeline
+        # Load only the test features dataset
         df_features_per_cell = benchdb.load_features_db(
             db_features_filepath,
-            dataset_type="train")
+            dataset_type="test")
+
         print(df_features_per_cell.head(10).to_markdown())
         print("-"*70)
 
@@ -122,76 +140,51 @@ if __name__ == "__main__":
             df_features_per_cell["cycle_index"].unique())
 
         # --------------------------------------------------------------------
-        # Hyperparameter tuning with Bayesian optimization
+        # Test Local Outlier Factor (LOF)
+        # Read hyperparameters values from CSV file
+        df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
 
-        sampler = optuna.samplers.TPESampler(seed=42)
+        # Fit with mean hyperparameters from the training dataset
+        # The 'n_neighbors' parameter of LocalOutlierFactor must be an int
+        avg_n_neighbors = (
+            int(np.mean(
+                df_hyperparam_from_csv["n_neighbors"])))
+
+        mode_metric = mode(
+            df_hyperparam_from_csv["metric"])
+
+        # The 'leaf_size' parameter of LocalOutlierFactor must be an int
+        median_leaf_size = (
+            int(np.mean(df_hyperparam_from_csv["leaf_size"])))
+
+        avg_contamination = (
+            np.mean(df_hyperparam_from_csv["contamination"]))
+
+        avg_threshold = np.mean(
+            df_hyperparam_from_csv["threshold"])
+
+        param_dict = {
+            'ml_model': 'lof',
+            'cell_index': selected_cell_label,
+            'contamination': avg_contamination,
+            'n_neighbors': avg_n_neighbors,
+            'leaf_size': median_leaf_size,
+            'metric': mode_metric,
+            'threshold': avg_threshold}
+
+
+        print("Parameter dictionary:")
+        pprint.pprint(param_dict)
+        print("-"*70)
+
+        # -------------------------------------------------------------------
+        # Run the model with average best trial parameters
+        # (frozen from the training dataset)
+        cfg = hp.MODEL_CONFIG["lof"]
 
         selected_feature_cols = (
             "log_max_diff_dQ",
             "log_max_diff_dV")
-
-        if_study = optuna.create_study(
-            study_name="iforest_hyperparam",
-            sampler=sampler,
-            directions=["maximize","maximize"])
-
-        if_study.optimize(
-            lambda trial: hp.objective(
-                trial,
-                model_id="iforest",
-                df_feature_dataset=df_features_per_cell,
-                selected_feature_cols=selected_feature_cols,
-                df_benchmark_dataset=df_selected_cell,
-                selected_cell_label=selected_cell_label),
-            n_trials=20)
-
-        # -------------------------------------------------------------------
-        # Aggregate best trials
-        schema_iforest = {
-            "threshold": "median",
-            "contamination": "median",
-            "n_estimators": "median_int",
-            "max_samples": "median_int",
-        }
-
-        df_iforest_hyperparam = hp.aggregate_best_trials(
-            if_study,
-            cell_label=selected_cell_label,
-            model_id="iforest",
-            schema=schema_iforest)
-
-        (recall_score_pct,
-         precision_score_pct) = hp.evaluate_hp_perfect_score_pct(
-            model_study=if_study)
-
-        # -------------------------------------------------------------------
-        # Plot Pareto Front
-        hp.plot_pareto_front(
-            if_study,
-            selected_cell_label,
-            fig_title="Isolation Forest Pareto Front")
-
-        # -------------------------------------------------------------------
-        # Export current hyperparameters to CSV
-        hp.export_current_hyperparam(
-            df_iforest_hyperparam,
-            selected_cell_label,
-            export_csv_filepath=hyperparam_filepath)
-
-        # -------------------------------------------------------------------
-        # Read hyperparameter from stored CSV
-        df_hyperparam_from_csv = pd.read_csv(hyperparam_filepath)
-
-        df_param_per_cell = df_hyperparam_from_csv[
-            df_hyperparam_from_csv["cell_index"] == selected_cell_label]
-
-        # Create a dict for best trial parameters
-        param_dict = df_param_per_cell.iloc[0].to_dict()
-        pprint.pp(param_dict)
-
-        # -------------------------------------------------------------------
-        # Run the model with best trial parameters
-        cfg = hp.MODEL_CONFIG["iforest"]
 
         runner = ModelRunner(
             cell_label=selected_cell_label,
@@ -212,6 +205,9 @@ if __name__ == "__main__":
             threshold=param_dict["threshold"],
             outlier_col=cfg.proba_col
         )
+        print(f"\n***Predicted outlier cycle index:***")
+        print(pred_outlier_indices)
+        print("\n")
 
         # -------------------------------------------------------------------
         # Get df_outliers_pred
@@ -225,12 +221,35 @@ if __name__ == "__main__":
         # Predict anomaly score map
         axplot = runner.predict_anomaly_score_map(
             selected_model=model,
-            model_name="Isolation Forest",
+            model_name="Local Outlier Factor (LOF)",
             xoutliers=df_outliers_pred["log_max_diff_dQ"],
             youtliers=df_outliers_pred["log_max_diff_dV"],
             pred_outliers_index=pred_outlier_indices,
             threshold=param_dict["threshold"]
         )
+
+        axplot.set_xlabel(
+            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+            fontsize=12)
+        axplot.set_ylabel(
+            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+            fontsize=12)
+
+        output_fig_filename = (
+            "lof_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir
+            .joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
 
         # -------------------------------------------------------------------
         # Model performance evaluation
@@ -245,11 +264,11 @@ if __name__ == "__main__":
             y_pred=df_eval_outlier["pred_outlier"])
 
         axplot.set_title(
-            "Isolation Forest",
+            "Local Outlier Factor (LOF)",
             fontsize=16)
 
         output_fig_filename = (
-            "conf_matrix_iforest_"
+            "conf_matrix_lof_"
             + selected_cell_label
             + ".png")
 
@@ -262,20 +281,23 @@ if __name__ == "__main__":
             dpi=600,
             bbox_inches="tight")
 
+        plt.close()
+
         # -------------------------------------------------------------------
         # Evaluate model performance
         df_current_eval_metrics = modval.eval_model_performance(
-            model_name="iforest",
+            model_name="lof",
             selected_cell_label=selected_cell_label,
             df_eval_outliers=df_eval_outlier)
 
         # -------------------------------------------------------------------
         # Export model performance metrics to CSV output
         hp.export_current_model_metrics(
-            model_name="iforest",
-            df_current_eval_metrics=df_current_eval_metrics,
+            model_name="lof",
             selected_cell_label=selected_cell_label,
-            export_csv_filepath=hyperparam_eval_metrics_filepath)
+            df_current_eval_metrics=df_current_eval_metrics,
+            export_csv_filepath=hyperparam_eval_metrics_filepath,
+            if_exists="replace")
 
         # -------------------------------------------------------------------
         # Finally: check with true labels
@@ -291,6 +313,21 @@ if __name__ == "__main__":
         benchdb.plot_cycle_data(
             df_selected_cell_without_labels,
             true_outlier_cycle_index)
+
+        output_fig_filename = (
+            "cycle_data_with_labels_"
+            + selected_cell_label
+            + ".png")
+
+        fig_output_path = (
+            selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+        plt.savefig(
+            fig_output_path,
+            dpi=600,
+            bbox_inches="tight")
+
+        plt.close()
 
         # -------------------------------------------------------------------
         # Plot the bubble chart and label the true outliers
@@ -333,8 +370,10 @@ if __name__ == "__main__":
 
         plt.savefig(
             fig_output_path,
-            dpi=200,
+            dpi=600,
             bbox_inches="tight")
 
-        print(f"END OF CELL EVALUATION {selected_cell_label}")
-        print("*"*100)
+        plt.close()
+
+        print(f"END OF TEST CELL EVALUATION {selected_cell_label}")
+        print("*"*170)

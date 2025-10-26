@@ -1,0 +1,52 @@
+{
+
+"batch_size": {
+
+
+"low": 8,
+
+
+"high": 32
+
+},
+
+"epoch_num": {
+
+
+"low": 10,
+
+
+"high": 50
+
+},
+
+"learning_rate": {
+
+
+"low": 0,
+
+
+"high": 0.1
+
+},
+
+"dropout_rate": {
+
+
+"low": 0.1,
+
+
+"high": 0.5
+
+},
+
+"threshold": {
+
+
+"low": 0.0,
+
+
+"high": 1.0
+
+}
+}

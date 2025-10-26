@@ -61,9 +61,6 @@ class BenchDB:
         input_db_filepath (str): Path to the DuckDB benchmarking database
             file.
         cell_label (str): Label of the cell to be analyzed.
-        show_fig_status (bool, optional): Whether to show generated
-            figures interactively. Defaults to False when running the
-            pipeline in the batch mode for multiple cells.
     """
     def __init__(
         self,
@@ -72,7 +69,6 @@ class BenchDB:
 
         self._db_filepath = input_db_filepath
         self._selected_cell_label = cell_label
-        self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
         # store all figures output for each evaluated
@@ -111,11 +107,11 @@ class BenchDB:
         Example:
             .. code-block::
 
-                # Path to the DuckDB instance:
-                # "train_dataset_severson.db"
+                # Path to the DuckDB instance: "train_dataset_severson.db"
+                # osbad/database/train_dataset_severson.db
                 db_filepath = (
                     Path.cwd()
-                    .parent.parent
+                    .parent.parent.parent
                     .joinpath("database","train_dataset_severson.db"))
 
                 # Get the cell-ID from cell_inventory
@@ -186,13 +182,6 @@ class BenchDB:
 
         Example:
             .. code-block::
-
-                # Path to the DuckDB instance: "train_dataset_severson.db"
-                db_filepath = (
-                    Path.cwd()
-                    .parent.parent
-                    .joinpath("database","train_dataset_severson.db"))
-                print(db_filepath)
 
                 # Import the BenchDB class
                 # Load only the dataset based on the selected cell
@@ -362,24 +351,8 @@ class BenchDB:
             f"Cell {self._selected_cell_label}",
             fontsize=16)
 
-        # Use pdf for figures in the paper, but loading pdf output
-        # can take time
-        # Use png for normal plot
-        output_fig_filename = (
-            "plot_cycles_"
-            + self._selected_cell_label
-            + ".png")
+        return axplot
 
-        fig_output_path = (
-            self._selected_cell_artifacts.joinpath(output_fig_filename))
-
-        plt.savefig(
-            fig_output_path,
-            dpi=200,
-            bbox_inches="tight")
-
-        if self._show_fig_status:
-            plt.show()
 
     def load_features_db(
         self,
@@ -414,9 +387,10 @@ class BenchDB:
 
                 # Define the filepath to ``train_features_severson.db``
                 # DuckDB instance.
+                # osbad/database/train_features_severson.db
                 db_features_filepath = (
                     Path.cwd()
-                    .parent.parent
+                    .parent.parent.parent
                     .joinpath("database","train_features_severson.db"))
 
                 # Load only the training features dataset

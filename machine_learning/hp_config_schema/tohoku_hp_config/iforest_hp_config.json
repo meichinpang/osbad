@@ -1,0 +1,42 @@
+{
+
+"contamination": {
+
+
+"low": 0.0,
+
+
+"high": 0.5
+
+},
+
+"n_estimators": {
+
+
+"low": 100,
+
+
+"high": 500
+
+},
+
+"max_samples": {
+
+
+"low": 100,
+
+
+"high": 245
+
+},
+
+"threshold": {
+
+
+"low": 0.0,
+
+
+"high": 1.0
+
+}
+}

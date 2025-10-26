@@ -16,15 +16,15 @@ Key features:
     - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
       ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
       ``ModelConfigDataClass``.
-    - ``objective``: Generic Optuna objective function that can handle both 
+    - ``objective``: Generic Optuna objective function that can handle both
       supervised hyperparameter tuning and unsupervised hyperparameter tuning.
-      Samples params, builds the model, predicts outliers, and returns 
+      Samples params, builds the model, predicts outliers, and returns
       performance metrics.
-    - ``curvature``: calculates value of curvature of the loss score vs. 
+    - ``curvature``: calculates value of curvature of the loss score vs.
       inlier score curve at each pareto-optimal point.
-    - ``trade_off_trails_detection``: Finds best compromised solutions or 
-      trials based on the maximum curvature or elbow point of two objective 
-      targets.   
+    - ``trade_off_trials_detection``: Finds best compromised solutions or
+      trials based on the maximum curvature or elbow point of two objective
+      targets.
     - ``aggregate_param_method``: Aggregate a list of values via ``median``,
       ``median_int``, or ``mode`` (with deterministic tie-breaking by
       ``mode``).
@@ -46,8 +46,6 @@ Key features:
 
 Configuration:
     - ``RANDOM_STATE``: Shared random seed used by model factories.
-    - ``bconf.SHOW_FIG_STATUS``: When True, figures are displayed after
-      saving.
     - ``bconf.PIPELINE_OUTPUT_DIR``: Base directory where per-cell figures
       are saved.
 
@@ -61,6 +59,7 @@ import os
 import pathlib
 import sys
 from dataclasses import dataclass
+from importlib import reload
 from statistics import mode
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
@@ -79,6 +78,7 @@ from pyod.models.iforest import IForest
 from pyod.models.knn import KNN
 from pyod.models.lof import LOF
 from pyod.models.pca import PCA
+from scipy.ndimage import uniform_filter1d
 
 rcParams["text.usetex"] = True
 
@@ -269,18 +269,120 @@ class ModelConfigDataClass:
     """
 
 # Model registry -------------------------------------------------------------
+# Taking external hp schema as input to the hyperparameter tuning
+
+def _suggest_float(trial, schema, name: str):
+    params = {**schema.get(name)}
+    suggest_float_trial = trial.suggest_float(
+        name,
+        low=params["low"],
+        high=params["high"])
+
+    return suggest_float_trial
+
+def _suggest_int(trial, schema, name: str):
+    params = {**schema.get(name)}
+    suggest_int_trial = trial.suggest_int(
+        name,
+        low=params["low"],
+        high=params["high"])
+
+    return suggest_int_trial
+
+def _suggest_categorical(trial, schema, name: str):
+    """
+    Suggest a categorical parameter using a list from schema.
+
+    Args:
+        trial (optuna.trial.Trial): Optuna trial object used to suggest
+            parameters.
+        schema (dict): Dictionary containing hyperparameter schema. For
+            categorical parameters, the value should be a list of choices.
+        name (str): Name of the hyperparameter to retrieve.
+
+    Returns:
+        Any: The value selected from the list of categorical choices.
+
+    Raises:
+        ValueError: If the schema value for the given name is not a list.
+    """
+    choices = schema.get(name)
+
+    if not isinstance(choices, list):
+        raise ValueError(
+            f"Expected a list of choices for '{name}', "
+            f"but got {type(choices).__name__}"
+        )
+
+    return trial.suggest_categorical(name, choices)
+
+# ----------------------------------------------------------------------------
+# Reload the config module to refresh in-memory variables
+# especially after updating parameters during runtime
+reload(bconf)
+
+DATA_SOURCE: Literal["tohoku", "severson"] = bconf.HP_DATA_SOURCE
+"""
+Global selector for the active hyperparameter data source.
+
+Loaded from ``bconf.HP_DATA_SOURCE`` during import to keep module
+state aligned with the currently configured dataset registry.
+"""
+
+def _grab(model: str):
+    """
+    Retrieve hyperparameter configuration for a given model and data source.
+
+    This function dynamically retrieves the hyperparameter configuration
+    dictionary for a specified model by constructing the attribute name
+    based on the model identifier and the global DATA_SOURCE setting.
+
+    Args:
+        model (str): The model identifier (e.g., "iforest", "knn", "gmm",
+            "lof", "pca", "autoencoder").
+
+    Returns:
+        Dict[str, Any]: The hyperparameter configuration dictionary for the
+            specified model and data source combination.
+
+    Raises:
+        AttributeError: If the constructed attribute name does not exist in
+            the bconf module.
+
+    Example:
+        .. code-block::
+
+            DATA_SOURCE = "tohoku"
+            _IFOREST_HP_CONFIG = _grab("iforest")
+    """
+    suffix = DATA_SOURCE.lower()
+    attr = f"_{model}_hp_config_{suffix}"
+    return getattr(bconf, attr)
+
+_IFOREST_HP_CONFIG = _grab("iforest")
+_KNN_HP_CONFIG = _grab("knn")
+_GMM_HP_CONFIG = _grab("gmm")
+_LOF_HP_CONFIG = _grab("lof")
+_PCA_HP_CONFIG = _grab("pca")
+_AUTOENCODER_HP_CONFIG = _grab("autoencoder")
+"""
+Hyperparameter schema cache for supported anomaly detection models.
+
+Each constant stores the preloaded hyperparameter configuration for a
+specific PyOD estimator under the active ``DATA_SOURCE`` selection.
+"""
 
 MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "iforest": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "n_estimators": trial.suggest_int(
-                "n_estimators", 100, 500, step=50),
-            "max_samples": trial.suggest_int(
-                "max_samples", 100, 500, step=50),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "contamination": _suggest_float(
+                trial, _IFOREST_HP_CONFIG, "contamination"),
+            "n_estimators": _suggest_int(
+                trial, _IFOREST_HP_CONFIG, "n_estimators"),
+            "max_samples": _suggest_int(
+                trial, _IFOREST_HP_CONFIG, "max_samples"),
+            "threshold": _suggest_float(
+                trial, _IFOREST_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: IForest(
             behaviour="new",
@@ -298,16 +400,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "knn": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "n_neighbors": trial.suggest_int(
-                "n_neighbors", 2, 50, step=2),
-            "method": trial.suggest_categorical(
-                "method", ["largest","mean","median"]),
-            "metric": trial.suggest_categorical(
-                "metric", ["minkowski","euclidean","manhattan"]),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "contamination": _suggest_float(
+                trial, _KNN_HP_CONFIG, "contamination"),
+            "n_neighbors": _suggest_int(
+                trial, _KNN_HP_CONFIG, "n_neighbors"),
+            "method": _suggest_categorical(
+                trial, _KNN_HP_CONFIG, "method"),
+            "metric": _suggest_categorical(
+                trial, _KNN_HP_CONFIG, "metric"),
+            "threshold": _suggest_float(
+                trial, _KNN_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: KNN(
             contamination=param["contamination"],
@@ -322,15 +424,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "gmm": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_components": trial.suggest_int("n_components", 1, 6),
-            "covariance_type": trial.suggest_categorical(
-                "covariance_type", ["spherical","diag","tied","full"]),
-            "init_param": trial.suggest_categorical(
-                "init_param", ["kmeans","random"]),
-            "contamination": trial.suggest_float(
-                "contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float(
-                "threshold", 0.0, 1.0),
+            "n_components": _suggest_int(
+                trial, _GMM_HP_CONFIG, "n_components"),
+            "covariance_type": _suggest_categorical(
+                trial, _GMM_HP_CONFIG, "covariance_type"),
+            "init_param": _suggest_categorical(
+                trial, _GMM_HP_CONFIG, "init_param"),
+            "contamination": _suggest_float(
+                trial, _GMM_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, _GMM_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: GMM(
             n_components=param["n_components"],
@@ -346,12 +449,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "lof": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_neighbors": trial.suggest_int("n_neighbors", 10, 100, step=5),
-            "leaf_size": trial.suggest_int("leaf_size", 10, 100, step=5),
-            "metric": trial.suggest_categorical(
-                "metric", ["minkowski","euclidean","manhattan"]),
-            "contamination": trial.suggest_float("contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "n_neighbors": _suggest_int(
+                trial, _LOF_HP_CONFIG, "n_neighbors"),
+            "leaf_size": _suggest_int(
+                trial, _LOF_HP_CONFIG, "leaf_size"),
+            "metric": _suggest_categorical(
+                trial, _LOF_HP_CONFIG, "metric"),
+            "contamination": _suggest_float(
+                trial, _LOF_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, _LOF_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: LOF(
             n_neighbors=param["n_neighbors"],
@@ -368,9 +475,12 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "pca": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "n_components": trial.suggest_int("n_components", 1, 2),
-            "contamination": trial.suggest_float("contamination", 0.0, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "n_components": _suggest_int(
+                trial, _PCA_HP_CONFIG, "n_components"),
+            "contamination": _suggest_float(
+                trial, _PCA_HP_CONFIG, "contamination"),
+            "threshold": _suggest_float(
+                trial, _PCA_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: PCA(
             n_components=param["n_components"],
@@ -382,11 +492,16 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     ),
     "autoencoder": ModelConfigDataClass(
         hp_space=lambda trial: {
-            "batch_size": trial.suggest_int("batch_size", 8, 32, step=8),
-            "epoch_num": trial.suggest_int("epoch_num", 10, 50, step=5),
-            "learning_rate": trial.suggest_float("learning_rate", 0.0, 0.1),
-            "dropout_rate": trial.suggest_float("dropout_rate", 0.1, 0.5),
-            "threshold": trial.suggest_float("threshold", 0.0, 1.0),
+            "batch_size": _suggest_int(
+                trial, _AUTOENCODER_HP_CONFIG, "batch_size"),
+            "epoch_num": _suggest_int(
+                trial, _AUTOENCODER_HP_CONFIG, "epoch_num"),
+            "learning_rate": _suggest_float(
+                trial, _AUTOENCODER_HP_CONFIG, "learning_rate"),
+            "dropout_rate": _suggest_float(
+                trial, _AUTOENCODER_HP_CONFIG, "dropout_rate"),
+            "threshold": _suggest_float(
+                trial, _AUTOENCODER_HP_CONFIG, "threshold"),
         },
         model_param=lambda param: AutoEncoder(
             batch_size=param["batch_size"],
@@ -429,6 +544,7 @@ Args:
 
 # Generic Optuna objective ---------------------------------------------------
 
+
 def objective(
     trial: optuna.trial.Trial,
     model_id: Literal["iforest","knn","gmm","lof","pca","autoencoder"],
@@ -437,7 +553,7 @@ def objective(
     selected_cell_label: str,
     df_benchmark_dataset: Optional[pd.DataFrame] = None,
 ) -> Tuple[float, float]:
-    
+
     """
     Optimize model hyperparameters using Optuna trial.
 
@@ -445,7 +561,7 @@ def objective(
     hyperparameters from the trial, training the model, predicting
     outliers, and computing evaluation metrics. If a benchmark dataset
     is provided, recall and precision are computed. Otherwise, proxy
-    evaluation metrics are used based on cycle index and model input 
+    evaluation metrics are used based on cycle index and model input
     features.
 
     Args:
@@ -459,13 +575,14 @@ def objective(
         selected_feature_cols (list): List of selected feature column names.
         selected_cell_label (str): Label identifying the cell for which
             the model is being trained.
-        df_benchmark_dataset (Optional[pd.DataFrame]): Benchmark dataset used to
-            evaluate predicted outliers. If None, proxy evaluation is performed.
+        df_benchmark_dataset (Optional[pd.DataFrame]): Benchmark dataset
+            used to evaluate predicted outliers. If None, proxy evaluation
+            is performed.
 
     Returns:
-        Tuple[float, float]: If benchmark dataset is provided, returns recall and
-        precision scores. Otherwise, returns loss score and inliers score from
-        proxy evaluation.
+        Tuple[float, float]: If benchmark dataset is provided, returns
+        recall and precision scores. Otherwise, returns loss score and
+        inliers score from proxy evaluation.
 
     Example:
         .. code-block::
@@ -473,24 +590,40 @@ def objective(
             import optuna
             import osbad.hyperparam as hp
 
-            # Use the TPESampler from optuna
+            # Reload the hp module to refresh in-memory variables
+            # especially after updating parameters
+            from importlib import reload
+            reload(hp)
+
+            # Check if the schema in the script has been updated
+            # based on the latest updated constraints
+            print("Current hyperparameter config:")
+            print(hp._IFOREST_HP_CONFIG)
+            print("-"*70)
+
+            # Instantiate an optuna study for iForest model
             sampler = optuna.samplers.TPESampler(seed=42)
 
-            # Create a study to maximize recall and precision score
-            study = optuna.create_study(
+            selected_feature_cols = (
+                "log_max_diff_dQ",
+                "log_max_diff_dV")
+
+            if_study = optuna.create_study(
+                study_name="iforest_hyperparam",
                 sampler=sampler,
                 directions=["maximize","maximize"])
 
-            # Optimize the hyperparameters for iforest using 20 trials
-            study.optimize(
-                lambda tr: hp.objective(
-                    tr,
-                    "iforest",
-                    df_features_per_cell,
-                    df_selected_cell),
+            if_study.optimize(
+                lambda trial: hp.objective(
+                    trial,
+                    model_id="iforest",
+                    df_feature_dataset=df_features_per_cell,
+                    selected_feature_cols=selected_feature_cols,
+                    df_benchmark_dataset=df_selected_cell,
+                    selected_cell_label=selected_cell_label),
                 n_trials=20)
     """
-    
+
     cfg = MODEL_CONFIG[model_id]
     params = cfg.hp_space(trial)
 
@@ -500,7 +633,7 @@ def objective(
         selected_feature_cols=selected_feature_cols)
 
     if df_benchmark_dataset is not None:
-        
+
         Xdata = runner.create_model_x_input()
         model = cfg.model_param(params)
         model.fit(Xdata)
@@ -516,24 +649,23 @@ def objective(
             df_benchmark_dataset, pred_outlier_indices)
 
         return recall, precision
-    
-    else:
 
+    else:
         # Xdata: with cycle index and two anomaly detection features
         Xdata = runner.create_model_x_input()
 
         #extract cycle index predictor for regression proxy
         cycle_idx = Xdata[:,0].reshape(-1,1)
 
-        #extract target features for Pyod model and regression proxy 
+        #extract target features for Pyod model and regression proxy
         features = Xdata[:,1:]
-        
+
         model = cfg.model_param(params)
         model.fit(features)
 
         proba = model.predict_proba(features)  # shape (n_samples, 2)
         (pred_outlier_indices,
-        pred_outlier_score) = runner.pred_outlier_indices_from_proba(
+         pred_outlier_score) = runner.pred_outlier_indices_from_proba(
             proba=proba,
             threshold=params["threshold"],
             outlier_col=cfg.proba_col
@@ -541,131 +673,84 @@ def objective(
 
         loss_score, inliers_score = runner.proxy_evaluate_indices(
             pred_outlier_indices, cycle_idx, features)
-        
+
+        if inliers_score < 0.5:
+            raise optuna.TrialPruned()
+
         return loss_score, inliers_score
-    
-# Getting best trials from pareto-optimal trials using curvature analysis ----
 
-def curvature(target_x: Union[List[float], np.ndarray], 
-              target_y: Union[List[float], np.ndarray],
-              window_size: int=5
-              ) -> np.ndarray: 
-        
-    """
-    Calculates the curvature values of a smoothed loss_score 
-    vs inlier_score plot.
-
-    This function estimates the curvature of a 2D curve defined 
-    by `target_x` and `target_y`, which represents the trade-off 
-    between regression loss and inlier count in outlier detection
-    evaluation. The curvature is computed after applying a uniform 
-    smoothing filter to reduce noise.
-
-    Args:
-        target_x (Union[List[float], np.ndarray]): List or array 
-        of x-values (e.g., loss scores).
-        target_y (Union[List[float], np.ndarray]): List or array 
-        of y-values (e.g., inlier scores).
-
-    Returns:
-        float: Array of curvature values at each point on the smoothed 
-        curve. These values indicate how sharply the curve bends at each
-        location.
-
-    .. note::
-    - A smoothing window is applied to reduce noise before computing 
-    gradients.
-    - The curvature is calculated using the standard 2D curvature formula:
-        κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)
-    - Division by zero is safely handled using NumPy's error state
-    management.
-
-    """
-
-    x_smooth = uniform_filter1d(target_x, size=window_size)
-    y_smooth = uniform_filter1d(target_y, size=window_size)
-
-    dx = np.gradient(x_smooth)
-    dy = np.gradient(y_smooth)
-    ddx = np.gradient(dx)
-    ddy = np.gradient(dy)
-    
-    numerator = dx * ddy - dy * ddx
-    denominator = (dx**2 + dy**2)**1.5
-
-    with np.errstate(divide='ignore', invalid='ignore'):
-        kappa = np.where(denominator != 0, numerator / denominator, 0.0)
-
-    return kappa
-
-def trade_off_trails_detection(
+def trade_off_trials_detection(
         study: optuna.study.Study,
         window_size: int=5,
         ) -> List[optuna.trial.FrozenTrial]:
-    
-    """
 
-    Identifies the most representative Pareto-optimal trials based 
-    on curvature analysis of the loss_score vs inlier_score trade-off 
-    curve.The curvature-based selection helps identify the "elbow point" 
+    """
+    Identifies the most representative Pareto-optimal trials based
+    on curvature analysis of the loss_score vs inlier_score trade-off
+    curve.The curvature-based selection helps identify the "elbow point"
     in the trade-off curve, which often represents the best balance
     between minimizing regression loss and maximizing inlier retention.
 
     This function performs the following steps:
-    1. Sorts Pareto-optimal trials in descending order of loss_score.
-    2. Extracts loss_score and inlier_score values from the sorted trials.
-    3. Computes the curvature of the smoothed loss vs inlier score plot
-       to identify the point of maximum curvature (inflection point).
-    4. Selects the trial at the inflection point as the optimal trade-off 
-       between model performance and data retention.
-    5. Returns all trials that share the same loss_score and inlier_score 
-       as the identified optimal trial.
+        1. Sorts Pareto-optimal trials in descending order of loss_score.
+        2. Extracts loss_score and inlier_score values from the sorted trials.
+        3. Computes the curvature of the smoothed loss vs inlier score plot
+           to identify the point of maximum curvature (inflection point).
+        4. Selects the trial at the inflection point as the optimal trade-off
+           between model performance and data retention.
+        5. Returns all trials that share the same loss_score and inlier_score
+           as the identified optimal trial.
 
     Args:
-        study (optuna.study.study.Study)
-        An Optuna study object containing multiple trials, including
-        Pareto-optimal ones.
+        study (optuna.study.study.Study): An Optuna study object containing
+            multiple trials, including Pareto-optimal ones.
+        window_size (int): Width of the moving average window used to
+            smooth the data.
 
     Returns:
-        List[optuna.trial.FrozenTrial]
-        A list of trials that match the optimal trade-off point, 
-        determined by the maximum curvature in the loss vs inlier score 
-        plot.
-    
+        List[optuna.trial.FrozenTrial]: A list of trials that match the
+        optimal trade-off point, determined by the maximum curvature in the
+        loss vs inlier score plot.
+
     """
-
-    sorted_best_trails = sorted(study.best_trials, 
-                                    key=lambda t: t.values[0], 
+    sorted_best_trials = sorted(study.best_trials,
+                                    key=lambda t: t.values[0],
                                     reverse=True)
-    
-    obj0_scores = [trial.values[0] for trial in sorted_best_trails]
-    obj1_scores = [trial.values[1] for trial in sorted_best_trails]
 
-    kappa = curvature(obj0_scores, obj1_scores, window_size=window_size)
+    obj0_scores = [trial.values[0] for trial in sorted_best_trials]
+    obj1_scores = [trial.values[1] for trial in sorted_best_trials]
 
-    inflection_index = np.argmax(np.abs(kappa)) - 1
+    kappa = curvature(obj0_scores,
+                      obj1_scores,
+                      window_size=window_size)
 
-    optimal_trial = sorted_best_trails[inflection_index]
+    # removing first and the last values of curvature due to possible
+    # unstable boundary effects
+    kappa_trimmed = kappa[1:-1]
+    inflection_index = np.argmax(np.abs(kappa_trimmed)) + 1
 
-    optimal_trials_list = [trial for trial in sorted_best_trails 
-                            if round(trial.values[0], 4) == 
+    optimal_trial = sorted_best_trials[inflection_index]
+
+    optimal_trials_list = [trial for trial in sorted_best_trials
+                            if round(trial.values[0], 4) ==
                             round(optimal_trial.values[0], 4)
-                            and trial.values[1] ==
-                            optimal_trial.values[1]]
+                            and round(trial.values[1], 4) ==
+                            round(optimal_trial.values[1], 4)]
 
     return optimal_trials_list
 
-
 # Generic aggregation of best trials -----------------------------------------
 
-Agg = Literal["median", "median_int", "mode"]
+Agg = Literal["median", "mean", "median_int", "mean_int", "mode"]
 """
 Type alias for the aggregation methods.
 
 Represents allowed strategies for aggregating a list of values:
 
     - "median": Returns the median as a float.
+    - "mean": Returns the mean as a float.
     - "median_int": Returns the median as an integer.
+    - "mean_int": Returns the mean as an integer.
     - "mode": Returns the most frequent value.
 """
 
@@ -673,13 +758,14 @@ def aggregate_param_method(values: List[Any], how: Agg):
     """
     Aggregate a list of values using the given method.
 
-    Supports median, median as integer, and mode. Raises ValueError
-    if an unsupported method is provided.
+    Supports median and mean as float, median_int and mean_int as integer
+    and mode for strings. Raises ValueError if an unsupported method is
+    provided.
 
     Args:
         values (List[Any]): List of values to aggregate.
-        how (Agg): Aggregation method, one of ``median``, ``median_int``,
-                   or ``mode``.
+        how (Agg): Aggregation method, one of ``median``, ``mean``,
+            ``median_int``, ``mean_int`` or ``mode``.
 
     Returns:
         Any: Aggregated result based on the specified method.
@@ -707,8 +793,12 @@ def aggregate_param_method(values: List[Any], how: Agg):
         """
     if how == "median":
         return float(np.median(values))
+    if how == "mean":
+        return float(np.mean(values))
     if how == "median_int":
         return int(np.median(values))
+    if how == "mean_int":
+        return int(np.mean(values))
     if how == "mode":
         return mode(values)
     raise ValueError(how)
@@ -728,13 +818,13 @@ def aggregate_best_trials(
     median_int, or mode.
 
     Args:
-        best_trials (List[optuna.trial.FrozenTrial]): A list of best 
-        trials obtained using Pareto optimization or the additional 
-        curvature analysis step in case of proxy hyperparameter tuning 
-        method.
+        best_trials (List[optuna.trial.FrozenTrial]): A list of best
+            trials obtained using Pareto optimization or the additional
+            curvature analysis step in case of proxy hyperparameter tuning
+            method.
         cell_label (str): Identifier for the experimental cell.
         model_id (str): Identifier of the ML-model. Allowed values are
-                        "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
+            "iforest", "knn", "gmm", "lof", "pca", "autoencoder".
         schema (Dict[str, Agg]): Mapping of parameter names to
             aggregation strategies. Allowed values are "median",
             "median_int", and "mode".
@@ -754,7 +844,7 @@ def aggregate_best_trials(
                 "threshold": "median"}
 
             df_knn = hp.aggregate_best_trials(
-                study.best_trails,
+                study.best_trials,
                 cell_label=selected_cell_label,
                 model_id="knn",
                 schema=schema_knn)
@@ -774,6 +864,7 @@ def aggregate_best_trials(
     # }
 
     collected_param_dict = {k: [] for k in schema.keys()}
+
     # Initialize an empty dict to store best trials hyperparameter
     # where k correspond to the keys from the schema:
     # collected_param_dict = {
@@ -828,6 +919,185 @@ def aggregate_best_trials(
     out = {"ml_model": model_id, "cell_index": cell_label}
     out.update(aggregated)
     return pd.DataFrame([out])
+
+# ---------------------------------------------------------------------------
+# Getting best trials from pareto-optimal trials using curvature analysis
+
+def curvature(
+    target_x: Union[List[float], np.ndarray],
+    target_y: Union[List[float], np.ndarray],
+    window_size: int=5) -> np.ndarray:
+
+    """
+    Calculates the curvature values of a smoothed loss_score
+    vs inlier_score plot.
+
+    This function estimates the curvature of a 2D curve defined
+    by `target_x` and `target_y`, which represents the trade-off
+    between regression loss and inlier count in outlier detection
+    evaluation. The curvature is computed after applying a uniform
+    smoothing filter to reduce noise.
+
+    Args:
+        target_x (Union[List[float], np.ndarray]): List or array of
+            X-values (e.g., loss scores).
+        target_y (Union[List[float], np.ndarray]): List or array of Y-values
+            (e.g., inlier scores).
+
+    Returns:
+        float: Array of curvature values at each point on the smoothed
+        curve. These values indicate how sharply the curve bends at each
+        location.
+
+    .. note::
+
+        - A smoothing window is applied to reduce noise before computing
+          gradients.
+        - The curvature is calculated using the standard 2D curvature formula:
+          ``κ = (dx * ddy - dy * ddx) / (dx² + dy²)^(3/2)``
+        - Division by zero is safely handled using NumPy's error state
+          management.
+
+    """
+    x_smooth = uniform_filter1d(
+        target_x,
+        size=window_size,
+        mode='mirror')
+    y_smooth = uniform_filter1d(
+        target_y,
+        size=window_size,
+        mode='mirror')
+
+    dx = np.gradient(x_smooth)
+    dy = np.gradient(y_smooth)
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+
+    numerator = dx * ddy - dy * ddx
+    denominator = (dx**2 + dy**2)**1.5
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        kappa = np.where(denominator != 0, numerator / denominator, 0.0)
+
+    return kappa
+
+def plot_proxy_pareto_front(
+    model_study: optuna.study.study.Study,
+    best_trials_list: List[optuna.trial.FrozenTrial],
+    selected_cell_label: str,
+    fig_title: str) -> None:
+
+    """
+    Plot and save the Pareto front of proxy evaluation metrics
+    i.e. loss scores vs. inliers count scores.
+
+    This function generates a Pareto front plot from an Optuna study
+    that optimizes for both regression loss and predicted inlier count.
+    The plot includes an annotation showing the best compromised solution
+    or trade-off solution obtained at the knee or inflection point of
+    the curve out of pareto-optimal trials.
+
+    Args:
+        model_study (optuna.study.study.Study): Optuna study object
+            containing trials with recall and precision scores as
+            objectives.
+        best_trials_list (List[optuna.trial.FrozenTrial]): A list of best
+            trials obtained using curvature analysis step in case of proxy
+            hyperparameter tuning method.
+        selected_cell_label (str): Identifier for the evaluated cell,
+            used to generate the output file path.
+        fig_title (str): Title of the plot and basis for the output file
+            name.
+        output_log_status (bool, optional): If True, enables logging of
+            intermediate evaluation steps. Defaults to False.
+
+    Returns:
+        None: The function saves the Pareto front plot as a PNG file in
+        the artifacts directory associated with the selected cell.
+
+    Example:
+        .. code-block::
+
+            hp.plot_proxy_pareto_front(
+                if_study,
+                selected_cell_label,
+                fig_title="Isolation Forest Pareto Front")
+    """
+    # extracting loss score value and inlier score value at knee point
+    loss_infl = best_trials_list[0].values[0]
+    inlier_infl = best_trials_list[0].values[1]
+
+    # plotting pareto front with proxy metrics
+    axplot = optuna.visualization.matplotlib.plot_pareto_front(
+        model_study,
+        target_names=[
+            "pred_mse_score",
+            "pred_inlier_score"])
+
+    axplot.scatter(
+        loss_infl, inlier_infl,
+        marker='X',
+        color='green',
+        label='Best Compromise Solution')
+
+    # Add an arrow and text annotation
+    axplot.annotate(
+        text="Knee Point",
+        xy=(loss_infl, inlier_infl),
+        xytext=(loss_infl+0.15, inlier_infl-0.15),
+        fontsize=12,
+        arrowprops=dict(facecolor='black', shrink=0.05))
+
+    #axplot.axis("equal")
+    axplot.set_xlim([0,1.05])
+
+    axplot.set_xlabel(
+        "Regression loss score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_ylabel(
+        "Inlier count score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_title(
+        fig_title,
+        fontsize=16)
+
+    axplot.legend(
+        loc='right',
+        fontsize=10)
+
+    axplot.patch.set_facecolor("white")
+    axplot.spines["bottom"].set_color("black")
+    axplot.spines["top"].set_color("black")
+    axplot.spines["left"].set_color("black")
+    axplot.spines["right"].set_color("black")
+
+    axplot.grid(
+        color="grey",
+        linestyle="-",
+        linewidth=0.25,
+        alpha=0.7)
+
+    # convert the fig title to snake_case for filepath standardization
+    output_fig_filename = (
+        fig_title.casefold().replace(" ","_")
+        + "_" + selected_cell_label
+        + ".png")
+
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
+
+    fig_output_path = (
+        selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
+
 
 def evaluate_hp_perfect_score_pct(
     model_study: optuna.study.study.Study,
@@ -1047,11 +1317,9 @@ def plot_pareto_front(
 
     plt.savefig(
         fig_output_path,
-        dpi=200,
+        dpi=600,
         bbox_inches="tight")
 
-    if bconf.SHOW_FIG_STATUS:
-        plt.show()
 
 def plot_proxy_pareto_front(
     model_study: optuna.study.study.Study,
@@ -1170,27 +1438,24 @@ def plot_proxy_pareto_front(
 
     plt.savefig(
         fig_output_path,
-        dpi=200,
+        dpi=600,
         bbox_inches="tight")
 
-    if bconf.SHOW_FIG_STATUS:
-        plt.show()
 
 def export_current_hyperparam(
     df_best_param_current_cell: pd.DataFrame,
     selected_cell_label: str,
     export_csv_filepath: Union[pathlib.PosixPath, str],
-    replace_hp: bool=False,
+    if_exists: Literal["replace", "keep"] = "replace",
     output_log_bool: bool=True):
     """
     Export best hyperparameters for a cell to a CSV file.
 
-    This function checks if the best hyperparameters for a given cell are
-    already stored in the CSV file. If not found, the function appends the
-    current cell's hyperparameters to the file. If the cell already exists,
-    the existing CSV content is returned without modification or replaced 
-    with the new values if replace argument is True. Logging is used to 
-    track the export status and duplication checks.
+    This function manages the storage of best hyperparameters for a
+    specified cell. If the cell's hyperparameters already exist in the
+    CSV file, the behavior depends on ``if_exists``: either the rows are
+    replaced or kept. If the cell is not found, a new row is created.
+    Logging tracks the export status and duplication handling.
 
     Args:
         df_best_param_current_cell (pd.DataFrame): DataFrame containing the
@@ -1198,9 +1463,9 @@ def export_current_hyperparam(
         selected_cell_label (str): Identifier for the evaluated cell.
         export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the
             CSV file where hyperparameters are stored.
-        replace_hp (bool, optional): If True, replaces or updates the already 
-        existing hyperparameter values in the csv file with the new best 
-        hyperparameters obtained for the selected cell label.
+        if_exists (Literal["replace", "keep"], optional): Action to take
+            if the cell already exists in the CSV. Defaults to
+            ``"replace"``.
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
@@ -1208,17 +1473,21 @@ def export_current_hyperparam(
         pd.DataFrame: Updated DataFrame containing hyperparameters from both
         existing records and the current cell.
 
+    Raises:
+        ValueError: If ``if_exists`` is not ``"replace"`` or ``"keep"``.
+
     Example:
         .. code-block::
 
             # Export current hyperparameters to CSV
             hyperparam_filepath =  PIPELINE_OUTPUT_DIR.joinpath(
-                "hyperparams_iforest_new.csv")
+                "hyperparams_autoencoder_tohoku.csv")
 
             hp.export_current_hyperparam(
-                df_iforest_hyperparam,
+                df_autoencoder_hyperparam,
                 selected_cell_label,
-                export_csv_filepath=hyperparam_filepath)
+                export_csv_filepath=hyperparam_filepath,
+                if_exists="replace")
     """
 
     logger = _customize_logger(
@@ -1226,52 +1495,62 @@ def export_current_hyperparam(
         output_log=output_log_bool)
 
     if os.path.exists(export_csv_filepath):
-        df_best_param_from_csv = pd.read_csv(
+        df_csv = pd.read_csv(
             export_csv_filepath)
 
         # Status check if the current model hyperparam
         # already exists in the hyperparam inventories
-        check_cell_bool = (
-            selected_cell_label in
-            df_best_param_from_csv["cell_index"].unique())
+        existed_before = (
+            df_csv["cell_index"].astype(str).eq(selected_cell_label).any())
+
         logger.info("Have the hyperparam for "
                 + f"{selected_cell_label} been evaluated?")
-        logger.info(check_cell_bool)
+        logger.info(existed_before)
         logger.info("*"*70)
     else:
-        check_cell_bool = False
-        df_best_param_from_csv = None
+        df_csv = None
+        existed_before = False
 
-    if not check_cell_bool:
-        logger.info("Exporting hyperparameters for "
-                + f"{selected_cell_label} to CSV file.")
+    # Decide action based on if_exists
+    if existed_before:
+        if if_exists == "replace":
+            logger.info(f"Replacing existing rows for {selected_cell_label}.")
 
-        # concat current hyperparam with hyperparam
-        # from other cells
-        df_updated_hyperparam = pd.concat(
-            [df_best_param_from_csv,
-            df_best_param_current_cell], axis=0)
+            # Exclude row that has the same selected_cell_label
+            df_without_cell = df_csv.loc[
+                ~df_csv["cell_index"].astype(str).eq(selected_cell_label)]
 
-        # Export metrics to CSV
-        df_updated_hyperparam.to_csv(
-            export_csv_filepath,
-            index=False)
-    else:
-        if not replace_hp:
-            logger.info("Hyperparameters for "
-                + f"{selected_cell_label} already exists "
-                +"in the CSV file!")
-            logger.info("Not updating Hyperparameters "
-                        + f"for {selected_cell_label}")
-            df_updated_hyperparam = df_best_param_from_csv.copy()
+            df_updated_hyperparam = pd.concat(
+                [df_without_cell,
+                 df_best_param_current_cell],
+                 axis=0,
+                 ignore_index=True)
+            action = "replaced"
+        elif if_exists == "keep":
+            logger.info(f"Keeping existing rows for {selected_cell_label};"
+                        + "incoming rows ignored.")
+            df_updated_hyperparam = df_csv.copy()
+            action = "kept"
         else:
-            logger.info("Updating Hyperparameters "
-                        + f"for {selected_cell_label}")
-            mask = (df_best_param_from_csv["cell_index"] 
-                    == selected_cell_label)
-            new_hp_values = df_best_param_current_cell.iloc[0].values
-            df_best_param_from_csv.loc[mask] = new_hp_values
-            df_updated_hyperparam = df_best_param_from_csv.copy()
+            raise ValueError('if_exists must be "replace" or "keep"')
+    else:
+        logger.info(f"Creating new row for cell {selected_cell_label}.")
+        df_updated_hyperparam = pd.concat(
+            [df_csv,
+             df_best_param_current_cell],
+             axis=0,
+             ignore_index=True)
+        action = "created"
+
+    logger.info(
+        f"Hyperparameters for {selected_cell_label} "
+        + f"have been {action} in the CSV file."
+    )
+
+    # Export metrics to CSV
+    df_updated_hyperparam.to_csv(
+        export_csv_filepath,
+        index=False)
 
             # Export metrics to CSV with updated hyperparameters
             df_updated_hyperparam.to_csv(
@@ -1285,27 +1564,27 @@ def export_current_model_metrics(
     selected_cell_label: str,
     df_current_eval_metrics: pd.DataFrame,
     export_csv_filepath: Union[pathlib.PosixPath, str],
-    replace_metrics: bool=False,
-    output_log_bool: bool=True):
+    if_exists: Literal["replace", "keep"] = "replace",
+    output_log_bool: bool = True,
+):
     """
     Export current model evaluation metrics to a CSV file.
 
-    This function logs the status of existing metrics, checks for duplicate
-    entries in the CSV, and updates the file with new evaluation metrics if
-    necessary. If the model and cell label already exist in the CSV, the
-    existing file is returned without modification or updated if replace 
-    argument is True.
+    This function checks if the evaluation metrics for a given model and
+    cell are already stored in the CSV file. Based on the ``if_exists``
+    flag, it either replaces existing rows, keeps them unchanged, or
+    creates a new entry. Logging tracks the status of the export process.
 
     Args:
         model_name (str): Name of the machine learning model.
         selected_cell_label (str): Identifier for the evaluated cell.
-        df_current_eval_metrics (pd.DataFrame): DataFrame containing current
-            evaluation metrics to be exported.
-        export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the CSV
-            file where evaluation metrics are stored.
-        replace_metrics (bool, optional): If True, replaces or updates the 
-        already existing model evaluation metrics in the csv file for the 
-        model and the selected cell label.
+        df_current_eval_metrics (pd.DataFrame): DataFrame containing
+            current evaluation metrics to be exported.
+        export_csv_filepath (Union[pathlib.PosixPath, str]): Path to the
+            CSV file where evaluation metrics are stored.
+        if_exists (Literal["replace", "keep"], optional): Action to take
+            if the model-cell combination already exists in the CSV.
+            Defaults to "replace".
         output_log_bool (bool, optional): If True, enables logging output.
             Defaults to True.
 
@@ -1313,84 +1592,88 @@ def export_current_model_metrics(
         pd.DataFrame: Updated DataFrame containing evaluation metrics from
         both existing and current evaluations.
 
+    Raises:
+        ValueError: If ``if_exists`` is not "replace" or "keep".
+
     Example:
         .. code-block::
 
             # Export current metrics to CSV
             hyperparam_eval_filepath =  Path.cwd().joinpath(
-                "eval_metrics_hp_single_cell_new.csv")
+                "eval_metrics_hp_single_cell_tohoku.csv")
 
             hp.export_current_model_metrics(
                 model_name="iforest",
                 selected_cell_label=selected_cell_label,
                 df_current_eval_metrics=df_current_eval_metrics,
-                export_csv_filepath=hyperparam_eval_filepath)
-        """
-
+                export_csv_filepath=hyperparam_eval_filepath,
+                if_exists="replace")
+    """
     logger = _customize_logger(
-        logger_name="export_current_hyperparam",
-        output_log=output_log_bool)
+        logger_name="export_current_model_metrics",
+        output_log=output_log_bool
+    )
 
     if os.path.exists(export_csv_filepath):
-        df_eval_metrics_from_csv = pd.read_csv(
-            export_csv_filepath)
+        df_csv = pd.read_csv(export_csv_filepath)
 
-        # Status check if the current model metrics
-        # already exists in the metric inventories
-        duplicated_metric_check = (model_name in
-            df_eval_metrics_from_csv["ml_model"]
-            .unique())
-        logger.info("Is this metric already saved in the CSV output?")
-        logger.info(duplicated_metric_check)
-        logger.info("-"*70)
+        # Check if this model-cell pair already exists
+        existed_before = (
+            (df_csv["ml_model"].astype(str) == model_name) &
+            (df_csv["cell_index"].astype(str) == selected_cell_label)
+        ).any()
 
-        # Status check if the current selected cell
-        # already exists in the metric inventories
-        duplicated_cell_check = (selected_cell_label in
-            df_eval_metrics_from_csv["cell_index"]
-            .unique())
-        logger.info("Is this cell already saved in the CSV output?")
-        logger.info(duplicated_cell_check)
-        logger.info("-"*70)
-
+        logger.info("Have the metrics for "
+                    f"{model_name} on cell {selected_cell_label} "
+                    "been evaluated before?")
+        logger.info(existed_before)
+        logger.info("-" * 70)
     else:
-        duplicated_cell_check = False
-        duplicated_metric_check = False
-        df_eval_metrics_from_csv = None
+        df_csv = None
+        existed_before = False
 
-    if (not duplicated_metric_check) | (not duplicated_cell_check):
-        logger.info("Exporting evaluation metrics to CSV:")
+    # Decide action based on if_exists
+    if existed_before:
+        if if_exists == "replace":
+            logger.info(f"Replacing existing row for {model_name}, "
+                        f"{selected_cell_label}.")
 
-        # concat current metrics with metrics
-        # from other models
-        df_updated_metrics = pd.concat(
-            [df_eval_metrics_from_csv,
-            df_current_eval_metrics], axis=0)
+            # Exclude row that has the same model_name and selected_cell_label
+            df_without_entry = df_csv.loc[
+                ~(
+                    (df_csv["ml_model"].astype(str) == model_name) &
+                    (df_csv["cell_index"].astype(str) == selected_cell_label)
+                )
+            ]
 
-        # Export metrics to CSV
-        df_updated_metrics.to_csv(
-            export_csv_filepath,
-            index=False)
-    else:
-        if not replace_metrics:
-            logger.info(f"{selected_cell_label} has been evaluated "
-                    + "in the CSV output!")
-            df_updated_metrics = df_eval_metrics_from_csv.copy()
-            logger.info("-"*70)
+            df_updated_metrics = pd.concat(
+                [df_without_entry, df_current_eval_metrics],
+                axis=0,
+                ignore_index=True
+            )
+            action = "replaced"
+
+        elif if_exists == "keep":
+            logger.info(f"Keeping existing row for {model_name}, "
+                        f"{selected_cell_label}; incoming metrics ignored.")
+            df_updated_metrics = df_csv.copy()
+            action = "kept"
+
         else:
-            logger.info("Updating metrics "
-                        + f"for {selected_cell_label}")
-            mask = ((df_eval_metrics_from_csv["cell_index"] 
-                    == selected_cell_label) &
-                    (df_eval_metrics_from_csv["ml_model"]
-                     == model_name))
-            new_metric_values = df_current_eval_metrics.iloc[0].values
-            df_eval_metrics_from_csv.loc[mask] = new_metric_values
-            df_updated_metrics = df_eval_metrics_from_csv.copy()
+            raise ValueError('if_exists must be "replace" or "keep"')
+    else:
+        logger.info(f"Creating new row for {model_name}, "
+                    f"{selected_cell_label}.")
+        df_updated_metrics = pd.concat(
+            [df_csv, df_current_eval_metrics],
+            axis=0,
+            ignore_index=True
+        )
+        action = "created"
 
-            # Export metrics to CSV with updated hyperparameters
-            df_updated_metrics.to_csv(
-            export_csv_filepath,
-            index=False)
+    logger.info(f"Metrics for {model_name}, {selected_cell_label} have been "
+                f"{action} in the CSV file.")
+
+    df_updated_metrics.to_csv(export_csv_filepath, index=False)
 
     return df_updated_metrics

@@ -1,0 +1,58 @@
+{
+
+"contamination": {
+
+
+"low": 0.0,
+
+
+"high": 0.5
+
+},
+
+"n_components": {
+
+
+"low": 1,
+
+
+"high": 2
+
+},
+
+"covariance_type": [
+
+
+"spherical",
+
+
+"diag",
+
+
+"tied",
+
+
+"full"
+
+],
+
+"init_param": [
+
+
+"kmeans",
+
+
+"random"
+
+],
+
+"threshold": {
+
+
+"low": 0.3,
+
+
+"high": 1.0
+
+}
+}

@@ -120,7 +120,6 @@ class ModelRunner:
         self._selected_cell_label = cell_label
         self.df_input_features = df_input_features
         self.selected_features = selected_feature_cols
-        self._show_fig_status = bconf.SHOW_FIG_STATUS
 
         # create a new folder for each evaluated cell
         # store all figures output for each evaluated
@@ -320,46 +319,119 @@ class ModelRunner:
 
         return loss_score, inlier_score
 
+    def proxy_evaluate_indices(
+        self,
+        pred_indices: np.ndarray,
+        cycle_idx: np.ndarray,
+        features: np.ndarray) -> Tuple[float, float]:
 
-    def create_2d_mesh_grid(
-        self):
         """
-        Create a 2D mesh grid for visualization of anomaly scores.
-
-        This function generates a square mesh grid covering the range of the
-        first two features in ``self.Xdata``. The grid is expanded by ±1 unit
-        beyond the min and max values to ensure full coverage. The resulting
-        grid can be used for plotting decision boundaries and anomaly score
-        heatmaps.
+        Evaluates the quality of predicted outlier indices using a proxy
+        regression-based approach and calculates proxy evaluation metrics
+        like, regression loss score and inlier count score by fitting a
+        linear regression model on the predicted inlier data.
 
         Args:
-            None
+            pred_indices (np.ndarray):
+                Indices of predicted outliers from the model.
+            cycle_idx (np.ndarray):
+                All predictor cycle indices or cycle numbers for proxy
+                regression model obtained from model input Xdata if
+                'cycle_index' is one of the features selected to be
+                extracted from ``self.df_input_features``.
+            features: (np.ndarray):
+                All target features like voltage feature or capacity
+                discharge feature obtained from model input Xdata, apart
+                from the predictor 'cycle_index' feature.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]:
-                - xx (np.ndarray): 2D array of x-coordinates.
-                - yy (np.ndarray): 2D array of y-coordinates.
-                - meshgrid (np.ndarray): Flattened 2D grid of shape
-                  (n_points, 2) where each row is a (x, y) coordinate pair.
+            Tuple[float, float]:
+                - loss_score: Normalized MSE regression loss for predicted
+                  inliers. A lower value (closer to 0) indicates that the
+                  outlier detection model performed well in excluding true
+                  positives (points that were indeed outliers. A value closer
+                  to 1 implies model was unable to remove true positives.
 
+                - inlier_score: Normalized inlier count score. It represents
+                  the proportion of data points retained after
+                  excluding predicted outliers. A higher value (closer to 1)
+                  means fewer points were removed, while a lower value
+                  indicates more aggressive outlier removal.
         """
 
-        # Define the boundaries of the grid
-        # Extend the grid boundaries by -1 and +1 to
-        # ensure full coverage
-        min_xrange = np.min(self.Xdata[:,0]) - 1
-        max_xrange = np.max(self.Xdata[:,0]) + 1
-        min_yrange = np.min(self.Xdata[:,1]) - 1
-        max_yrange = np.max(self.Xdata[:,1]) + 1
+        features_in = np.delete(features, pred_indices, axis=0)
+        cycle_idx_in = np.delete(cycle_idx, pred_indices, axis=0)
 
-        min_ax = np.min([min_xrange, min_yrange])
-        max_ax = np.max([max_xrange, max_yrange])
+        #fit linear regression
+        rgr = LinearRegression()
+        rgr.fit(cycle_idx_in, features_in)
 
-        # Create a linearly spaced square xgrid and ygrid
-        # using the min and max values from xdata and ydata
-        xgrid = np.linspace(min_ax, max_ax, 100)
-        ygrid = np.linspace(min_ax, max_ax, 100)
+        # predict
+        features_pred = rgr.predict(cycle_idx)
+        features_in_pred = rgr.predict(cycle_idx_in)
 
+        # calculate MSE loss
+        max_loss = mean_squared_error(features, features_pred)
+        in_loss = mean_squared_error(features_in, features_in_pred)
+
+        # normalized regression loss score
+        loss_score = in_loss/max_loss
+
+        # normalized inlier count score
+        in_count = len(features_in)
+        inlier_score = in_count/len(features)
+
+        return loss_score, inlier_score
+
+
+    def create_2d_mesh_grid(
+        self,
+        square_grid: bool=True,
+        grid_offset:Union[int, float] =1):
+        """
+        Create a mesh grid spanning the first two feature dimensions.
+
+        Generates linearly spaced grids from ``self.Xdata`` that are padded
+        by ``grid_offset`` units. When ``square_grid`` is True, both axes
+        share the combined min and max range to form a square plotting area.
+
+        Args:
+            square_grid (bool, optional): Enforce equal axis bounds for a
+                square grid. Defaults to True.
+            grid_offset (Union[int, float], optional): Margin added to each
+                axis bound to expand the plotting coverage. Defaults to 1.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: ``xx`` and ``yy`` mesh
+                arrays plus a flattened ``meshgrid`` suitable for contour
+                evaluation.
+        """
+        if square_grid:
+            # Define the boundaries of the grid
+            # Extend the grid boundaries by -1 and +1 to
+            # ensure full coverage
+            min_xrange = np.min(self.Xdata[:,0]) - grid_offset
+            max_xrange = np.max(self.Xdata[:,0]) + grid_offset
+            min_yrange = np.min(self.Xdata[:,1]) - grid_offset
+            max_yrange = np.max(self.Xdata[:,1]) + grid_offset
+
+            min_ax = np.min([min_xrange, min_yrange])
+            max_ax = np.max([max_xrange, max_yrange])
+
+            # Create a linearly spaced square xgrid and ygrid
+            # using the min and max values from xdata and ydata
+            xgrid = np.linspace(min_ax, max_ax, 100)
+            ygrid = np.linspace(min_ax, max_ax, 100)
+        else:
+            min_xrange = np.min(self.Xdata[:,0]) - grid_offset
+            max_xrange = np.max(self.Xdata[:,0]) + grid_offset
+            min_yrange = np.min(self.Xdata[:,1]) - grid_offset
+            max_yrange = np.max(self.Xdata[:,1]) + grid_offset
+
+            # Create a linearly spaced xgrid and ygrid
+            # using the min and max values from xdata and ydata
+            xgrid = np.linspace(min_xrange, max_xrange, 100)
+            ygrid = np.linspace(min_yrange, max_yrange, 100)
 
         # Create 2D meshgrid
         xx, yy = np.meshgrid(
@@ -384,6 +456,26 @@ class ModelRunner:
 
         return (xx, yy, meshgrid)
 
+    def _split_list(
+        self,
+        cycle_list,
+        chunk_size=5):
+
+        all_sublists_list = []
+
+        if len(cycle_list) <= chunk_size:
+            list_to_string = str(cycle_list)
+
+        else:
+            for i in range(0, len(cycle_list), chunk_size):
+                sublist = cycle_list[i:i+chunk_size]
+                all_sublists_list.append(sublist)
+
+            list_to_string = "\n".join(
+                str(sublist) for sublist in all_sublists_list)
+
+        return list_to_string
+
     def predict_anomaly_score_map(
         self,
         selected_model: PyODModelType,
@@ -391,7 +483,9 @@ class ModelRunner:
         xoutliers: pd.Series,
         youtliers: pd.Series,
         pred_outliers_index: np.ndarray,
-        threshold: float= 0.7):
+        threshold: float= 0.7,
+        square_grid=True,
+        grid_offset=1):
         """
         Plot a 2D anomaly score map with decision boundaries.
 
@@ -415,6 +509,10 @@ class ModelRunner:
                 anomalous samples.
             threshold (np.float64, optional): Probability threshold for the
                 anomaly decision boundary. Defaults to 0.7.
+            square_grid (bool, optional): Use shared bounds for both axes to
+                render a square mesh. Defaults to True.
+            grid_offset (Union[int, float], optional): Margin added to axis
+                limits when constructing the mesh grid. Defaults to 1.
 
         Returns:
             matplotlib.axes.Axes: Axes object containing the anomaly score
@@ -428,7 +526,9 @@ class ModelRunner:
                 xoutliers=df_outliers_pred["log_max_diff_dQ"],
                 youtliers=df_outliers_pred["log_max_diff_dV"],
                 pred_outliers_index=pred_outlier_indices,
-                threshold=param_dict["threshold"]
+                threshold=param_dict["threshold"],
+                square_grid=True,
+                grid_offset=1
             )
 
         .. note::
@@ -441,7 +541,9 @@ class ModelRunner:
                 * ``pyod.models.pca.PCA``
                 * ``pyod.models.auto_encoder.Autoencoder``
         """
-        xx, yy, meshgrid = self.create_2d_mesh_grid()
+        xx, yy, meshgrid = self.create_2d_mesh_grid(
+            square_grid,
+            grid_offset)
 
         selected_colormap = cm.RdBu_r
 
@@ -547,10 +649,12 @@ class ModelRunner:
                 facecolor='white',
                 alpha=0.8)
 
+            label_pred_outliers_index = self._split_list(pred_outliers_index)
+
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
                 r"\textbf{Predicted anomalous cycles:}",
-                f"{str(pred_outliers_index)}"))
+                f"{label_pred_outliers_index}"))
 
             # first text value corresponds to the left right
             # alignment starting from left
@@ -565,35 +669,6 @@ class ModelRunner:
                 ha="center", va='top',
                 bbox=props)
 
-            # ----------------------------------------------------------------
-
-            ax.set_xlabel(
-                r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-                fontsize=12)
-            ax.set_ylabel(
-                r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-                fontsize=12)
-
             ax.set_title(model_name, fontsize=16)
-
-            # convert model name to snake case
-            # standardize all filename of the exported figures
-            filename = model_name.replace(" ", "_").lower()
-
-            output_fig_filename = (
-                filename + "_"
-                + self._selected_cell_label
-                + ".png")
-
-            fig_output_path = (
-                self._selected_cell_artifacts.joinpath(output_fig_filename))
-
-            plt.savefig(
-                fig_output_path,
-                dpi=200,
-                bbox_inches="tight")
-
-            if self._show_fig_status:
-                plt.show()
 
         return ax
