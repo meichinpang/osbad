@@ -1552,11 +1552,6 @@ def export_current_hyperparam(
         export_csv_filepath,
         index=False)
 
-            # Export metrics to CSV with updated hyperparameters
-            df_updated_hyperparam.to_csv(
-            export_csv_filepath,
-            index=False)
-
     return df_updated_hyperparam
 
 def export_current_model_metrics(
