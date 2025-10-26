@@ -1,7 +1,7 @@
 [project]
 name = "osbad"
 dynamic = ["version"]
-description = "OSBAD (Open-source Benchmarking Anomaly Detection)"
+description = "OSBAD (Open-source Benchmark of Anomaly Detection)"
 readme = "README.md"
 authors = [
     { name = "Mei-Chin Pang", email = "mei-chin.pang@basf.com" }
@@ -35,6 +35,11 @@ keywords = [
 [project.urls]
 Documentation = "https://osbad.readthedocs.io/en/latest/"
 Repository = "https://github.com/meichinpang/osbad/tree/master"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
 
 # Use dynamic versioning with git tag
 [build-system]
