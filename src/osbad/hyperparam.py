@@ -35,6 +35,9 @@ Key features:
       scores.
     - ``plot_pareto_front``: Plot the Pareto front (recall vs. precision),
       annotate perfect-score percentages, and save to the artifacts folder.
+    - ``plot_proxy_pareto_front``: Plot the Pareto front for proxy metrics
+      (loss score vs. inlier score), annotates best compromised solution, 
+      and save to the artifacts folder.
     - ``export_current_hyperparam``: Append best hyperparameters for a cell
       to a CSV (skips if already present) and return the updated DataFrame.
     - ``export_current_model_metrics``: Append evaluation metrics for a
@@ -65,6 +68,7 @@ import fireducks.pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage import uniform_filter1d
 import optuna
 from matplotlib import rcParams
 import pyod
@@ -1286,6 +1290,127 @@ def plot_pareto_front(
             alpha=0.2))
 
     axplot.set_xlim([0,1.4])
+
+    axplot.patch.set_facecolor("white")
+    axplot.spines["bottom"].set_color("black")
+    axplot.spines["top"].set_color("black")
+    axplot.spines["left"].set_color("black")
+    axplot.spines["right"].set_color("black")
+
+    axplot.grid(
+        color="grey",
+        linestyle="-",
+        linewidth=0.25,
+        alpha=0.7)
+
+    # convert the fig title to snake_case for filepath standardization
+    output_fig_filename = (
+        fig_title.casefold().replace(" ","_")
+        + "_" + selected_cell_label
+        + ".png")
+
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
+
+    fig_output_path = (
+        selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
+
+
+def plot_proxy_pareto_front(
+    model_study: optuna.study.study.Study,
+    selected_cell_label: str,
+    fig_title: str) -> None:
+
+    """
+    Plot and save the Pareto front of proxy evaluation metrics 
+    i.e. loss scores vs. inliers count scores.
+
+    This function generates a Pareto front plot from an Optuna study
+    that optimizes for both regression loss and predicted inlier count. 
+    The plot includes an annotation showing the best compromised solution
+    or trade-off solution obtained at the knee or inflection point of 
+    the curve out of pareto-optimal trials.
+
+    Args:
+        model_study (optuna.study.study.Study): Optuna study object
+            containing trials with recall and precision scores as
+            objectives.
+        selected_cell_label (str): Identifier for the evaluated cell,
+            used to generate the output file path.
+        fig_title (str): Title of the plot and basis for the output file
+            name.
+        output_log_status (bool, optional): If True, enables logging of
+            intermediate evaluation steps. Defaults to False.
+
+    Returns:
+        None: The function saves the Pareto front plot as a PNG file in
+        the artifacts directory associated with the selected cell.
+
+    Example:
+        .. code-block::
+
+            hp.plot_proxy_pareto_front(
+                if_study,
+                selected_cell_label,
+                fig_title="Isolation Forest Pareto Front")
+    """
+    sorted_best_trails = sorted(model_study.best_trials, 
+                                key=lambda t: t.values[0], 
+                                reverse=True)
+    
+    loss_scores = [trial.values[0] for trial in sorted_best_trails]
+    inlier_scores = [trial.values[1] for trial in sorted_best_trails]
+
+    kappa = curvature(loss_scores, inlier_scores, window_size=5)
+
+    inflection_index = np.argmax(np.abs(kappa)) - 1
+
+    loss_infl = loss_scores[inflection_index]
+    inlier_infl = inlier_scores[inflection_index]
+
+    axplot = optuna.visualization.matplotlib.plot_pareto_front(
+        model_study,
+        target_names=[
+            "pred_mse_score",
+            "pred_inlier_score"])
+    
+    axplot.scatter(loss_infl, inlier_infl, 
+                marker='X', 
+                color='green',
+                label='Best Compromise Solution')
+    
+    # Add an arrow and text annotation
+    axplot.annotate(text="Knee Point",
+                xy=(loss_infl, inlier_infl), 
+                xytext=(loss_infl+0.15, inlier_infl-0.15),
+                fontsize=12,
+                arrowprops=dict(facecolor='black', shrink=0.05))
+
+    #axplot.axis("equal")
+    axplot.set_xlim([0,1.05])
+
+    axplot.set_xlabel(
+        "Regression loss score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_ylabel(
+        "Inlier count score",
+        color="black",
+        fontsize=14)
+
+    axplot.set_title(
+        fig_title,
+        fontsize=16)
+
+    axplot.legend(
+        loc='right',
+        fontsize=10)
 
     axplot.patch.set_facecolor("white")
     axplot.spines["bottom"].set_color("black")
