@@ -68,6 +68,7 @@ import numpy as np
 import optuna
 from matplotlib import rcParams
 import pyod
+import torch
 from pyod.models.auto_encoder import AutoEncoder
 from pyod.models.gmm import GMM
 from pyod.models.iforest import IForest
@@ -133,6 +134,12 @@ def _customize_logger(
 
 # Shared seed
 RANDOM_STATE = 42
+
+# Device for AutoEncoder model
+AE_DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available()
+    else "cpu")
+
 
 # Config plumbing ------------------------------------------------------------
 
@@ -499,17 +506,22 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
             "threshold": _suggest_float(
                 trial, _AUTOENCODER_HP_CONFIG, "threshold"),
         },
+        # hidden_neuron_list = The number of neurons per hidden layers.
+        # So the network has the structure as
+        # [feature_size, 64, 32, 32, 64, feature_size]
         model_param=lambda param: AutoEncoder(
             batch_size=param["batch_size"],
             epoch_num=param["epoch_num"],
             lr=param["learning_rate"],
             dropout_rate=param["dropout_rate"],
-            hidden_neuron_list=[25, 2, 2, 25],
+            hidden_neuron_list=[2, 64, 32, 32, 64, 2],
             optimizer_name="adam",
+            device=AE_DEVICE,
             random_state=RANDOM_STATE
         ),
         baseline_model_param=lambda: AutoEncoder(
-            hidden_neuron_list=[25, 2, 2, 25],
+            hidden_neuron_list=[2, 64, 32, 32, 64, 2],
+            device=AE_DEVICE,
             optimizer_name="adam",
             random_state=RANDOM_STATE
         ),
