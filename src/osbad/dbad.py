@@ -24,7 +24,7 @@ Example Workflow:
     1. Compute distances using ``calculate_distance``.
     2. Detect outliers with ``predict_outliers``.
     3. Visualize results using ``plot_hist_distance`` and
-      ``plot_distance_score_map``.
+       ``plot_distance_score_map``.
 
 Note:
     - Ensure that input data is properly scaled and shaped before using the
@@ -174,9 +174,10 @@ def predict_outliers(distance: np.ndarray,
               based on MAD.
 
     .. note::
-    - This function relies on ``_compute_mad_outliers`` from `stats` module,
-      which calculates the MAD factor if not provided and applies the threshold
-      to identify anomalous points.
+
+        This function relies on ``_compute_mad_outliers`` from `stats` module,
+        which calculates the MAD factor if not provided and applies the
+        threshold to identify anomalous points.
     """
 
 
