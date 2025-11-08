@@ -14,8 +14,45 @@ Each cell has an average of 845 cycles, which is more than sufficient for
 benchmarking anomaly detection algorithms in the present study.
 In addition, we have also enriched the raw dataset by manually
 labelling normal (denoted as 0) vs anomalous cycle (denoted as 1)
-for each cycle in these 46 cells. The outliers that we have labelled
-manually were provided in the ``cycle_outlier_inventory.csv``.
+for each cycle across all 46 cells.
+
+.. image:: docs_figure/outliers_multiple_cells.png
+   :height: 650px
+   :width: 950 px
+   :alt: cell cycling dataset with anomalies from severson dataset
+   :align: center
+
+Battery Chemistry Description
+==============================
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Property
+     - MIT/Stanford
+   * - Positive electrode
+     - LFP (LiFePO₄)
+   * - Electrolyte
+     - Liquid electrolyte
+   * - Negative electrode
+     - Graphite
+   * - Number of cells
+     - 46 cells
+   * - Nominal capacity
+     - 1.1 Ah
+   * - Discharging C-rates
+     - 4 C (1C ≈ 1.1 A)
+   * - ΔSOC in %
+     - 100%
+   * - Theoretical voltage limits
+     - 2.0 V - 3.6 V
+   * - Operating temperature
+     - 30 °C
+   * - Anomalous data type
+     - Discharge-capacity profile
+   * - Data source
+     - Severson et al.
 
 Train and Test Dataset
 ==========================
@@ -41,98 +78,3 @@ Standard Schema
 * ``outlier``: Boolean flag (0/1) marking whether the data point is an
   outlier;
 
-Minimal Example
-=================
-
-.. code-block:: python
-
-   # STEP-1: LOAD LIBRARIES
-   # Standard library
-   import os
-   from pathlib import Path
-
-   # Third-party libraries
-   import duckdb
-
-   # Custom osbad library for anomaly detection
-   import osbad.config as bconf
-   from osbad.database import BenchDB
-
-   # -------------------------------------------------------------------------
-   # STEP-2: LOAD CELL INVENTORY FOR CELL_INDEX
-
-   # Path to the DuckDB instance:
-   # "train_dataset_severson.db"
-   db_filepath = (
-      Path.cwd()
-      .parent
-      .joinpath("database","train_dataset_severson.db"))
-
-   # Create a DuckDB connection
-   con = duckdb.connect(
-      db_filepath,
-      read_only=True)
-
-   # Load all training dataset from duckdb
-   df_duckdb = con.execute(
-      "SELECT * FROM df_train_dataset_sv").fetchdf()
-
-   unique_cell_index_train = df_duckdb["cell_index"].unique()
-   print(unique_cell_index_train)
-
-   # Get the cell-ID from unique_cell_index_train
-   selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
-
-   # Create a subfolder to store fig output
-   # corresponding to each cell-index
-   selected_cell_artifacts_dir = bconf.artifacts_output_dir(
-      selected_cell_label)
-
-   # -------------------------------------------------------------------------
-   # STEP-3: LOAD BENCHMARKING DATASET
-
-   # Import the BenchDB class
-   # Load only the dataset based on the selected cell
-   benchdb = BenchDB(
-      db_filepath,
-      selected_cell_label)
-
-   # load the benchmarking dataset
-   df_selected_cell = benchdb.load_benchmark_dataset(
-      dataset_type="train")
-
-   if df_selected_cell is not None:
-
-      filter_col = [
-         "cell_index",
-         "cycle_index",
-         "discharge_capacity",
-         "voltage"]
-
-      # Drop true labels from the benchmarking dataset
-      # and filter for selected columns only
-      df_selected_cell_without_labels = benchdb.drop_labels(
-         df_selected_cell,
-         filter_col)
-
-      # Extract true outliers cycle index from benchmarking dataset
-      true_outlier_cycle_index = benchdb.get_true_outlier_cycle_index(
-         df_selected_cell)
-      print(f"True outlier cycle index:")
-      print(true_outlier_cycle_index)
-
-   # -------------------------------------------------------------------------
-   # STEP-4: PLOT CYCLING DATASET
-
-   # Plot cell data with true anomalies
-   # If the true outlier cycle index is not known,
-   # cycling data will be plotted without labels
-   benchdb.plot_cycle_data(
-      df_selected_cell_without_labels,
-      true_outlier_cycle_index)
-
-.. image:: docs_figure/cell_cycle_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 450px
-   :width: 650 px
-   :alt: cell cycling dataset from ``2017-05-12_5_4C-70per_3C_CH17``
-   :align: center
