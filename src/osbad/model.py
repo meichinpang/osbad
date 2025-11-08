@@ -253,78 +253,12 @@ class ModelRunner:
         recall = recall_score(y_true, y_pred, zero_division=0)
         precision = precision_score(y_true, y_pred, zero_division=0)
         return recall, precision
-    
-    def proxy_evaluate_indices(
-        self,
-        pred_indices: np.ndarray,
-        cycle_idx: np.ndarray,
-        features: np.ndarray) -> Tuple[float, float]:
-
-        """
-        Evaluates the quality of predicted outlier indices using a proxy 
-        regression-based approach and calculates proxy evaluation metrics
-        like, regression loss score and inlier count score by fitting a 
-        linear regression model on the predicted inlier data.
-
-        Args:
-            pred_indices (np.ndarray):
-                Indices of predicted outliers from the model.
-            cycle_idx (np.ndarray): 
-                All predictor cycle indices or cycle numbers for proxy 
-                regression model obtained from model input Xdata if 
-                'cycle_index' is one of the features selected to be 
-                extracted from ``self.df_input_features``.
-            features: (np.ndarray):
-                All target features like voltage feature or capacity
-                discharge feature obtained from model input Xdata, apart 
-                from the predictor 'cycle_index' feature.
-
-        Returns:
-            Tuple[float, float]:
-                - loss_score: Normalized MSE regression loss for predicted 
-                inliers.
-                A lower value (closer to 0) indicates that the 
-                outlier detection model performed well in excluding true 
-                positives (points that were indeed outliers. A value closer 
-                to 1 implies model was unable to remove true positives.
-                            
-                - inlier_score: Normalized inlier count score.
-                It represents the proportion of data points retained after 
-                excluding predicted outliers. A higher value (closer to 1) 
-                means fewer points were removed, while a lower value indicates 
-                more aggressive outlier removal.
-        """
-
-        features_in = np.delete(features, pred_indices, axis=0)
-        cycle_idx_in = np.delete(cycle_idx, pred_indices, axis=0)
-
-        #fit linear regression
-        rgr = LinearRegression()
-        rgr.fit(cycle_idx_in, features_in)
-
-        # predict 
-        features_pred = rgr.predict(cycle_idx)
-        features_in_pred = rgr.predict(cycle_idx_in)
-
-        # calculate MSE loss
-        max_loss = mean_squared_error(features, features_pred)
-        in_loss = mean_squared_error(features_in, features_in_pred)
-
-        # normalized regression loss score
-        loss_score = in_loss/max_loss
-        
-        # normalized inlier count score
-        in_count = len(features_in)
-        inlier_score = in_count/len(features)
-
-        return loss_score, inlier_score
 
     def proxy_evaluate_indices(
         self,
         pred_indices: np.ndarray,
         cycle_idx: np.ndarray,
         features: np.ndarray) -> Tuple[float, float]:
-
         """
         Evaluates the quality of predicted outlier indices using a proxy
         regression-based approach and calculates proxy evaluation metrics
@@ -345,20 +279,24 @@ class ModelRunner:
                 from the predictor 'cycle_index' feature.
 
         Returns:
-            Tuple[float, float]:
-                - loss_score: Normalized MSE regression loss for predicted
-                  inliers. A lower value (closer to 0) indicates that the
-                  outlier detection model performed well in excluding true
-                  positives (points that were indeed outliers. A value closer
-                  to 1 implies model was unable to remove true positives.
+            Tuple[float, float]: A tuple containing loss_score and
+            inlier_score.
 
-                - inlier_score: Normalized inlier count score. It represents
-                  the proportion of data points retained after
-                  excluding predicted outliers. A higher value (closer to 1)
-                  means fewer points were removed, while a lower value
-                  indicates more aggressive outlier removal.
+
+        .. note::
+
+            - loss_score: Normalized MSE regression loss for predicted
+              inliers. A lower value (closer to 0) indicates that the
+              outlier detection model performed well in excluding true
+              positives (points that were indeed outliers. A value closer
+              to 1 implies model was unable to remove true positives.
+
+            - inlier_score: Normalized inlier count score. It represents
+              the proportion of data points retained after excluding
+              predicted outliers. A higher value (closer to 1) means
+              fewer points were removed, while a lower value indicates
+              more aggressive outlier removal.
         """
-
         features_in = np.delete(features, pred_indices, axis=0)
         cycle_idx_in = np.delete(cycle_idx, pred_indices, axis=0)
 
@@ -403,8 +341,8 @@ class ModelRunner:
 
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: ``xx`` and ``yy`` mesh
-                arrays plus a flattened ``meshgrid`` suitable for contour
-                evaluation.
+            arrays plus a flattened ``meshgrid`` suitable for contour
+            evaluation.
         """
         if square_grid:
             # Define the boundaries of the grid
