@@ -32,7 +32,7 @@ needs to be updated:
 
 The following example of detecting capacity degradation anomalies in
 solid-state lithium-ion batteries is also provided as a notebook in
-``quick_start_tutorials/03_load_tohoku_dataset.ipynb``.
+``quick_start_tutorials/03_iforest_tohoku_dataset.ipynb``.
 
 Step-1: Load libraries
 ---------------------------
