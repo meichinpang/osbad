@@ -17,16 +17,22 @@ labelling normal (denoted as 0) vs anomalous cycle (denoted as 1)
 for each cycle in these 46 cells. The outliers that we have labelled
 manually were provided in the ``cycle_outlier_inventory.csv``.
 
-Train and Test Dataset
+Dataset Information 
 ==========================
 
-The dataset from 46 cells is split into training dataset
-(``train_dataset_severson.db``) and test dataset
-(``test_dataset_severson.db``). The features used for anomaly
-detection were further extracted and saved in another database,
-so that the pipeline can be automated for all cells in a leaner manner.
-The same protocols used for creating the training features are applied to
-create the test features.
+* **Total number of cells**: 46
+* **Number of cells for Training** (``train_dataset_severson.db``): 23
+* **Number of cells for Testing** (``test_dataset_severson.db``): 23
+* **Average number of cycles for each cell**: 845
+* **File format**: SQLite database file (.db)
+* **File Size**: Training set - 195 Mb, Test set-169 Mb 
+* **Missing values**:
+* **Target variable**:
+
+The features used for anomaly detection were further extracted and saved in 
+another database, so that the pipeline can be automated for all cells in a 
+leaner manner. The same protocols used for creating the training features are 
+applied to create the test features.
 
 Standard Schema
 ==========================
@@ -40,6 +46,29 @@ Standard Schema
 * ``temperature``: Recorded temperature during the experiment in [°C];
 * ``outlier``: Boolean flag (0/1) marking whether the data point is an
   outlier;
+
+Features Description 
+==========================
+
++---------------------+------------+----------+----------+
+| Feature             | Type       | Description | Range/Values | Utility for Anomaly Detection|
++=====================+============+==========+==========+
+|  test_time          |            | column 3 | column 4 |
++---------------------+------------+----------+----------+
+| cycle_index         | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| voltage	          | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| discharge_capacity	 | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| current             | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| internal_resistance | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| temperature         | ...        | ...      |          |
++---------------------+------------+----------+----------+
+| outlier             | ...        | ...      |          |
++---------------------+------------+----------+----------+
 
 Minimal Example
 =================
