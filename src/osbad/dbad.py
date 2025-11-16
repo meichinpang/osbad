@@ -104,11 +104,11 @@ def calculate_distance(
 
     Returns:
         np.ndarray: A 1D array of distances between each feature vector and the
-        centroid.
+        centroid.   
 
     Raises:
-        ValueError: If required parameters (``p`` for Minkowski or 
-            ``inv_cov_matrix`` for Mahalanobis) are not provided.
+        ValueError: If required parameters (``p`` for Minkowski or
+        ``inv_cov_matrix`` for Mahalanobis) are not provided.
     """
     metric = distance_metrics[metric_name]
     if metric_name == "minkowski":
@@ -171,10 +171,11 @@ def predict_outliers(distance: np.ndarray,
             - mad_max_limit (float): The upper limit used for outlier detection
               based on MAD.
 
-    Note:
+    .. note::
+
         This function relies on ``_compute_mad_outliers`` from `stats` module,
-        which calculates the MAD factor if not provided and applies the threshold
-        to identify anomalous points.
+        which calculates the MAD factor if not provided and applies the
+        threshold to identify anomalous points.
     """
 
 
@@ -326,7 +327,7 @@ def plot_distance_score_map(
             annotated on the plot.
 
         norm (bool): If normalized distances are used for contour plot set
-            to `True`. Else `False`.
+        to `True`. Else `False`.
 
     Returns:
         mpl.axes._axes.Axes: The matplotlib Axes object containing the contour

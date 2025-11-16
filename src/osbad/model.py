@@ -259,7 +259,6 @@ class ModelRunner:
         pred_indices: np.ndarray,
         cycle_idx: np.ndarray,
         features: np.ndarray) -> Tuple[float, float]:
-
         """
         Evaluates the quality of predicted outlier indices using a proxy
         regression-based approach and calculates proxy evaluation metrics
@@ -280,20 +279,24 @@ class ModelRunner:
                 from the predictor 'cycle_index' feature.
 
         Returns:
-            Tuple[float, float]:
-                - loss_score: Normalized MSE regression loss for predicted
-                  inliers. A lower value (closer to 0) indicates that the
-                  outlier detection model performed well in excluding true
-                  positives (points that were indeed outliers. A value closer
-                  to 1 implies model was unable to remove true positives.
+            Tuple[float, float]: A tuple containing loss_score and
+            inlier_score.
 
-                - inlier_score: Normalized inlier count score. It represents
-                  the proportion of data points retained after
-                  excluding predicted outliers. A higher value (closer to 1)
-                  means fewer points were removed, while a lower value
-                  indicates more aggressive outlier removal.
+
+        .. note::
+
+            - loss_score: Normalized MSE regression loss for predicted
+              inliers. A lower value (closer to 0) indicates that the
+              outlier detection model performed well in excluding true
+              positives (points that were indeed outliers. A value closer
+              to 1 implies model was unable to remove true positives.
+
+            - inlier_score: Normalized inlier count score. It represents
+              the proportion of data points retained after excluding
+              predicted outliers. A higher value (closer to 1) means
+              fewer points were removed, while a lower value indicates
+              more aggressive outlier removal.
         """
-
         features_in = np.delete(features, pred_indices, axis=0)
         cycle_idx_in = np.delete(cycle_idx, pred_indices, axis=0)
 
@@ -338,8 +341,8 @@ class ModelRunner:
 
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: ``xx`` and ``yy`` mesh
-                arrays plus a flattened ``meshgrid`` suitable for contour
-                evaluation.
+            arrays plus a flattened ``meshgrid`` suitable for contour
+            evaluation.
         """
         if square_grid:
             # Define the boundaries of the grid
