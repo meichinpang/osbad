@@ -74,11 +74,10 @@ if df_selected_cell is not None:
    print(f"True outlier cycle index:")
    print(true_outlier_cycle_index)
 
-# # Save sample rows as CSV for .. csv-table::
+# Save sample rows as HTML
 sample_html_path = os.path.join(OUT_TABLE_SAMPLE, "severson_sample.html")
-# sample_html_path.parent.mkdir(parents=True, exist_ok=True)
 html_table = df_selected_cell.head(SAMPLE_ROWS).to_html(
-    classes=["docutils", "dataframe"],  # reuse Sphinx styling
+    classes=["docutils", "dataframe"],
     index=False,
     border=0
 )
@@ -88,17 +87,22 @@ with open(sample_html_path, "w", encoding="utf-8") as f:
 
 print("Sample dataset saved in HTML format")
 
-
 # Histograms for each numeric column
 selected_cols = ["voltage", "discharge_capacity", "current", 
                  "internal_resistance", "temperature"] 
 n = len(selected_cols)
 
-fig, axes = plt.subplots(1, n, figsize=(5*n, 4), dpi=120, constrained_layout=True)
+fig, axes = plt.subplots(1, n, 
+                         figsize=(5*n, 4), 
+                         dpi=600, 
+                         constrained_layout=True)
 
 for ax, col in zip(axes, selected_cols):
-    ax.hist(df_selected_cell[col].dropna(), bins=30, edgecolor="black", alpha=0.7)
-    ax.set_title(f"{col}")
+   ax.hist(df_selected_cell[col].dropna(), 
+            bins=30,
+            edgecolor="black", 
+            alpha=0.7)
+   ax.set_title(f"{col}")
 
 plt.savefig(OUT_FIGS.joinpath("hist_features.png"))
 plt.close(fig)
