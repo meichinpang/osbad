@@ -6,8 +6,8 @@ Overview
 In this open-source anomaly detection benchmarking project, we only work with
 publicly available published dataset:
 
-* :doc:`severson`
-* :doc:`tohoku`
+* :doc:`severson_dataset`
+* :doc:`tohoku_dataset`
 
 Data management toolstack
 ============================
@@ -43,5 +43,5 @@ Example Dataset
    :maxdepth: 2
    :caption: List of Dataset
 
-   severson
-   tohoku
+   severson_dataset
+   tohoku_dataset
