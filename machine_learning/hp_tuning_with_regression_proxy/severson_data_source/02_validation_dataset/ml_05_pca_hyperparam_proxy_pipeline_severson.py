@@ -204,8 +204,7 @@ if __name__ == "__main__":
         }
 
         trade_off_trials_list = hp.trade_off_trials_detection(
-            pca_study, 
-            window_size=7)
+            study=pca_study)
 
         df_pca_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,

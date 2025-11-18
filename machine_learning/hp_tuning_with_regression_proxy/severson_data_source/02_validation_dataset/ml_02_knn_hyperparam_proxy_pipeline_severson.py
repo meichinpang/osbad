@@ -195,7 +195,7 @@ if __name__ == "__main__":
                 selected_feature_cols=selected_feature_cols,
                 #df_benchmark_dataset=df_selected_cell,
                 selected_cell_label=selected_cell_label),
-            n_trials=200)
+                n_trials=100)
 
         # -------------------------------------------------------------------
         # Aggregate best trials
@@ -208,8 +208,7 @@ if __name__ == "__main__":
         }
 
         trade_off_trials_list = hp.trade_off_trials_detection(
-            knn_study, 
-            window_size=7)
+            study=knn_study)
 
         df_knn_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,

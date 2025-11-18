@@ -208,8 +208,7 @@ if __name__ == "__main__":
         }
 
         trade_off_trials_list = hp.trade_off_trials_detection(
-            lof_study, 
-            window_size=7)
+            study=lof_study)
 
         df_lof_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,

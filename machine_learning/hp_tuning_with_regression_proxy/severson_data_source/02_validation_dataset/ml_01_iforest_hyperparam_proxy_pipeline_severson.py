@@ -56,9 +56,6 @@ df_duckdb = con.execute(
 unique_cell_index_train = df_duckdb["cell_index"].unique()
 print(unique_cell_index_train)
 
-# unique_cell_index_train = ['2017-05-12_4C-80per_4C_CH6']
-# print(unique_cell_index_train)
-
 training_cell_count = len(unique_cell_index_train)
 print(f"Training cell count: {training_cell_count}")
 
@@ -212,8 +209,7 @@ if __name__ == "__main__":
         }
 
         trade_off_trials_list = hp.trade_off_trials_detection(
-            if_study, 
-            window_size=5)
+            study=if_study)
 
         df_iforest_hyperparam = hp.aggregate_best_trials(
             trade_off_trials_list,
