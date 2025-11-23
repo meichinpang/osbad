@@ -59,3 +59,4 @@ Example
    severson_iforest_example
    tohoku_iforest_example
    severson_dbad_euclidean_example
+   severson_knn_proxy_regr_example
