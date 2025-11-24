@@ -1,0 +1,593 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="osbad.hyperparam" href="../hyperparam/index.html" /><link rel="prev" title="osbad.database" href="../database/index.html" />
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
+        <title>osbad.dbad - osbad 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=25af2a20" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #2b2b2b;
+  --color-code-foreground: #f8f8f2;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">osbad 1.2.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <span class="sidebar-brand-text">osbad 1.2.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../dataset.html">Datasets Guide</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Datasets Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../severson.html">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../tohoku.html">Tohoku Dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../models.html">Models Guide</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Models Guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../iforest_example.html">Example: Benchmarking Isolation Forest with Probabilistic Outliers Prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html">osbad</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of osbad</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../config/index.html">osbad.config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../database/index.html">osbad.database</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">osbad.dbad</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../hyperparam/index.html">osbad.hyperparam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../model/index.html">osbad.model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../modval/index.html">osbad.modval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scaler/index.html">osbad.scaler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stats/index.html">osbad.stats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../viz/index.html">osbad.viz</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../_sources/autoapi/osbad/dbad/index.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="module-osbad.dbad">
+<span id="osbad-dbad"></span><h1>osbad.dbad<a class="headerlink" href="#module-osbad.dbad" title="Link to this heading">¶</a></h1>
+<p>This module provides tools for Distance-Based Anomaly Detection (DBAD)
+in multivariate datasets. It includes utilities for computing distances
+using various metrics, identifying outliers using robust statistical methods,
+and visualizing the results through histograms and contour maps.</p>
+<dl class="simple">
+<dt>Key Features:</dt><dd><ul class="simple">
+<li><p><strong>Distance Computation</strong>: Supports Euclidean, Manhattan, Minkowski, and
+Mahalanobis metrics for calculating distances between data points and a
+centroid. Also supports calculation normalized distances.</p></li>
+<li><p><strong>Outlier Detection</strong>: Implements Median Absolute Deviation (MAD)-based
+outlier detection for non-gaussian distributions of distances.</p></li>
+<li><dl class="simple">
+<dt><strong>Visualization</strong>:</dt><dd><ul>
+<li><p>Histogram of distances with threshold indication.</p></li>
+<li><p>2D contour map showing distance scores, decision boundaries, and
+annotated outliers.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Intended Use:</dt><dd><p>This module is designed for exploratory data analysis, benchmarking
+anomaly detection in battery cycle data, and other applications where data
+is unimodal and identifying deviations from a central tendency is critical.</p>
+</dd>
+<dt>Example Workflow:</dt><dd><ol class="arabic simple">
+<li><p>Compute distances using <code class="docutils literal notranslate"><span class="pre">calculate_distance</span></code>.</p></li>
+<li><p>Detect outliers with <code class="docutils literal notranslate"><span class="pre">predict_outliers</span></code>.</p></li>
+<li><p>Visualize results using <code class="docutils literal notranslate"><span class="pre">plot_hist_distance</span></code> and
+<code class="docutils literal notranslate"><span class="pre">plot_distance_score_map</span></code>.</p></li>
+</ol>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Ensure that input data is properly scaled and shaped before using the
+functions.</p></li>
+<li><p>Visualization for 2D contour map showing distance scores, assumes 2D
+feature space for plotting purposes.</p></li>
+</ul>
+</div>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="osbad.dbad.distance_metrics">
+<span class="sig-prename descclassname"><span class="pre">osbad.dbad.</span></span><span class="sig-name descname"><span class="pre">distance_metrics</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">Ellipsis</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#osbad.dbad.distance_metrics" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="osbad.dbad.calculate_distance">
+<span class="sig-prename descclassname"><span class="pre">osbad.dbad.</span></span><span class="sig-name descname"><span class="pre">calculate_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'euclidean'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'manhattan'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'minkowski'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'mahalanobis'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inv_cov_matrix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#osbad.dbad.calculate_distance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculates the distance between each point in a feature set and a given
+centroid using the specified distance metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metric_name</strong> (<em>Literal</em>) – The name of the distance metric to use.</p></li>
+<li><p><strong>include</strong> (<em>Options</em>) – <ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">euclidean</span></code>: Euclidean distance</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manhattan</span></code>: Manhattan (L1) distance</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minkowski</span></code>: Minkowski distance (requires <code class="docutils literal notranslate"><span class="pre">p</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mahalanobis</span></code>: Mahalanobis distance
+(requires <code class="docutils literal notranslate"><span class="pre">inv_cov_matrix</span></code>)</p></li>
+</ul>
+</p></li>
+<li><p><strong>features</strong> (<em>np.ndarray</em>) – A 2D array of shape (n_samples, n_features)
+representing the dataset.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – A 1D array of shape (n_features,) representing
+the centroid point of the data distribution.</p></li>
+<li><p><strong>p</strong> (<em>int</em><em>, </em><em>optional</em>) – The order parameter for Minkowski distance. Required
+if <cite>metric_name</cite> is <code class="docutils literal notranslate"><span class="pre">minkowski</span></code>.</p></li>
+<li><p><strong>inv_cov_matrix</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – The inverse of the covariance
+matrix. Required if <cite>metric_name</cite> is <code class="docutils literal notranslate"><span class="pre">mahalanobis</span></code>.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em><em>, </em><em>optional</em>) – If provided, distances are normalized
+by dividing by the value of <code class="docutils literal notranslate"><span class="pre">max_distance</span></code>. Else, the maximum
+value of calculated distance is used.</p></li>
+<li><p><strong>norm</strong> (<em>bool</em>) – If True, distance is normalized.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A 1D array of distances between each feature vector and the
+centroid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If required parameters (<code class="docutils literal notranslate"><span class="pre">p</span></code> for Minkowski or
+<code class="docutils literal notranslate"><span class="pre">inv_cov_matrix</span></code> for Mahalanobis) are not provided.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="osbad.dbad.predict_outliers">
+<span class="sig-prename descclassname"><span class="pre">osbad.dbad.</span></span><span class="sig-name descname"><span class="pre">predict_outliers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mad_threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span></span></span><a class="headerlink" href="#osbad.dbad.predict_outliers" title="Link to this definition">¶</a></dt>
+<dd><p>Detects outliers in a dataset using the Median Absolute Deviation (MAD)
+method.</p>
+<p>This function identifies data points whose distance from a reference
+(e.g., centroid) exceeds a threshold based on the MAD, which is a robust
+measure of statistical dispersion. It is particularly effective for
+detecting anomalies in skewed or non-Gaussian distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distance</strong> (<em>np.ndarray</em>) – A 1D array of distance values for each data
+point, computed using <code class="docutils literal notranslate"><span class="pre">calculate_distance</span></code> function based on
+selected distance metric.</p></li>
+<li><p><strong>features</strong> (<em>np.ndarray</em>) – A 2D array of shape (n_samples, n_features)
+representing the original feature vectors corresponding to each
+distance value.</p></li>
+<li><p><strong>mad_threshold</strong> (<em>float</em>) – The threshold multiplier for MAD-based outlier
+detection. Default is 3. A higher value results in fewer points
+being classified as outliers.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>mad_outlier_indices (np.ndarray): Indices of the detected
+outliers.</p></li>
+<li><p>outlier_distance (np.ndarray): Distance values of the outliers.</p></li>
+<li><p>outlier_features (np.ndarray): Feature vectors corresponding to
+the outliers.</p></li>
+<li><p>mad_max_limit (float): The upper limit used for outlier detection
+based on MAD.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[np.ndarray, np.ndarray, np.ndarray, float]</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function relies on <code class="docutils literal notranslate"><span class="pre">_compute_mad_outliers</span></code> from <cite>stats</cite> module,
+which calculates the MAD factor if not provided and applies the threshold
+to identify anomalous points.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="osbad.dbad.plot_hist_distance">
+<span class="sig-prename descclassname"><span class="pre">osbad.dbad.</span></span><span class="sig-name descname"><span class="pre">plot_hist_distance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.axes._axes.Axes</span></span></span><a class="headerlink" href="#osbad.dbad.plot_hist_distance" title="Link to this definition">¶</a></dt>
+<dd><p>Plots a histogram of distances from a centroid and highlights the outlier
+threshold. The histogram displays the distribution of distances and a
+vertical dashed red line marks the outlier threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distance</strong> (<em>np.ndarray</em>) – A 1D array of distance values for each data
+point.</p></li>
+<li><p><strong>outlier_indices</strong> (<em>np.ndarray</em>) – Indices of the data points identified as
+outliers.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em>) – The distance threshold used to classify outliers
+(e.g., based on MAD).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matplotlib Axes object containing the
+histogram plot.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>mpl.axes._axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="osbad.dbad.plot_distance_score_map">
+<span class="sig-prename descclassname"><span class="pre">osbad.dbad.</span></span><span class="sig-name descname"><span class="pre">plot_distance_score_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meshgrid_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xoutliers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">youtliers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centroid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_outlier_indices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">matplotlib.axes._axes.Axes</span></span></span><a class="headerlink" href="#osbad.dbad.plot_distance_score_map" title="Link to this definition">¶</a></dt>
+<dd><p>Plots a 2D contour map of distance scores over a meshgrid with a decision
+boundary and highlights inliers, outliers, and the centroid.</p>
+<p>This function visualizes the distance landscape using a filled contour plot
+across a 2D mesh grid. It creates a contour plot showing anomaly distances,
+a dashed decision boundary at the specified threshold, and highlights the
+predicted anomalous cycles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meshgrid_distance</strong> (<em>np.ndarray</em>) – Flattened array of distance scores
+computed over a meshgrid.</p></li>
+<li><p><strong>xx</strong> (<em>np.ndarray</em>) – Meshgrid array for the x-axis.</p></li>
+<li><p><strong>yy</strong> (<em>np.ndarray</em>) – Meshgrid array for the y-axis.</p></li>
+<li><p><strong>features</strong> (<em>np.ndarray</em>) – 2D array of shape (n_samples, 2) representing
+the feature vectors.</p></li>
+<li><p><strong>xoutliers</strong> (<em>pd.Series</em>) – Series containing x-coordinates of detected
+outliers.</p></li>
+<li><p><strong>youtliers</strong> (<em>pd.Series</em>) – Series containing y-coordinates of detected
+outliers.</p></li>
+<li><p><strong>centroid</strong> (<em>np.ndarray</em>) – 1D array of shape (2,) representing the centroid
+coordinates.</p></li>
+<li><p><strong>threshold</strong> (<em>np.ndarray</em>) – Distance threshold used to identify outliers.</p></li>
+<li><p><strong>pred_outlier_indices</strong> (<em>np.ndarray</em>) – Indices of predicted outliers to be
+annotated on the plot.</p></li>
+<li><p><strong>norm</strong> (<em>bool</em>) – If normalized distances are used for contour plot set
+to <cite>True</cite>. Else <cite>False</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matplotlib Axes object containing the contour
+and scatter plot.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>mpl.axes._axes.Axes</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function assumes the dataset contains exactly two features, which
+are used for 2D plotting.</p>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">meshgrid</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">create_2d_mesh_grid</span><span class="p">()</span>
+
+<span class="n">grid_euclidean_dist</span> <span class="o">=</span> <span class="n">dbad</span><span class="o">.</span><span class="n">calculate_distance</span><span class="p">(</span>
+                            <span class="n">metric_name</span><span class="o">=</span><span class="s2">&quot;euclidean&quot;</span><span class="p">,</span>
+                            <span class="n">features</span><span class="o">=</span><span class="n">meshgrid</span><span class="p">,</span>
+                            <span class="n">centroid</span><span class="o">=</span><span class="n">centroid</span>
+                            <span class="p">)</span>
+
+<span class="n">axplot</span> <span class="o">=</span> <span class="n">dbad</span><span class="o">.</span><span class="n">plot_distance_score_map</span><span class="p">(</span>
+    <span class="n">meshgrid_distance</span> <span class="o">=</span> <span class="n">grid_euclidean_dist</span><span class="p">,</span>
+    <span class="n">xx</span> <span class="o">=</span> <span class="n">xx</span><span class="p">,</span>
+    <span class="n">yy</span> <span class="o">=</span> <span class="n">yy</span><span class="p">,</span>
+    <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+    <span class="n">xoutliers</span><span class="o">=</span> <span class="n">df_outliers</span><span class="p">[</span><span class="s2">&quot;feature1&quot;</span><span class="p">],</span>
+    <span class="n">youtliers</span><span class="o">=</span> <span class="n">df_outliers</span><span class="p">[</span><span class="s2">&quot;feature2&quot;</span><span class="p">],</span>
+    <span class="n">centroid</span><span class="o">=</span><span class="n">centroid</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="o">=</span> <span class="n">euclidean_threshold</span><span class="p">,</span>
+    <span class="n">pred_outlier_indices</span><span class="o">=</span> <span class="n">pred_outlier_indices</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../hyperparam/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">osbad.hyperparam</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../database/index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">osbad.database</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Mei-Chin Pang
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">osbad.dbad</a><ul>
+<li><a class="reference internal" href="#module-contents">Module Contents</a><ul>
+<li><a class="reference internal" href="#osbad.dbad.distance_metrics"><code class="docutils literal notranslate"><span class="pre">distance_metrics</span></code></a></li>
+<li><a class="reference internal" href="#osbad.dbad.calculate_distance"><code class="docutils literal notranslate"><span class="pre">calculate_distance()</span></code></a></li>
+<li><a class="reference internal" href="#osbad.dbad.predict_outliers"><code class="docutils literal notranslate"><span class="pre">predict_outliers()</span></code></a></li>
+<li><a class="reference internal" href="#osbad.dbad.plot_hist_distance"><code class="docutils literal notranslate"><span class="pre">plot_hist_distance()</span></code></a></li>
+<li><a class="reference internal" href="#osbad.dbad.plot_distance_score_map"><code class="docutils literal notranslate"><span class="pre">plot_distance_score_map()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=6efca38a"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
