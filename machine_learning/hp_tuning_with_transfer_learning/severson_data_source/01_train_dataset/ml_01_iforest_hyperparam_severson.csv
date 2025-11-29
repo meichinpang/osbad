@@ -1,0 +1,2 @@
+"ml_model","cell_index","threshold","contamination","n_estimators","max_samples"
+iforest,2017-05-12_5_4C-70per_3C_CH17,0.858332321641111,0.09620246468628335,265,587

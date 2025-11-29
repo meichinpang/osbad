@@ -104,14 +104,12 @@ def calculate_distance(
 
     Returns:
         np.ndarray: A 1D array of distances between each feature vector and the
-        centroid.
+        centroid.   
 
     Raises:
         ValueError: If required parameters (``p`` for Minkowski or
         ``inv_cov_matrix`` for Mahalanobis) are not provided.
     """
-
-
     metric = distance_metrics[metric_name]
     if metric_name == "minkowski":
         distance = [metric(point, centroid, p)
