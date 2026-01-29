@@ -62,11 +62,15 @@ def find_repo_root(marker: str = "pyproject.toml"):
         FileNotFoundError: If the marker file is not found in any parent
             directories up to the filesystem root.
     """
-    current_path = Path(__file__).resolve()
-
-    for parent in current_path.parents:
-        if (parent / marker).exists():
-            return parent
+    current_dir = pathlib.Path(os.getcwd())
+    while True:
+        if (current_dir / marker).exists():
+            return current_dir
+        parent_dir = current_dir.parent
+        if parent_dir == current_dir:
+            # We've reached the root directory
+            break
+        current_dir = parent_dir
     raise FileNotFoundError(
         f"Marker file '{marker}' not found in any parent directories.")
 
