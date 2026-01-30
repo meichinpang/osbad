@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "duckdb==1.3.2",
-    "fireducks>=1.4.0",
     "llvmlite>=0.44.0",
     "matplotlib>=3.10.5",
     "natsort>=8.4.0",
