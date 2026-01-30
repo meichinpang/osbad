@@ -8,7 +8,7 @@ methods in this benchmarking study.
 
     from osbad.scaler import CycleScaling
 """
-import fireducks.pandas as pd
+import pandas as pd
 import numpy as np
 
 

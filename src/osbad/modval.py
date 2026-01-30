@@ -25,7 +25,7 @@ Key features:
 from typing import Union
 
 # Third-party libraries
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np

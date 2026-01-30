@@ -32,7 +32,7 @@ import sys
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 # Third-party libraries
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np

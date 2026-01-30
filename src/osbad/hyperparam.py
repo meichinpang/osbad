@@ -28,7 +28,7 @@ Key features:
     - ``aggregate_best_trials``: Collect parameters from ``study.best_trials``
       and produce a single-row DataFrame of aggregated hyperparameters.
     - ``plot_proxy_pareto_front``: Plot the Pareto front for proxy metrics
-      (loss score vs. inlier score), annotates best compromised solution, 
+      (loss score vs. inlier score), annotates best compromised solution,
       and save to the artifacts folder.
     - ``evaluate_hp_perfect_score_pct``: Compute the percentage of trials
       with perfect recall and precision (value == 1) and log per-trial
@@ -61,7 +61,7 @@ from statistics import mode
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
 # Third-party libraries
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -692,23 +692,23 @@ def trade_off_trials_detection(
         ) -> List[optuna.trial.FrozenTrial]:
     """
     Identifies and returns the list of trials from the best trials in an
-    Optuna study that share the most frequently occurring combination of 
+    Optuna study that share the most frequently occurring combination of
     objective values.
 
-    This function is useful in multi-objective optimization scenarios where 
+    This function is useful in multi-objective optimization scenarios where
     multiple trials may be considered optimal. It selects the subset of trials
     that exhibit the most common trade-off between the two objectives.
 
     Args:
-        study (optuna.study.Study): An Optuna study object containing completed 
+        study (optuna.study.Study): An Optuna study object containing completed
             trials.
     Returns:
-        List[optuna.trial.FrozenTrial]: A list of FrozenTrial objects that 
+        List[optuna.trial.FrozenTrial]: A list of FrozenTrial objects that
         match the most frequent pair of objective values among the best trials.
     """
     obj_scores = [(trial.values[0], trial.values[1])
                 for trial in study.best_trials]
-    
+
     freq_counter = Counter(obj_scores)
 
     high_frq_obj_score = list(freq_counter.most_common(1)[0][0])
@@ -914,8 +914,8 @@ def plot_proxy_pareto_front(
 
     This function generates a Pareto front plot from an Optuna study
     that optimizes for both regression loss and predicted inlier count score.
-    The plot also highlights the best compromised solution or trade-off 
-    solution obtained using frequency analysis out of all pareto-optimal 
+    The plot also highlights the best compromised solution or trade-off
+    solution obtained using frequency analysis out of all pareto-optimal
     trials.
 
     Args:
