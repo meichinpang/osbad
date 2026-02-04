@@ -210,7 +210,6 @@ Example:
         # KNN(contamination=0.1, n_neighbors=10, method="mean",
         # metric="euclidean", n_jobs=-1)
 """
-
 PyODModelType = Union[
     pyod.models.iforest.IForest,
     pyod.models.knn.KNN,
@@ -242,15 +241,9 @@ class ModelConfigDataClass:
     """
     Immutable container class for the model configuration.
 
-    Stores the search space function for Optuna trials, the model
-    factory function, and the probability column index used for
-    PyOD estimators.
+    Stores the model factory function, and the probability column index
+    used for PyOD estimators.
     """
-    hp_space: HpSpaceFuncType
-    """
-    Function that defines the hyperparameter search space for an Optuna trial.
-    """
-
     model_param: ModelParamFuncType
     """
     Function that builds a model instance from a set of hyperparameters.
@@ -271,122 +264,8 @@ class ModelConfigDataClass:
     probability, and column 1 is the outlier probability. Defaults to 1.
     """
 
-# Model registry -------------------------------------------------------------
-# Taking external hp schema as input to the hyperparameter tuning
-
-def _suggest_float(trial, schema, name: str):
-    params = {**schema.get(name)}
-    suggest_float_trial = trial.suggest_float(
-        name,
-        low=params["low"],
-        high=params["high"])
-
-    return suggest_float_trial
-
-def _suggest_int(trial, schema, name: str):
-    params = {**schema.get(name)}
-    suggest_int_trial = trial.suggest_int(
-        name,
-        low=params["low"],
-        high=params["high"])
-
-    return suggest_int_trial
-
-def _suggest_categorical(trial, schema, name: str):
-    """
-    Suggest a categorical parameter using a list from schema.
-
-    Args:
-        trial (optuna.trial.Trial): Optuna trial object used to suggest
-            parameters.
-        schema (dict): Dictionary containing hyperparameter schema. For
-            categorical parameters, the value should be a list of choices.
-        name (str): Name of the hyperparameter to retrieve.
-
-    Returns:
-        Any: The value selected from the list of categorical choices.
-
-    Raises:
-        ValueError: If the schema value for the given name is not a list.
-    """
-    choices = schema.get(name)
-
-    if not isinstance(choices, list):
-        raise ValueError(
-            f"Expected a list of choices for '{name}', "
-            f"but got {type(choices).__name__}"
-        )
-
-    return trial.suggest_categorical(name, choices)
-
-# ----------------------------------------------------------------------------
-# Reload the config module to refresh in-memory variables
-# especially after updating parameters during runtime
-reload(bconf)
-
-DATA_SOURCE: Literal["tohoku", "severson"] = bconf.HP_DATA_SOURCE
-"""
-Global selector for the active hyperparameter data source.
-
-Loaded from ``bconf.HP_DATA_SOURCE`` during import to keep module
-state aligned with the currently configured dataset registry.
-"""
-
-def _grab(model: str):
-    """
-    Retrieve hyperparameter configuration for a given model and data source.
-
-    This function dynamically retrieves the hyperparameter configuration
-    dictionary for a specified model by constructing the attribute name
-    based on the model identifier and the global DATA_SOURCE setting.
-
-    Args:
-        model (str): The model identifier (e.g., "iforest", "knn", "gmm",
-            "lof", "pca", "autoencoder").
-
-    Returns:
-        Dict[str, Any]: The hyperparameter configuration dictionary for the
-            specified model and data source combination.
-
-    Raises:
-        AttributeError: If the constructed attribute name does not exist in
-            the bconf module.
-
-    Example:
-        .. code-block::
-
-            DATA_SOURCE = "tohoku"
-            _IFOREST_HP_CONFIG = _grab("iforest")
-    """
-    suffix = DATA_SOURCE.lower()
-    attr = f"_{model}_hp_config_{suffix}"
-    return getattr(bconf, attr)
-
-_IFOREST_HP_CONFIG = _grab("iforest")
-_KNN_HP_CONFIG = _grab("knn")
-_GMM_HP_CONFIG = _grab("gmm")
-_LOF_HP_CONFIG = _grab("lof")
-_PCA_HP_CONFIG = _grab("pca")
-_AUTOENCODER_HP_CONFIG = _grab("autoencoder")
-"""
-Hyperparameter schema cache for supported anomaly detection models.
-
-Each constant stores the preloaded hyperparameter configuration for a
-specific PyOD estimator under the active ``DATA_SOURCE`` selection.
-"""
-
 MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
     "iforest": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "contamination": _suggest_float(
-                trial, _IFOREST_HP_CONFIG, "contamination"),
-            "n_estimators": _suggest_int(
-                trial, _IFOREST_HP_CONFIG, "n_estimators"),
-            "max_samples": _suggest_int(
-                trial, _IFOREST_HP_CONFIG, "max_samples"),
-            "threshold": _suggest_float(
-                trial, _IFOREST_HP_CONFIG, "threshold"),
-        },
         model_param=lambda param: IForest(
             behaviour="new",
             contamination=param["contamination"],
@@ -402,18 +281,6 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         ),
     ),
     "knn": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "contamination": _suggest_float(
-                trial, _KNN_HP_CONFIG, "contamination"),
-            "n_neighbors": _suggest_int(
-                trial, _KNN_HP_CONFIG, "n_neighbors"),
-            "method": _suggest_categorical(
-                trial, _KNN_HP_CONFIG, "method"),
-            "metric": _suggest_categorical(
-                trial, _KNN_HP_CONFIG, "metric"),
-            "threshold": _suggest_float(
-                trial, _KNN_HP_CONFIG, "threshold"),
-        },
         model_param=lambda param: KNN(
             contamination=param["contamination"],
             n_neighbors=param["n_neighbors"],
@@ -426,18 +293,6 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         ),
     ),
     "gmm": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "n_components": _suggest_int(
-                trial, _GMM_HP_CONFIG, "n_components"),
-            "covariance_type": _suggest_categorical(
-                trial, _GMM_HP_CONFIG, "covariance_type"),
-            "init_param": _suggest_categorical(
-                trial, _GMM_HP_CONFIG, "init_param"),
-            "contamination": _suggest_float(
-                trial, _GMM_HP_CONFIG, "contamination"),
-            "threshold": _suggest_float(
-                trial, _GMM_HP_CONFIG, "threshold"),
-        },
         model_param=lambda param: GMM(
             n_components=param["n_components"],
             covariance_type=param["covariance_type"],
@@ -451,18 +306,6 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         ),
     ),
     "lof": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "n_neighbors": _suggest_int(
-                trial, _LOF_HP_CONFIG, "n_neighbors"),
-            "leaf_size": _suggest_int(
-                trial, _LOF_HP_CONFIG, "leaf_size"),
-            "metric": _suggest_categorical(
-                trial, _LOF_HP_CONFIG, "metric"),
-            "contamination": _suggest_float(
-                trial, _LOF_HP_CONFIG, "contamination"),
-            "threshold": _suggest_float(
-                trial, _LOF_HP_CONFIG, "threshold"),
-        },
         model_param=lambda param: LOF(
             n_neighbors=param["n_neighbors"],
             leaf_size=param["leaf_size"],
@@ -477,14 +320,6 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         ),
     ),
     "pca": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "n_components": _suggest_int(
-                trial, _PCA_HP_CONFIG, "n_components"),
-            "contamination": _suggest_float(
-                trial, _PCA_HP_CONFIG, "contamination"),
-            "threshold": _suggest_float(
-                trial, _PCA_HP_CONFIG, "threshold"),
-        },
         model_param=lambda param: PCA(
             n_components=param["n_components"],
             contamination=param["contamination"]
@@ -494,18 +329,6 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
         ),
     ),
     "autoencoder": ModelConfigDataClass(
-        hp_space=lambda trial: {
-            "batch_size": _suggest_int(
-                trial, _AUTOENCODER_HP_CONFIG, "batch_size"),
-            "epoch_num": _suggest_int(
-                trial, _AUTOENCODER_HP_CONFIG, "epoch_num"),
-            "learning_rate": _suggest_float(
-                trial, _AUTOENCODER_HP_CONFIG, "learning_rate"),
-            "dropout_rate": _suggest_float(
-                trial, _AUTOENCODER_HP_CONFIG, "dropout_rate"),
-            "threshold": _suggest_float(
-                trial, _AUTOENCODER_HP_CONFIG, "threshold"),
-        },
         # hidden_neuron_list = The number of neurons per hidden layers.
         # So the network has the structure as
         # [feature_size, 64, 32, 32, 64, feature_size]
@@ -559,9 +382,9 @@ def objective(
     df_feature_dataset: pd.DataFrame,
     selected_feature_cols: list,
     selected_cell_label: str,
+    hp_space: Callable[[optuna.trial.Trial], Dict[str, Any]],
     df_benchmark_dataset: Optional[pd.DataFrame] = None,
 ) -> Tuple[float, float]:
-
     """
     Optimize model hyperparameters using Optuna trial.
 
@@ -633,7 +456,8 @@ def objective(
     """
 
     cfg = MODEL_CONFIG[model_id]
-    params = cfg.hp_space(trial)
+
+    params=hp_space(trial)
 
     runner = ModelRunner(
         cell_label=selected_cell_label,
