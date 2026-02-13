@@ -1,5 +1,13 @@
 # Open-Source Benchmark of Anomaly Detection (OSBAD)
 
+> **⚠️ MAINTENANCE NOTICE**
+> We are currently performing major changes and maintenance to migrate our
+workflows from local compute to cloud computation. Some functionality may be
+unstable in the current version. If you encounter any problems running the
+shared notebooks or scripts, please
+[open an issue](https://github.com/meichinpang/osbad/issues) and we will
+respond as soon as possible.
+
 Welcome to the Open-Source Benchmark of Anomaly Detection (OSBAD) repository,
 a unified, reproducible framework for evaluating the performance of various
 statistical, distance-based, and machine learning methods in detecting
