@@ -22,7 +22,9 @@ Key features:
         import osbad.modval as modval
 """
 # Standard library
+import os
 from typing import Union
+from dotenv import load_dotenv
 
 # Third-party libraries
 import pandas as pd
@@ -40,7 +42,26 @@ from sklearn.metrics import (
     recall_score,
 )
 
-rcParams["text.usetex"] = True
+# Custom osbad library
+import osbad.config as bconf
+
+# Load environment variables from the .env file in the project root directory
+ROOT_DIR = bconf.find_repo_root(".env")
+PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+load_dotenv(PATH_TO_ENV_VARIABLE)
+
+# Check if LaTeX rendering is enabled via environment variable
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+
+if USE_LATEX == "True":
+    USE_LATEX = True
+else:
+    USE_LATEX = False
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+    plt.rcParams['mathtext.fontset'] = 'cm'
+
+rcParams["text.usetex"] = USE_LATEX
 
 
 def evaluate_pred_outliers(
@@ -170,11 +191,12 @@ def generate_confusion_matrix(
     conf_matrix = confusion_matrix(y_true, y_pred)
 
     fig, ax = plt.subplots(figsize=(6,4))
-    sns.set(font_scale=1)
+    sns.set(font_scale=0.8)
 
     group_names = ["True Neg", "False Pos", "False Neg", "True Pos"]
     group_counts = ["{0:0.0f}".format(value) for value in conf_matrix.flatten()]
-    group_pct = [str(np.round(value,2)) + "\\%" for
+    pct_symbol = "\\%" if USE_LATEX else r"\%"
+    group_pct = [str(np.round(value,2)) + pct_symbol for
         value in (conf_matrix.flatten()/np.sum(conf_matrix))*100]
 
     labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(
@@ -189,11 +211,11 @@ def generate_confusion_matrix(
         annot=labels,
         fmt='',
         cbar=False,
-        annot_kws={"fontsize":18},
+        annot_kws={"fontsize":12},
         cmap=sns.color_palette(["salmon", "palegreen"], as_cmap=True))
 
-    ax.set_xlabel(r"Predicted anomalous cycle", labelpad=20, fontsize=16)
-    ax.set_ylabel(r"True anomalous cycle", labelpad=20, fontsize=16)
+    ax.set_xlabel(r"Predicted anomalous cycle", labelpad=20, fontsize=14)
+    ax.set_ylabel(r"True anomalous cycle", labelpad=20, fontsize=14)
 
     return ax
 

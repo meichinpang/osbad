@@ -6,6 +6,10 @@ anomalies.
 
     import osbad.viz as bviz
 """
+# Standard libraries
+import os
+from dotenv import load_dotenv
+
 # Third-party libraries
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -17,12 +21,27 @@ from scipy import stats
 from scipy.stats import norm, probplot
 from typing import Union
 
-rcParams["text.usetex"] = True
-
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
 from osbad.scaler import CycleScaling
 
+
+# Load environment variables from the .env file in the project root directory
+ROOT_DIR = bconf.find_repo_root(".env")
+PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+load_dotenv(PATH_TO_ENV_VARIABLE)
+
+# Check if LaTeX rendering is enabled via environment variable
+# Set global variable to control rcParams["text.usetex"] throughout the module
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+
+if USE_LATEX == "True":
+    USE_LATEX = True
+else:
+    USE_LATEX = False
+    plt.rcParams['mathtext.fontset'] = 'dejavusans'
+
+rcParams["text.usetex"] = USE_LATEX
 
 # _color_map = matplotlib.colormaps.get_cmap("RdYlBu_r")
 _color_map = mpl.colormaps.get_cmap("Spectral_r")
@@ -87,7 +106,8 @@ def plot_cycle_data(
 
     # Reset the sns settings
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
+    # print(f"USE_LATEX for plot_cycle_data: {USE_LATEX}")
 
     # scatterplot for all data
     ax.scatter(
@@ -245,7 +265,7 @@ def scatterhist(
 
     # Reset the sns settings
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     gs = fig.add_gridspec(
         2, 2,  width_ratios=(4, 1), height_ratios=(1, 4),
@@ -408,7 +428,7 @@ def plot_explain_scaling(
 
     # Reset the sns settings
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
 
 
@@ -615,7 +635,7 @@ def compare_hist_limits(
 
     # Reset the sns settings
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     gs = fig.add_gridspec(1, 2, wspace=0.2)
 
@@ -865,7 +885,7 @@ def plot_histogram_with_distribution_fit(
     # from confusion matrix
     import matplotlib as mpl
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     # fit normal distribution
     if method == "norm":
@@ -889,7 +909,7 @@ def plot_histogram_with_distribution_fit(
 
     # Reset the sns settings
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     # bins = auto
     # Minimum bin width between the ‘sturges’ and ‘fd’ estimators.
@@ -1029,7 +1049,7 @@ def plot_bubble_chart(
         plt.show()
     """
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     fig, ax = plt.subplots(1,1)
 
@@ -1086,7 +1106,7 @@ def plot_bubble_chart(
 
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
-                r"\textbf{Anomalous cycles:}",
+                r"Anomalous cycles:",
                 f"{cycle_outlier_idx_label}"))
 
             # first text value corresponds to the left right
@@ -1175,7 +1195,7 @@ def plot_multiple_outlier_cycles(
     # from confusion matrix
     import matplotlib as mpl
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
     total_subplot = len(potential_outlier_cycles)
 
@@ -1367,7 +1387,7 @@ def plot_single_outlier_cycle(
     # from confusion matrix
     import matplotlib as mpl
     mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
+    rcParams["text.usetex"] = USE_LATEX
 
 
     # Check if specific cycle are anomalous or not

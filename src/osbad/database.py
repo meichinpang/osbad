@@ -29,8 +29,10 @@ Example:
 # Standard library
 import os
 import pathlib
+from dotenv import load_dotenv
 from pathlib import Path
 from typing import Union
+
 
 # Third-party libraries
 import duckdb
@@ -40,12 +42,26 @@ import numpy as np
 import pandas as pd
 from matplotlib import rcParams
 
-rcParams["text.usetex"] = True
-
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
 import osbad.viz as bviz
 
+# Load environment variables from the .env file in the project root directory
+ROOT_DIR = bconf.find_repo_root(".env")
+PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+load_dotenv(PATH_TO_ENV_VARIABLE)
+
+# Check if LaTeX rendering is enabled via environment variable
+# Set global variable to control rcParams["text.usetex"] throughout the module
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+
+if USE_LATEX == "True":
+    USE_LATEX = True
+else:
+    USE_LATEX = False
+    plt.rcParams['mathtext.fontset'] = 'dejavusans'
+
+rcParams["text.usetex"] = USE_LATEX
 
 class BenchDB:
     """Load and analyze benchmarking datasets for a single cell.
@@ -289,7 +305,7 @@ class BenchDB:
         """
         # Reset the sns settings
         mpl.rcParams.update(mpl.rcParamsDefault)
-        rcParams["text.usetex"] = True
+        rcParams["text.usetex"] = USE_LATEX
 
         if true_outlier_cycle_index is not None:
             # Anomalous cycle has label = 1
@@ -311,7 +327,7 @@ class BenchDB:
 
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
-                r"\textbf{Cycle index with anomalies:}",
+                "Cycle index with anomalies:",
                 f"{true_outlier_cycle_index}"))
 
             # properties for bbox
@@ -341,10 +357,10 @@ class BenchDB:
                     df_selected_cell_without_labels["cycle_index"]))
 
         axplot.set_xlabel(
-            r"Discharge capacity, $Q_\textrm{dis}$ [Ah]",
+            r"Discharge capacity [Ah]",
             fontsize=14)
         axplot.set_ylabel(
-            r"Discharge voltage, $V_\textrm{dis}$ [V]",
+            r"Discharge voltage [V]",
             fontsize=14)
 
         axplot.set_title(
