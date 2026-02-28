@@ -6,12 +6,9 @@ from joblib import dump
 
 # Third-party libraries
 import duckdb
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import rcParams
-
-rcParams["text.usetex"] = True
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
@@ -198,10 +195,10 @@ if df_selected_cell is not None:
     )
 
     axplot.set_xlabel(
-        r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+        r"$\log\Delta Q$ [Ah]",
         fontsize=12)
     axplot.set_ylabel(
-        r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+        r"$\log\Delta V$ [V]",
         fontsize=12)
 
     output_fig_filename = (
