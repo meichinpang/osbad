@@ -40,14 +40,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
-from matplotlib import rcParams
 
 # libraries for distance based anomaly detection
 from scipy.spatial import distance
 from osbad.stats import (_compute_mad_outliers, _compute_sd_outliers,
 _compute_modified_z_outliers)
-
-rcParams["text.usetex"] = True
 
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
@@ -367,10 +364,6 @@ def plot_distance_score_map(
 
     fig, ax = plt.subplots(figsize=(8,5))
 
-    # Reset the sns settings
-    mpl.rcParams.update(mpl.rcParamsDefault)
-    rcParams["text.usetex"] = True
-
     # The contour plot using the model on the grid
     ax.contourf(
         xx,
@@ -469,7 +462,7 @@ def plot_distance_score_map(
 
         # Create textbox to annotate anomalous cycle
         textstr = '\n'.join((
-            r"\textbf{Predicted anomalous cycles:}",
+            "Predicted anomalous cycles:\n",
             f"{str(pred_outlier_indices)}"))
 
         # first text value corresponds to the left right
@@ -481,15 +474,16 @@ def plot_distance_score_map(
             textstr,
             transform=ax.transAxes,
             fontsize=12,
+            fontweight="bold",
             # ha means right alignment of the text
             ha="center", va='top',
             bbox=props)
 
     ax.set_xlabel(
-        r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+        r"$\log\Delta Q$ [Ah]",
         fontsize=12)
     ax.set_ylabel(
-        r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+        r"$\log\Delta V$ [V]",
         fontsize=12)
 
     return ax
