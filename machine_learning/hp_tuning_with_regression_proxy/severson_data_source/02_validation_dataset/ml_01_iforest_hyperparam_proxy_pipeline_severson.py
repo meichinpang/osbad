@@ -4,13 +4,10 @@ from pathlib import Path
 
 # Third-party libraries
 import duckdb
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import optuna
-from matplotlib import rcParams
-
-rcParams["text.usetex"] = True
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
@@ -143,39 +140,20 @@ if __name__ == "__main__":
         total_cycle_count = len(
             df_selected_cell_without_labels["cycle_index"].unique())
 
-        hp_config_iforest = {
-            "contamination": {"low": 0.0, "high": 0.5},
-            "n_estimators": {"low": 100, "high": 500},
-            "max_samples": {"low": 100, "high": total_cycle_count},
-            "threshold": {"low": 0.0, "high": 1.0}
-        }
-
-        iforest_hp_config_filepath = (
-            Path.cwd()
-            .parents[3]
-            .joinpath(
-                "machine_learning",
-                "hp_config_schema",
-                "severson_hp_config",
-                "iforest_hp_config.json"))
-
-        bconf.create_json_hp_config(
-            iforest_hp_config_filepath,
-            hp_dict=hp_config_iforest)
-
-        # Reload the hp module to refresh in-memory variables
-        # especially after updating parameters
-        from importlib import reload
-        reload(hp)
-
-        # Check if the schema in the script has been updated
-        # based on the current constraints specified
-        # from the notebook
-        print("Current hyperparameter config:")
-        print(hp._IFOREST_HP_CONFIG)
-        print("-"*70)
+        # Define the hyperparameter search space for 
+        # isolation forest
+        hp_space=lambda trial: {
+            "contamination": trial.suggest_float(
+                "contamination", 0, 0.5),
+            "n_estimators": trial.suggest_int(
+                "n_estimators", 100, 500),
+            "max_samples": trial.suggest_int(
+                "max_samples", 100, total_cycle_count),
+            "threshold": trial.suggest_float(
+                "threshold", 0, 1)}
 
         # --------------------------------------------------------------------
+        # Instantiate an optuna study for iForest model
         sampler = optuna.samplers.TPESampler(seed=42)
 
         selected_feature_cols = (
@@ -195,7 +173,7 @@ if __name__ == "__main__":
                 model_id="iforest",
                 df_feature_dataset=df_features_per_cell,
                 selected_feature_cols=selected_feature_cols,
-                #df_benchmark_dataset=df_selected_cell,
+                hp_space=hp_space,
                 selected_cell_label=selected_cell_label),
             n_trials=100)
 
@@ -295,11 +273,18 @@ if __name__ == "__main__":
         )
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+            r"$\log\Delta Q$ [Ah]",
             fontsize=12)
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+            r"$\log\Delta V$ [V]",
             fontsize=12)
+        
+        # axplot.set_xlabel(
+        #     r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+        #     fontsize = 12)
+        # axplot.set_ylabel(
+        #     r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+        #     fontsize = 12)
 
         output_fig_filename = (
             "iforest_"
@@ -316,7 +301,6 @@ if __name__ == "__main__":
             bbox_inches="tight")
 
         plt.close()
-
 
         # -------------------------------------------------------------------
         # Model performance evaluation
@@ -421,11 +405,23 @@ if __name__ == "__main__":
             f"Cell {selected_cell_label}", fontsize=13)
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+            r"Log transformed max capacity diff per cycle," 
+            + "\n" 
+            + r"$\log\Delta Q$ [Ah]",
             fontsize=12)
+        
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+            r"Log transformed max voltage diff per cycle," 
+            + "\n" 
+            r"$\log\Delta V$ [V]",
             fontsize=12)
+        
+        # axplot.set_xlabel(
+        #     r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+        #     fontsize = 12)
+        # axplot.set_ylabel(
+        #     r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+        #     fontsize = 12)
 
         output_fig_filename = (
             "log_bubble_plot_"
