@@ -271,20 +271,14 @@ if __name__ == "__main__":
             pred_outliers_index=pred_outlier_indices,
             threshold=param_dict["threshold"]
         )
-
-        axplot.set_xlabel(
-            r"$\log\Delta Q$ [Ah]",
-            fontsize=12)
-        axplot.set_ylabel(
-            r"$\log\Delta V$ [V]",
-            fontsize=12)
         
-        # axplot.set_xlabel(
-        #     r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
-        #     fontsize = 12)
-        # axplot.set_ylabel(
-        #     r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
-        #     fontsize = 12)
+        axplot.set_xlabel(
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
+        axplot.set_ylabel(
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "iforest_"
@@ -405,23 +399,12 @@ if __name__ == "__main__":
             f"Cell {selected_cell_label}", fontsize=13)
 
         axplot.set_xlabel(
-            r"Log transformed max capacity diff per cycle," 
-            + "\n" 
-            + r"$\log\Delta Q$ [Ah]",
-            fontsize=12)
-        
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
         axplot.set_ylabel(
-            r"Log transformed max voltage diff per cycle," 
-            + "\n" 
-            r"$\log\Delta V$ [V]",
-            fontsize=12)
-        
-        # axplot.set_xlabel(
-        #     r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
-        #     fontsize = 12)
-        # axplot.set_ylabel(
-        #     r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
-        #     fontsize = 12)
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "log_bubble_plot_"
