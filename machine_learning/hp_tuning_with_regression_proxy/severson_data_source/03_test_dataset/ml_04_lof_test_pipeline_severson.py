@@ -202,11 +202,12 @@ for idx, selected_cell_label in enumerate(unique_cell_index_test):
     )
 
     axplot.set_xlabel(
-        r"$\log\Delta Q$ [Ah]",
-        fontsize=12)
+        r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+        fontsize = 12)
+
     axplot.set_ylabel(
-        r"$\log\Delta V$ [V]",
-        fontsize=12)
+        r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+        fontsize = 12)
 
     output_fig_filename = (
         "lof_"
