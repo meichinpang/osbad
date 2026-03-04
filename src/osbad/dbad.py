@@ -480,10 +480,11 @@ def plot_distance_score_map(
             bbox=props)
 
     ax.set_xlabel(
-        r"$\log\Delta Q$ [Ah]",
-        fontsize=12)
+        r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+        fontsize = 12)
+
     ax.set_ylabel(
-        r"$\log\Delta V$ [V]",
-        fontsize=12)
+        r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+        fontsize = 12)
 
     return ax
