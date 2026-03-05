@@ -4,13 +4,10 @@ from pathlib import Path
 
 # Third-party libraries
 import duckdb
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import optuna
-from matplotlib import rcParams
-
-rcParams["text.usetex"] = True
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
@@ -139,41 +136,21 @@ if __name__ == "__main__":
         # --------------------------------------------------------------------
         # Hyperparameter tuning with Bayesian optimization
 
-        # Update the HP config (if needed)
-        hp_config_lof = {
-            "contamination": {"low": 0.0, "high": 0.5},
-            "n_neighbors": {"low": 10, "high": 50},
-            "leaf_size": {"low": 10, "high": 100},
-            "metric": ["minkowski","euclidean","manhattan"],
-            "threshold": {"low": 0.0, "high": 1.0}
-        }
-
-        lof_hp_config_filepath = (
-            Path.cwd()
-            .parents[3]
-            .joinpath(
-                "machine_learning",
-                "hp_config_schema",
-                "severson_hp_config",
-                "lof_hp_config.json"))
-
-        bconf.create_json_hp_config(
-            lof_hp_config_filepath,
-            hp_dict=hp_config_lof)
-
-        # Reload the hp module to refresh in-memory variables
-        # especially after updating parameters
-        from importlib import reload
-        reload(hp)
-
-        # Check if the schema in the script has been updated
-        # based on the current constraints specified
-        # from the notebook
-        print("Current hyperparameter config:")
-        print(hp._LOF_HP_CONFIG)
-        print("-"*70)
+        # Define the hyperparameter search space for LOF
+        hp_space=lambda trial: {
+            "contamination": trial.suggest_float(
+                "contamination", 0.0, 0.5),
+            "n_neighbors": trial.suggest_int(
+                "n_neighbors", 10, 50),
+            "leaf_size": trial.suggest_int(
+                "leaf_size", 10, 100),
+            "metric": trial.suggest_categorical(
+                "metric", ["minkowski", "euclidean", "manhattan"]),
+            "threshold": trial.suggest_float(
+                "threshold", 0.0, 1.0)}
 
         # --------------------------------------------------------------------
+        # Instantiate an optuna study for lof model
         sampler = optuna.samplers.TPESampler(seed=42)
 
         selected_feature_cols = (
@@ -193,7 +170,7 @@ if __name__ == "__main__":
                 model_id="lof",
                 df_feature_dataset=df_features_per_cell,
                 selected_feature_cols=selected_feature_cols,
-                #df_benchmark_dataset=df_selected_cell,
+                hp_space=hp_space,
                 selected_cell_label=selected_cell_label),
             n_trials=100)
 
@@ -294,11 +271,12 @@ if __name__ == "__main__":
         )
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "lof_"
@@ -420,11 +398,12 @@ if __name__ == "__main__":
             f"Cell {selected_cell_label}", fontsize=13)
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "log_bubble_plot_"

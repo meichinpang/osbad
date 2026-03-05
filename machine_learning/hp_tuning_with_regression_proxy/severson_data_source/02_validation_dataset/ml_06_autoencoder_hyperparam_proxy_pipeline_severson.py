@@ -4,13 +4,10 @@ from pathlib import Path
 
 # Third-party libraries
 import duckdb
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import optuna
-from matplotlib import rcParams
-
-rcParams["text.usetex"] = True
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
@@ -139,41 +136,21 @@ if __name__ == "__main__":
         # --------------------------------------------------------------------
         # Hyperparameter tuning with Bayesian optimization
 
-        # Update the HP config (if needed)
-        hp_config_autoencoder = {
-            "batch_size": {"low": 8, "high": 32},
-            "epoch_num": {"low": 10, "high": 50},
-            "learning_rate": {"low": 0, "high": 0.1},
-            "dropout_rate": {"low": 0.1, "high": 0.5},
-            "threshold": {"low": 0.0, "high": 1.0}
-        }
-
-        autoencoder_hp_config_filepath = (
-            Path.cwd()
-            .parents[3]
-            .joinpath(
-                "machine_learning",
-                "hp_config_schema",
-                "severson_hp_config",
-                "autoencoder_hp_config.json"))
-
-        bconf.create_json_hp_config(
-            autoencoder_hp_config_filepath,
-            hp_dict=hp_config_autoencoder)
-
-        # Reload the hp module to refresh in-memory variables
-        # especially after updating parameters
-        from importlib import reload
-        reload(hp)
-
-        # Check if the schema in the script has been updated
-        # based on the current constraints specified
-        # from the notebook
-        print("Current hyperparameter config:")
-        print(hp._AUTOENCODER_HP_CONFIG)
-        print("-"*70)
+        # Define the hyperparameter search space for Autoencoder
+        hp_space=lambda trial: {
+            "batch_size": trial.suggest_int(
+                "batch_size", 8, 32),
+            "epoch_num": trial.suggest_int(
+                "epoch_num", 10, 50),
+            "learning_rate": trial.suggest_float(
+                "learning_rate", 0.0, 0.1),
+            "dropout_rate": trial.suggest_float(
+                "dropout_rate", 0.1, 0.5),
+            "threshold": trial.suggest_float(
+                "threshold", 0.0, 1.0)}
 
         # --------------------------------------------------------------------
+        # Instantiate an optuna study for autoencoder model
         sampler = optuna.samplers.TPESampler(seed=42)
 
         selected_feature_cols = (
@@ -193,7 +170,7 @@ if __name__ == "__main__":
                 model_id="autoencoder",
                 df_feature_dataset=df_features_per_cell,
                 selected_feature_cols=selected_feature_cols,
-                #df_benchmark_dataset=df_selected_cell,
+                hp_space=hp_space,
                 selected_cell_label=selected_cell_label),
             n_trials=20)
 
@@ -294,11 +271,12 @@ if __name__ == "__main__":
         )
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "autoencoder_"
@@ -420,11 +398,12 @@ if __name__ == "__main__":
             f"Cell {selected_cell_label}", fontsize=13)
 
         axplot.set_xlabel(
-            r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-            fontsize=12)
+            r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+            fontsize = 12)
+
         axplot.set_ylabel(
-            r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-            fontsize=12)
+            r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+            fontsize = 12)
 
         output_fig_filename = (
             "log_bubble_plot_"
