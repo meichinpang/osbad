@@ -61,6 +61,7 @@ from statistics import mode
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union, Optional
 
 # Third-party libraries
+from dotenv import load_dotenv
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -77,12 +78,31 @@ from pyod.models.knn import KNN
 from pyod.models.lof import LOF
 from pyod.models.pca import PCA
 
-rcParams["text.usetex"] = True
+# prevents CUDA from initializing at all, which avoids the warning
+# entirely when no GPU is available or intended.
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
 from osbad.config import CustomFormatter
 from osbad.model import ModelRunner
+
+# Load environment variables from the .env file in the project root directory
+ROOT_DIR = bconf.find_repo_root(".env")
+PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+load_dotenv(PATH_TO_ENV_VARIABLE)
+
+# Check if LaTeX rendering is enabled via environment variable
+# Set global variable to control rcParams["text.usetex"] throughout the module
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+
+if USE_LATEX == "True":
+    USE_LATEX = True
+else:
+    USE_LATEX = False
+    plt.rcParams['mathtext.fontset'] = 'dejavusans'
+
+rcParams["text.usetex"] = USE_LATEX
 
 # Initiate logging for methods --------------------------------------------
 
@@ -136,9 +156,11 @@ def _customize_logger(
 RANDOM_STATE = 42
 
 # Device for AutoEncoder model
-AE_DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available()
-    else "cpu")
+try:
+    _cuda_available = torch.cuda.is_available()
+except Exception:
+    _cuda_available = False
+AE_DEVICE = torch.device("cuda" if _cuda_available else "cpu")
 
 
 # Config plumbing ------------------------------------------------------------
@@ -1015,8 +1037,8 @@ def plot_pareto_front(
 
     axplot.annotate(
         text=(
-            f"Perfect recall score: {np.round(recall_score_pct)}\%\n" +
-            f"Perfect precision score: {np.round(precision_score_pct)}\%"),
+        f"Perfect recall score: {np.round(recall_score_pct)}" + r"%" + "\n"
+        f"Perfect precision score: {np.round(precision_score_pct)}" + r"%"),
         xy=(0.25,0.3),
         xytext=(0.25,0.3),
         fontsize=12,

@@ -29,6 +29,7 @@ import logging
 import os
 import pathlib
 import sys
+from dotenv import load_dotenv
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 # Third-party libraries
@@ -49,13 +50,27 @@ from sklearn.metrics import precision_score, recall_score
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 
-rcParams["text.usetex"] = True
-
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
 import osbad.modval as modval
 from osbad.config import CustomFormatter
 
+# Load environment variables from the .env file in the project root directory
+ROOT_DIR = bconf.find_repo_root(".env")
+PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+load_dotenv(PATH_TO_ENV_VARIABLE)
+
+# Check if LaTeX rendering is enabled via environment variable
+# Set global variable to control rcParams["text.usetex"] throughout the module
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+
+if USE_LATEX == "True":
+    USE_LATEX = True
+else:
+    USE_LATEX = False
+    plt.rcParams['mathtext.fontset'] = 'dejavusans'
+
+rcParams["text.usetex"] = USE_LATEX
 
 SELECTED_FEATURE_COLS = ("log_max_diff_dQ", "log_max_diff_dV")
 
@@ -502,7 +517,7 @@ class ModelRunner:
 
         # Reset the sns settings
         mpl.rcParams.update(mpl.rcParamsDefault)
-        rcParams["text.usetex"] = True
+        rcParams["text.usetex"] = USE_LATEX
 
         # The contour plot using the model on the grid
         ax_contourplot = ax.contourf(
@@ -591,7 +606,7 @@ class ModelRunner:
 
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
-                r"\textbf{Predicted anomalous cycles:}",
+                r"Predicted anomalous cycles:",
                 f"{label_pred_outliers_index}"))
 
             # first text value corresponds to the left right

@@ -57,9 +57,7 @@ if USE_LATEX == "True":
     USE_LATEX = True
 else:
     USE_LATEX = False
-    plt.rcParams['mathtext.fontset'] = 'stix'
-    plt.rcParams['font.family'] = 'STIXGeneral'
-    plt.rcParams['mathtext.fontset'] = 'cm'
+    plt.rcParams['mathtext.fontset'] = 'dejavusans'
 
 rcParams["text.usetex"] = USE_LATEX
 
@@ -194,8 +192,9 @@ def generate_confusion_matrix(
     sns.set(font_scale=0.8)
 
     group_names = ["True Neg", "False Pos", "False Neg", "True Pos"]
-    group_counts = ["{0:0.0f}".format(value) for value in conf_matrix.flatten()]
-    pct_symbol = "\\%" if USE_LATEX else r"\%"
+    group_counts = ["{0:0.0f}".format(value) for value in
+        conf_matrix.flatten()]
+    pct_symbol = "\\%" if USE_LATEX else r"%"
     group_pct = [str(np.round(value,2)) + pct_symbol for
         value in (conf_matrix.flatten()/np.sum(conf_matrix))*100]
 
