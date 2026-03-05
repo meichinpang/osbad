@@ -6,14 +6,11 @@ from joblib import dump, load
 
 # Third-party libraries
 import duckdb
-import fireducks.pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import optuna
-from matplotlib import rcParams
 from statistics import mode
-
-rcParams["text.usetex"] = True
 
 # Custom osbad library for anomaly detection
 import osbad.config as bconf
@@ -196,11 +193,12 @@ if df_selected_cell is not None:
     )
 
     axplot.set_xlabel(
-        r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-        fontsize=12)
+        r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+        fontsize = 12)
+
     axplot.set_ylabel(
-        r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-        fontsize=12)
+        r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+        fontsize = 12)
 
     output_fig_filename = (
         "export_model_gmm_"
