@@ -79,7 +79,7 @@ if __name__ == "__main__":
             selected_cell_label)
 
         # Extract only the last digit for plotting purposes
-        cell_num = selected_cell_label[-1]
+        cell_num = selected_cell_label.split("_")[-1]
 
         # -------------------------------------------------------------------
         # Import the BenchDB class
