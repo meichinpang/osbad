@@ -117,11 +117,11 @@ detection techniques.
 
 
 Get Started
------------
+--------------
 .. toctree::
    :maxdepth: 3
    :caption: Content
 
-   quickstart
-   dataset
-   models
+   doc_01_quickstart
+   doc_02_dataset_overview
+   doc_03_models_overview
