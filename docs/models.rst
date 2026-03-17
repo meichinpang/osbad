@@ -57,6 +57,7 @@ Example
    :caption: List of Model Tutorials
 
    severson_iforest_baseline
+   severson_iforest_hyperparam_tuned
    tohoku_iforest_example
    severson_dbad_euclidean_example
    severson_knn_proxy_regr_example
