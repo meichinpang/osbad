@@ -1,5 +1,5 @@
-Example: Baseline Isolation Forest without Hyperparameter Tuning
-=================================================================
+Example (1): Baseline Isolation Forest without Hyperparameter Tuning
+======================================================================
 
 Prerequisites
 ---------------
