@@ -1,5 +1,5 @@
-Example (2): Isolation Forest with Hyperparameter Tuning
-===========================================================
+Example (4): Autoencoder with Hyperparameter Tuning (Tohoku Dataset)
+=======================================================================
 
 Prerequisites
 ---------------
@@ -7,8 +7,7 @@ Prerequisites
 * Python 3.12 (recommended)
 * Files on disk:
 
-  * ``database/train_dataset_severson.db`` (benchmark labels per cycle)
-  * ``database/train_features_severson.db`` (precomputed features per cycle)
+  * ``database/tohoku_benchmark_dataset.db`` (benchmark labels per cycle)
 
 * (Optional) LaTeX installation if you want Matplotlib to render text with
   LaTeX:
@@ -28,9 +27,9 @@ evaluate whether the global directory path specified in
     # Modify this global directory path if needed
     PIPELINE_OUTPUT_DIR = Path.cwd().joinpath("artifacts_output_dir")
 
-The following example of running an Isolation Forest model with
-hyperparameter tuning is also provided as a notebook in
-``machine_learning/hp_tuning_with_transfer_learning/severson_data_source/01_train_dataset/ml_01_iforest_hyperparam_severson.ipynb``.
+The following example of running an Autoencoder model with hyperparameter
+tuning is also provided as a notebook in
+``machine_learning/hp_tuning_with_transfer_learning/tohoku_data_source/01_train_dataset/ml_06_autoencoder_hyperparam_tohoku.ipynb``.
 
 Step-1: Load libraries
 ---------------------------
@@ -43,6 +42,8 @@ Import the libraries into your local development environment, including the
 * ``duckdb`` is the embedded analytical database engine storing the dataset.
 * ``optuna`` is a hyperparameter optimization framework used to search for
   the best model configuration.
+* ``EmpiricalCovariance`` from scikit-learn is used to compute the
+  Mahalanobis distance for feature engineering.
 * ``bconf``: project config utilities (e.g., where to write artifacts).
 * ``hp``: hyperparameter tuning utilities including the objective function,
   aggregation of best trials, and Pareto front visualization.
@@ -62,6 +63,7 @@ Import the libraries into your local development environment, including the
     import matplotlib.pyplot as plt
     import numpy as np
     import optuna
+    from sklearn.covariance import EmpiricalCovariance
 
     # Custom osbad library for anomaly detection
     import osbad.config as bconf
@@ -74,24 +76,19 @@ Import the libraries into your local development environment, including the
 Step-2: Load Benchmarking Dataset
 ------------------------------------
 
-* Define the path to the DuckDB database file using the ``DB_DIR`` from
-  ``bconf``.
-* Create a DuckDB connection (read-only) and load the full training dataset
-  from the ``df_train_dataset_sv`` table.
-* Retrieve the unique cell indices available in the training dataset.
+* Define the path to the DuckDB database file (``tohoku_benchmark_dataset.db``)
+  using the ``DB_DIR`` from ``bconf``.
+* Create a DuckDB connection (read-only) and load the full Tohoku dataset
+  from the ``df_tohoku_dataset`` table.
+* Drop the additional index column and retrieve the unique cell indices
+  available in the dataset.
 
 .. code-block:: python
-
-    # Define a global variable to save fig output
-    PIPELINE_OUTPUT_DIR = bconf.PIPELINE_OUTPUT_DIR
 
     # Path to database directory
     DB_DIR = bconf.DB_DIR
 
-    # Path to the DuckDB instance:
-    # "osbad/database/train_dataset_severson.db"
-    db_filepath = (
-        DB_DIR.joinpath("train_dataset_severson.db"))
+    db_filepath = DB_DIR.joinpath("tohoku_benchmark_dataset.db")
 
     # Create a DuckDB connection
     con = duckdb.connect(
@@ -100,100 +97,103 @@ Step-2: Load Benchmarking Dataset
 
     # Load all training dataset from duckdb
     df_duckdb = con.execute(
-        "SELECT * FROM df_train_dataset_sv").fetchdf()
+        "SELECT * FROM df_tohoku_dataset").fetchdf()
 
-    # Get the cell index of training dataset
+    # Drop the additional index column
+    df_duckdb = df_duckdb.drop(
+        columns="__index_level_0__",
+        errors="ignore")
+
     unique_cell_index_train = df_duckdb["cell_index"].unique()
     print(unique_cell_index_train)
-
-.. code-block:: python
-
-    training_cell_count = len(unique_cell_index_train)
-    print(f"Training cell count: {training_cell_count}")
 
 Step-3: Filter Dataset for a Selected Cell
 ---------------------------------------------
 
+* There are 10 cells in the Tohoku dataset, and in this work,
+  ``cell-1``, ``cell-2``, ``cell-5`` and ``cell-6`` are used for training.
+* In this example, the model training is illustrated for one cell:
+  ``cell_num_1``.
 * Pick a specific cell based on ``selected_cell_label``, which identifies
   the experimental data corresponding to one unique cell.
 * Create an artifacts folder for that cell, where you can save figures,
   tables, or model outputs related to this cell.
+* Filter the loaded dataset for the selected cell only.
+* Initialize ``BenchDB`` for the selected cell.
 
 .. code-block:: python
 
     # Get the cell-ID from cell_inventory
-    selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+    selected_cell_label = "cell_num_1"
+    cell_num = selected_cell_label[-1]
 
     # Create a subfolder to store fig output
     # corresponding to each cell-index
     selected_cell_artifacts_dir = bconf.artifacts_output_dir(
         selected_cell_label)
 
-Step-4: Load Benchmarking Dataset for Selected Cell
-------------------------------------------------------
-
-* Initialize ``BenchDB`` for the selected cell and load the benchmarking
-  dataset from the training partition.
-
-.. code-block:: python
+    # Filter dataset for specific selected cell only
+    df_selected_cell = df_duckdb[
+        df_duckdb["cell_index"] == selected_cell_label]
 
     # Import the BenchDB class
-    # Load only the dataset based on the selected cell
     benchdb = BenchDB(
         db_filepath,
         selected_cell_label)
 
-    # load the benchmarking dataset
-    df_selected_cell = benchdb.load_benchmark_dataset(
-        dataset_type="train")
-
-Step-5: Drop True Labels
+Step-4: Drop True Labels
 -----------------------------
 
-* Drop the true outlier labels (denoted as ``outlier``) from the dataframe
-  and select only the relevant features for machine learning:
-
-  * ``cell_index``: The cell-ID for data and model versioning purposes.
-  * ``cycle_index``: The cycle number of each cell.
-  * ``discharge_capacity``: Discharge capacity of the cell.
-  * ``voltage``: Discharge voltage of the cell.
+* Drop the true outlier labels (denoted as ``outlier``) from the dataframe,
+  keeping only the relevant columns for machine learning.
 
 .. code-block:: python
 
-    if df_selected_cell is not None:
+    # Drop the outlier labels
+    df_selected_cell_without_labels = df_selected_cell.drop(
+        "outlier", axis=1).reset_index(drop=True)
 
-        filter_col = [
-            "cell_index",
-            "cycle_index",
-            "discharge_capacity",
-            "voltage"]
+    df_selected_cell_without_labels
 
-        # Drop true labels from the benchmarking dataset
-        # and filter for selected columns only
-        df_selected_cell_without_labels = benchdb.drop_labels(
-            df_selected_cell,
-            filter_col)
+Step-5: Plot Cycle Capacity Fade without Labels
+---------------------------------------------------
 
-        # print a subset of the dataframe
-        # for diagnostics running in terminals
-        print(df_selected_cell_without_labels.head(10).to_markdown())
-        print("*"*100)
-
-Step-6: Plot Cycle Data without Labels
------------------------------------------
-
-* Visualize the cycling data for the selected cell without displaying the
-  true outlier labels. This represents what the model sees before training.
+* Calculate the maximum discharge capacity per cycle.
+* Visualize the capacity fade curve for the selected cell without
+  displaying the true outlier labels. This represents what the model sees
+  before training.
 
 .. code-block:: python
 
-    # If the true outlier cycle index is not known,
-    # cycling data will be plotted without labels
-    benchdb.plot_cycle_data(
-        df_selected_cell_without_labels)
+    # Calculate maximum capacity per cycle
+    max_cap_per_cycle = (
+        df_selected_cell_without_labels
+            .groupby(["cycle_index"])["discharge_capacity"].max())
+    max_cap_per_cycle.name = "max_discharge_capacity"
+
+    unique_cycle_index = (
+        df_selected_cell_without_labels["cycle_index"].unique())
+
+.. code-block:: python
+
+    axplot = bviz.plot_cycle_data(
+        xseries=unique_cycle_index,
+        yseries=max_cap_per_cycle,
+        cycle_index_series=unique_cycle_index)
+
+    axplot.set_xlabel(
+        r"Cycle index",
+        fontsize=14)
+    axplot.set_ylabel(
+        r"Maximum discharge capacity [mAh/g]",
+        fontsize=14)
+
+    axplot.set_title(
+        f"Cell-{cell_num}",
+        fontsize=16)
 
     output_fig_filename = (
-        "cycle_data_without_labels_"
+        "cycling_data_without_labels_"
         + selected_cell_label
         + ".png")
 
@@ -208,53 +208,93 @@ Step-6: Plot Cycle Data without Labels
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/cycle_data_without_labels_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 398px
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/cycling_data_without_labels_cell_num_1.png
+   :height: 396px
    :width: 600px
-   :alt: Cycle data without labels from ``2017-05-12_5_4C-70per_3C_CH17``
+   :alt: Cycling data without labels for ``cell_num_1``
    :align: center
 
-Step-7: Load the Pre-computed Training Features
---------------------------------------------------
+Step-6: Feature Transformation
+----------------------------------
 
-Instead of computing the statistical feature transformation and
-physics-informed feature extraction from scratch (as in the baseline
-example), the hyperparameter tuning workflow loads pre-computed features
-directly from a dedicated features database. This database stores the
-already-transformed features per cycle, including:
+In the Tohoku dataset, we want to track the sudden and unintended capacity
+drop over the cycle life. Therefore, the features used are:
 
-* ``max_diff_dQ``: Maximum scaled capacity difference per cycle.
-* ``log_max_diff_dQ``: Log-transformed maximum scaled capacity difference.
-* ``max_diff_dV``: Maximum scaled voltage difference per cycle.
-* ``log_max_diff_dV``: Log-transformed maximum scaled voltage difference.
+* **Cycle index**: The cycle number of each cell.
+* **Maximum discharge capacity**: Peak discharge capacity per cycle.
+* **Normalized Mahalanobis distance**: A multivariate distance metric that
+  accounts for the correlation between cycle index and maximum discharge
+  capacity.
 
-.. code-block:: python
+Create input features for Mahalanobis distance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # Define the filepath to ``train_features_severson.db``
-    # osbad/database/train_features_severson.db
-    db_features_filepath = (
-        DB_DIR.joinpath(
-            "train_features_severson.db"))
-
-    # Load only the training features dataset
-    df_features_per_cell = benchdb.load_features_db(
-        db_features_filepath,
-        dataset_type="train")
-
-    unique_cycle_count = (
-        df_features_per_cell["cycle_index"].unique())
-
-To inspect the loaded features:
+The Mahalanobis distance is calculated from both the cycle index and the
+maximum discharge capacity.
 
 .. code-block:: python
+
+    df_cycle_index = pd.Series(
+        unique_cycle_index,
+        name="cycle_index")
+
+    # Input features for Mahalanobis distance
+    df_features_per_cell = pd.concat(
+        [df_cycle_index,
+         max_cap_per_cycle],
+        axis=1)
 
     df_features_per_cell
 
-Step-8: Hyperparameter Tuning with Optuna
+Compute the normalized Mahalanobis distance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fit an ``EmpiricalCovariance`` estimator to compute the covariance matrix
+  of the feature space.
+* Calculate the Mahalanobis distance for each cycle and normalize it by the
+  maximum distance to obtain a value between 0 and 1.
+
+.. code-block:: python
+
+    Xfeat = df_features_per_cell.values
+
+    # Calculate Mahalanobis distance based on
+    # cycle_index and max_discharge_capacity
+    cov = EmpiricalCovariance().fit(Xfeat)
+    mahal_dist = cov.mahalanobis(Xfeat)
+
+    df_maha_dist = pd.Series(
+        mahal_dist,
+        name="mahal_dist")
+
+    # Merge calculated mahalanobis distance
+    df_merge_features = pd.concat(
+        [df_features_per_cell,
+         df_maha_dist], axis=1)
+
+    # Calculate maximum mahal_dist to
+    # normalize the distance calculation
+    max_mahal_dist = (
+        df_merge_features["mahal_dist"].max())
+
+    df_merge_features["norm_mahal_dist"] = (
+        df_merge_features["mahal_dist"]/max_mahal_dist)
+
+    selected_feature_cols = (
+        "max_discharge_capacity",
+        "norm_mahal_dist")
+
+To inspect the merged features:
+
+.. code-block:: python
+
+    df_merge_features
+
+Step-7: Hyperparameter Tuning with Optuna
 --------------------------------------------
 
-Optuna is used to search for the best hyperparameters of the Isolation
-Forest model. The multi-objective optimization maximizes both **recall**
+Optuna is used to search for the best hyperparameters of the Autoencoder
+model. The multi-objective optimization maximizes both **recall**
 and **precision** simultaneously.
 
 Define the hyperparameter search space
@@ -263,33 +303,27 @@ Define the hyperparameter search space
 The hyperparameter search space is defined as a lambda function that maps
 each Optuna ``trial`` to a dictionary of sampled hyperparameter values:
 
-* ``contamination``: Expected proportion of outliers in the dataset
-  (float, 0 to 0.5).
-* ``n_estimators``: Number of isolation trees in the ensemble
-  (int, 100 to 500).
-* ``max_samples``: Maximum number of samples to draw for each tree
-  (int, 100 to total cycle count).
+* ``batch_size``: Number of samples per training batch (int, 8 to 32).
+* ``epoch_num``: Number of training epochs (int, 10 to 50).
+* ``learning_rate``: Learning rate for the optimizer (float, 0.0 to 0.1).
+* ``dropout_rate``: Dropout rate for regularization (float, 0.1 to 0.5).
 * ``threshold``: Decision threshold for the outlier probability score
-  (float, 0 to 1).
+  (float, 0.0 to 1.0).
 
 .. code-block:: python
 
-    # Update the HP config for max_samples
-    # depending on the cycle numbers
-    total_cycle_count = len(
-        df_selected_cell_without_labels["cycle_index"].unique())
-
-    # Define the hyperparameter search space for
-    # isolation forest
+    # Define the hyperparameter search space for autoencoder
     hp_space=lambda trial: {
-        "contamination": trial.suggest_float(
-            "contamination", 0, 0.5),
-        "n_estimators": trial.suggest_int(
-            "n_estimators", 100, 500),
-        "max_samples": trial.suggest_int(
-            "max_samples", 100, total_cycle_count),
+        "batch_size": trial.suggest_int(
+            "batch_size", 8, 32),
+        "epoch_num": trial.suggest_int(
+            "epoch_num", 10, 50),
+        "learning_rate": trial.suggest_float(
+            "learning_rate", 0.0, 0.1),
+        "dropout_rate": trial.suggest_float(
+            "dropout_rate", 0.1, 0.5),
         "threshold": trial.suggest_float(
-            "threshold", 0, 1)}
+            "threshold", 0.0, 1.0)}
 
 Create and run the Optuna study
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -297,35 +331,31 @@ Create and run the Optuna study
 * A ``TPESampler`` with a fixed seed ensures reproducibility.
 * The study is configured for multi-objective optimization with two
   directions set to ``maximize`` (recall and precision).
-* The ``hp.objective`` function trains the Isolation Forest model for each
+* The ``hp.objective`` function trains the Autoencoder model for each
   trial and evaluates it against the benchmarking dataset.
 
 .. code-block:: python
 
-    # Instantiate an optuna study for iForest model
+    # Instantiate an optuna study for autoencoder model
     sampler = optuna.samplers.TPESampler(seed=42)
 
-    selected_feature_cols = (
-        "log_max_diff_dQ",
-        "log_max_diff_dV")
-
-    if_study = optuna.create_study(
-        study_name="iforest_hyperparam",
+    autoencoder_study = optuna.create_study(
+        study_name="autoencoder_hyperparam",
         sampler=sampler,
         directions=["maximize","maximize"])
 
-    if_study.optimize(
+    autoencoder_study.optimize(
         lambda trial: hp.objective(
             trial,
-            model_id="iforest",
-            df_feature_dataset=df_features_per_cell,
+            model_id="autoencoder",
+            df_feature_dataset=df_merge_features,
             selected_feature_cols=selected_feature_cols,
             df_benchmark_dataset=df_selected_cell,
             hp_space=hp_space,
             selected_cell_label=selected_cell_label),
         n_trials=20)
 
-Step-9: Aggregate Best Trials
+Step-8: Aggregate Best Trials
 ---------------------------------
 
 After the optimization completes, aggregate the best trial hyperparameters
@@ -335,22 +365,23 @@ across the Pareto-optimal trials:
 
 .. code-block:: python
 
-    schema_iforest = {
+    schema_autoencoder = {
+        "batch_size": "median_int",
+        "epoch_num": "median_int",
+        "learning_rate": "median",
+        "dropout_rate": "median",
         "threshold": "median",
-        "contamination": "median",
-        "n_estimators": "median_int",
-        "max_samples": "median_int",
     }
 
-    df_iforest_hyperparam = hp.aggregate_best_trials(
-        if_study.best_trials,
+    df_autoencoder_hyperparam = hp.aggregate_best_trials(
+        autoencoder_study.best_trials,
         cell_label=selected_cell_label,
-        model_id="iforest",
-        schema=schema_iforest)
+        model_id="autoencoder",
+        schema=schema_autoencoder)
 
-    df_iforest_hyperparam
+    df_autoencoder_hyperparam
 
-Step-10: Evaluate Percentage of Perfect Recall and Precision
+Step-9: Evaluate Percentage of Perfect Recall and Precision
 --------------------------------------------------------------
 
 * Evaluate the percentage of trials in the study that achieved a perfect
@@ -362,9 +393,9 @@ Step-10: Evaluate Percentage of Perfect Recall and Precision
 .. code-block:: python
 
     recall_score_pct, precision_score_pct = hp.evaluate_hp_perfect_score_pct(
-        model_study=if_study)
+        model_study=autoencoder_study)
 
-Step-11: Plot Pareto Front
+Step-10: Plot Pareto Front
 ------------------------------
 
 * The Pareto front visualizes the trade-off between recall and precision
@@ -376,19 +407,20 @@ Step-11: Plot Pareto Front
 .. code-block:: python
 
     hp.plot_pareto_front(
-        if_study,
+        autoencoder_study,
         selected_cell_label,
-        fig_title="Isolation Forest Pareto Front")
+        fig_title="Autoencoder Pareto Front")
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/isolation_forest_pareto_front_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 485 px
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/autoencoder_pareto_front_cell_num_1.png
+   :height: 476px
    :width: 600px
-   :alt: Pareto front for Isolation Forest hyperparameter tuning
+   :alt:  Pareto front of recall vs precision for Autoencoder hyperparameter tuning on ``cell_num_1``
    :align: center
 
-Step-12: Export Hyperparameters to CSV
+
+Step-11: Export Hyperparameters to CSV
 -----------------------------------------
 
 * Export the aggregated best hyperparameters to a CSV file for
@@ -400,15 +432,15 @@ Step-12: Export Hyperparameters to CSV
 
     # Export current hyperparameters to CSV
     hyperparam_filepath =  Path.cwd().joinpath(
-        "ml_01_iforest_hyperparam_severson.csv")
+        "hp_06_autoencoder_hyperparam_tohoku.csv")
 
     hp.export_current_hyperparam(
-        df_iforest_hyperparam,
+        df_autoencoder_hyperparam,
         selected_cell_label,
         export_csv_filepath=hyperparam_filepath,
         if_exists="replace")
 
-Step-13: Train Model with Best Trial Parameters
+Step-12: Train Model with Best Trial Parameters
 ---------------------------------------------------
 
 Load best trial parameters from CSV output
@@ -437,23 +469,23 @@ Create a dict for best trial parameters
 Run the model with best trial parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Extract the model configuration for Isolation Forest from
+* Extract the model configuration for the Autoencoder from
   ``hp.MODEL_CONFIG``.
 * Instantiate a ``ModelRunner`` with the selected features and cell label.
 * Build the training input matrix ``Xdata``
   (shape: n_cycles × n_features).
-* Create the Isolation Forest model using the tuned hyperparameters via
+* Create the Autoencoder model using the tuned hyperparameters via
   ``cfg.model_param(param_dict)``.
 * Fit the model, compute probabilistic outlier scores, and extract the
   predicted outlier cycle indices using the tuned threshold.
 
 .. code-block:: python
 
-    cfg = hp.MODEL_CONFIG["iforest"]
+    cfg = hp.MODEL_CONFIG["autoencoder"]
 
     runner = ModelRunner(
         cell_label=selected_cell_label,
-        df_input_features=df_features_per_cell,
+        df_input_features=df_merge_features,
         selected_feature_cols=selected_feature_cols
     )
 
@@ -482,42 +514,50 @@ Get predicted outlier dataframe
 
 .. code-block:: python
 
-    df_outliers_pred = (df_features_per_cell[
-        df_features_per_cell["cycle_index"]
+    df_outliers_pred = (df_merge_features[
+        df_merge_features["cycle_index"]
         .isin(pred_outlier_indices)].copy())
 
     df_outliers_pred["outlier_prob"] = pred_outlier_score
     df_outliers_pred
 
-Step-14: Predict Probabilistic Anomaly Score Map
+Step-13: Predict Probabilistic Anomaly Score Map
 ---------------------------------------------------
 
 * ``runner.predict_anomaly_score_map`` generates a 2D contour map of
   anomaly scores (outlier probability).
 * The anomaly score map uses the tuned threshold from the hyperparameter
-  optimization instead of a fixed value.
+  optimization.
+* Two different ``grid_offset`` values are shown to demonstrate how the
+  grid resolution affects the visualization.
+
+Anomaly score map with grid offset = 1
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
+    grid_offset_size = 1
+
     axplot = runner.predict_anomaly_score_map(
         selected_model=model,
-        model_name="Isolation Forest",
-        xoutliers=df_outliers_pred["log_max_diff_dQ"],
-        youtliers=df_outliers_pred["log_max_diff_dV"],
+        model_name="Autoencoder",
+        xoutliers=df_outliers_pred["max_discharge_capacity"],
+        youtliers=df_outliers_pred["norm_mahal_dist"],
         pred_outliers_index=pred_outlier_indices,
-        threshold=param_dict["threshold"]
+        threshold=param_dict["threshold"],
+        square_grid=False,
+        grid_offset=grid_offset_size
     )
 
     axplot.set_xlabel(
-         r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
-         fontsize = 12)
-
+        r"Maximum discharge capacity per cycle",
+        fontsize=12)
     axplot.set_ylabel(
-         r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
-         fontsize = 12)
+        r"Normalized Mahalanobis distance",
+        fontsize=12)
 
     output_fig_filename = (
-        "iforest_"
+        f"autoencoder_grid_offset_size_{grid_offset_size}_"
         + selected_cell_label
         + ".png")
 
@@ -532,14 +572,61 @@ Step-14: Predict Probabilistic Anomaly Score Map
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/iforest_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 424 px
-   :width: 600 px
-   :alt: iForest anomaly score map from ``2017-05-12_5_4C-70per_3C_CH17``
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/autoencoder_grid_offset_size_1_cell_num_1.png
+   :height: 418px
+   :width: 600px
+   :alt: Anomaly score map for ``cell_num_1`` with grid offset size 1
+   :align: center
+
+Anomaly score map with grid offset = 50
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    grid_offset_size = 50
+
+    axplot = runner.predict_anomaly_score_map(
+        selected_model=model,
+        model_name="Autoencoder",
+        xoutliers=df_outliers_pred["max_discharge_capacity"],
+        youtliers=df_outliers_pred["norm_mahal_dist"],
+        pred_outliers_index=pred_outlier_indices,
+        threshold=param_dict["threshold"],
+        square_grid=False,
+        grid_offset=grid_offset_size
+    )
+
+    axplot.set_xlabel(
+        r"Maximum discharge capacity per cycle",
+        fontsize=12)
+    axplot.set_ylabel(
+        r"Normalized Mahalanobis distance",
+        fontsize=12)
+
+    output_fig_filename = (
+        f"autoencoder_grid_offset_size_{grid_offset_size}_"
+        + selected_cell_label
+        + ".png")
+
+    fig_output_path = (
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
+
+    plt.savefig(
+        fig_output_path,
+        dpi=600,
+        bbox_inches="tight")
+
+    plt.show()
+
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/autoencoder_grid_offset_size_50_cell_num_1.png
+   :height: 418px
+   :width: 600px
+   :alt: Anomaly score map for ``cell_num_1`` with grid offset size 50
    :align: center
 
 The figure shows the anomaly score map produced by the hyperparameter-tuned
-Isolation Forest model:
+Autoencoder model:
 
 * **Background Heatmap**:
 
@@ -564,7 +651,7 @@ Isolation Forest model:
 
   * Quantifies anomaly probability (0 = normal, 1 = highly anomalous).
 
-Step-15: Model Performance Evaluation
+Step-14: Model Performance Evaluation
 -----------------------------------------
 
 * Map predicted outlier indices to the benchmark dataset to compare
@@ -591,11 +678,11 @@ Confusion matrix
         y_pred=df_eval_outlier["pred_outlier"])
 
     axplot.set_title(
-        "Isolation Forest",
+        "Autoencoder",
         fontsize=16)
 
     output_fig_filename = (
-        "conf_matrix_iforest_"
+        "conf_matrix_autoencoder_"
         + selected_cell_label
         + ".png")
 
@@ -610,10 +697,10 @@ Confusion matrix
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/conf_matrix_iforest_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 480 px
-   :width: 600 px
-   :alt: iForest confusion matrix from ``2017-05-12_5_4C-70per_3C_CH17``
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/conf_matrix_autoencoder_cell_num_1.png
+   :height: 458px
+   :width: 600px
+   :alt: Confusion matrix for ``cell_num_1``
    :align: center
 
 Evaluation metrics
@@ -630,13 +717,13 @@ In this study, five different metrics are used to evaluate model performance:
 .. code-block:: python
 
     df_current_eval_metrics = modval.eval_model_performance(
-        model_name="iforest",
+        model_name="autoencoder",
         selected_cell_label=selected_cell_label,
         df_eval_outliers=df_eval_outlier)
 
     df_current_eval_metrics
 
-Step-16: Export Model Performance Metrics
+Step-15: Export Model Performance Metrics
 --------------------------------------------
 
 * Export the evaluation metrics to a CSV file for record-keeping and
@@ -646,48 +733,43 @@ Step-16: Export Model Performance Metrics
 
     # Export current metrics to CSV
     hyperparam_eval_filepath =  Path.cwd().joinpath(
-        "eval_metrics_hp_single_cell_severson.csv")
+        "eval_metrics_hp_single_cell_tohoku.csv")
 
     hp.export_current_model_metrics(
-        model_name="iforest",
+        model_name="autoencoder",
         selected_cell_label=selected_cell_label,
         df_current_eval_metrics=df_current_eval_metrics,
         export_csv_filepath=hyperparam_eval_filepath,
         if_exists="replace")
 
-Step-17: Verify with True Labels
--------------------------------------
+Step-16: Visualize Predicted Anomalies
+-----------------------------------------
 
-Plot cycle data with labels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Plot predicted anomalous cycles
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Extract the true outlier cycle indices from the benchmarking dataset.
-* Re-plot the cycling data with the true anomalous cycles highlighted and
-  annotated, allowing visual comparison of model predictions against
+* Re-plot the cycling data with the predicted anomalous cycles highlighted
+  and annotated, allowing visual comparison of model predictions against
   the ground truth.
 
 .. code-block:: python
 
-    # Extract true outliers cycle index from benchmarking dataset
-    true_outlier_cycle_index = benchdb.get_true_outlier_cycle_index(
-        df_selected_cell)
-    print(f"True outlier cycle index:")
-    print(true_outlier_cycle_index)
-
-    # Plot cell data with true anomalies
-    # If the true outlier cycle index is not known,
-    # cycling data will be plotted without labels
-    benchdb.plot_cycle_data(
+    axplot = benchdb.plot_cycle_data(
         df_selected_cell_without_labels,
-        true_outlier_cycle_index)
+        pred_outlier_indices)
+
+    axplot.set_title(
+        f"Cell-{cell_num}: Predicted Anomalies with Autoencoder",
+        fontsize=16)
 
     output_fig_filename = (
-        "cycle_data_with_labels_"
+        "autoencoder_pred_cycles_with_outliers_"
         + selected_cell_label
         + ".png")
 
     fig_output_path = (
-        selected_cell_artifacts_dir.joinpath(output_fig_filename))
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
 
     plt.savefig(
         fig_output_path,
@@ -696,76 +778,83 @@ Plot cycle data with labels
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/cycle_data_with_labels_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 398 px
-   :width: 600 px
-   :alt: Cycle data with true labels from ``2017-05-12_5_4C-70per_3C_CH17``
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/autoencoder_pred_cycles_with_outliers_cell_num_1.png
+   :height: 398px
+   :width: 600px
+   :alt: Cycling data with predicted anomalous cycles highlighted for ``cell_num_1``
    :align: center
 
-Calculate bubble size ratio
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Plot predicted capacity fade with outlier annotations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Calculate the bubble size ratios from the feature distributions for
-  plotting. The bubble size encodes the magnitude of both the capacity
-  and voltage differences, making it easier to identify anomalous cycles
-  visually.
-
-.. code-block:: python
-
-    # Calculate the bubble size ratio for plotting
-    df_bubble_size_dQ = bviz.calculate_bubble_size_ratio(
-        df_variable=df_features_per_cell["max_diff_dQ"])
-
-    df_bubble_size_dV = bviz.calculate_bubble_size_ratio(
-        df_variable=df_features_per_cell["max_diff_dV"])
-
-    bubble_size = (
-        np.abs(df_bubble_size_dV)
-        * np.abs(df_bubble_size_dQ))
-
-Plot the bubble chart with true outlier labels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Filter the maximum capacity per cycle to retain only the predicted
+  outlier cycles.
+* Plot the capacity fade curve with the predicted outlier cycles annotated
+  in a text box.
 
 .. code-block:: python
 
-    # Plot the bubble chart and label the outliers
-    axplot = bviz.plot_bubble_chart(
-        xseries=df_features_per_cell["log_max_diff_dQ"],
-        yseries=df_features_per_cell["log_max_diff_dV"],
-        bubble_size=bubble_size,
-        unique_cycle_count=unique_cycle_count,
-        cycle_outlier_idx_label=true_outlier_cycle_index)
+    pred_cap_outlier = max_cap_per_cycle[
+        max_cap_per_cycle
+            .index.isin(pred_outlier_indices)]
 
-    axplot.set_title(
-        f"Cell {selected_cell_label}", fontsize=13)
+    axplot = bviz.plot_cycle_data(
+        xseries=unique_cycle_index,
+        yseries=max_cap_per_cycle,
+        cycle_index_series=unique_cycle_index,
+        xoutlier=pred_cap_outlier.index,
+        youtlier=pred_cap_outlier)
 
     axplot.set_xlabel(
-         r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
-         fontsize = 12)
-
+        r"Cycle index",
+        fontsize=14)
     axplot.set_ylabel(
-         r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
-         fontsize = 12)
+        r"Maximum discharge capacity [mAh/g]",
+        fontsize=14)
+
+    axplot.set_title(
+        f"Cell-{cell_num}: Predicted Anomalies with Autoencoder",
+        fontsize=16)
+
+    # Create textbox to annotate anomalous cycle
+    textstr = '\n'.join((
+        r"Cycle index with anomalies:",
+        f"{list(pred_cap_outlier.index)}"))
+
+    # properties for bbox
+    props = dict(
+        boxstyle='round',
+        facecolor='wheat',
+        alpha=0.5)
+
+    axplot.text(
+        0.95, 0.95,
+        textstr,
+        transform=axplot.transAxes,
+        fontsize=12,
+        ha="right", va='top',
+        bbox=props)
 
     output_fig_filename = (
-        "log_bubble_plot_"
+        "autoencoder_pred_cap_fade_with_outliers_"
         + selected_cell_label
         + ".png")
 
     fig_output_path = (
-        selected_cell_artifacts_dir.joinpath(output_fig_filename))
+        selected_cell_artifacts_dir
+        .joinpath(output_fig_filename))
 
     plt.savefig(
         fig_output_path,
-        dpi=200,
+        dpi=600,
         bbox_inches="tight")
 
     plt.show()
 
-.. image:: docs_figure/ml_02_severson_iforest_hyperparam_tuned/bubble_plot_2017-05-12_5_4C-70per_3C_CH17.png
-   :height: 484 px
-   :width: 600 px
-   :alt: Log bubble plot from ``2017-05-12_5_4C-70per_3C_CH17``
+.. image:: docs_figure/ml_04_tohoku_autoencoder_hyperparam_tuned/autoencoder_pred_cap_fade_with_outliers_cell_num_1.png
+   :height: 396px
+   :width: 600px
+   :alt: Predicted capacity fade curve with outlier annotations for ``cell_num_1``
    :align: center
 
 ----
@@ -773,11 +862,10 @@ Plot the bubble chart with true outlier labels
 .. note::
 
    This notebook serves as an example to explain the workflow for running
-   the Isolation Forest model with hyperparameter tuning on a single cell.
+   the Autoencoder model with hyperparameter tuning on a single cell.
    To mitigate overfitting, the model should be trained and validated across
-   all 23 different cells in the training dataset instead of a single cell
-   (see ml_01_iforest_hyperparam_pipeline_severson.py).
+   multiple cells in the training dataset instead of a single cell.
 
    The hyperparameters are then averaged across all cells to find a more
    generalizable configuration that performs well across the entire dataset,
-   rather than just one cell (see ml_01_iforest_export_model.py).
+   rather than just one cell.
