@@ -56,7 +56,7 @@ Example
    :maxdepth: 2
    :caption: List of Model Tutorials
 
-   severson_iforest_example
+   severson_iforest_baseline
    tohoku_iforest_example
    severson_dbad_euclidean_example
    severson_knn_proxy_regr_example
