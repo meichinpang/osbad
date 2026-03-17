@@ -59,7 +59,7 @@ so that the pipeline can be automated for all cells in a leaner manner.
 The same protocols used for creating the training features are applied to
 create the test features.
 
-Dataset Information 
+Dataset Information
 ==========================
 
 * **Total number of cells**: 46
@@ -67,11 +67,11 @@ Dataset Information
 * **Number of cells for Testing** (``test_dataset_severson.db``): 23
 * **Average number of cycles for each cell**: 845 (Maximum: 1226, Minimum: 648)
 * **File format**: SQLite database file (.db)
-* **File Size**: Training set - 195 Mb, Test set-169 Mb 
+* **File Size**: Training set - 195 Mb, Test set-169 Mb
 * **Missing values**: None (100% complete dataset)
 * **Target variable**: ``outlier`` (1 for outlier, 0 for normal cycle)
 
-Features Description 
+Features Description
 ==========================
 
 **Using cell:** ``2017-05-12_5_4C-70per_3C_CH17`` **as an example.**
@@ -134,8 +134,6 @@ Features Description
 Data Quality Assessment
 ==========================
 
-- Zero missing values across all datasets for 46 Cells, all cycles and 9 
-  features.
 - 100% data completeness ensures robust model training and validation.
 - 0.47% positive cases on average for each cell (outlier cycles). This makes
   it a highly imbalanced anolmaly detection problem.
@@ -144,7 +142,7 @@ Data Quality Assessment
 - 103 observations where voltage is outside chemistry limits [0.1, 4.5]
 - 0 observations where temperature is outside safe range (-40°C to 90°C).
 - 40 observations where internal resistance ≤ 0.
-- 0 observations with ≤ 0 discharge capacity. 
+- 0 observations with ≤ 0 discharge capacity.
 - Wide range of cycle numbers (1226-648) in training cells for better
   generalization and validation for different test datasets.
 - Wide range of experimental test time for train cells from 108 - 252 hrs.
@@ -164,7 +162,7 @@ Sample Dataset for Cell ``2017-05-12_5_4C-70per_3C_CH17``
 
 .. raw:: html
 
-   <div class="scroll-table" style="max-height:320px; overflow:auto; 
+   <div class="scroll-table" style="max-height:320px; overflow:auto;
    border:1px solid #ddd; padding:4px;">
 
 .. raw:: html
