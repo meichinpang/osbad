@@ -138,34 +138,18 @@ Step-4: Hyperparameter Tuning with Optuna using Proxy Metrics
 
 .. code-block:: python
 
-  # Update the HP config for max_samples depending on the cycle numbers
-  total_cycle_count = len(
-      df_selected_cell_without_labels["cycle_index"].unique())
-
-  hp_config_knn = {
-      "contamination": {"low": 0.0, "high": 0.5},
-      "n_neighbors": {"low": 2, "high": 50},
-      "method": ["largest","mean","median"],
-      "metric": ["minkowski","euclidean","manhattan"],
-      "threshold": {"low": 0.0, "high": 1.0}
-  }
-
-  knn_hp_config_filepath = (
-      Path.cwd()
-      .parents[3]
-      .joinpath(
-          "machine_learning",
-          "hp_config_schema",
-          "severson_hp_config",
-          "knn_hp_config.json"))
-
-  bconf.create_json_hp_config(
-      knn_hp_config_filepath,
-      hp_dict=hp_config_knn)
-
-  # Reload the hp module to refresh in-memory variables
-  from importlib import reload
-  reload(hp)
+  # Define the hyperparameter search space for KNN
+  hp_space_knn=lambda trial: {
+      "contamination": trial.suggest_float(
+          "contamination", 0, 0.5),
+      "n_neighbors": trial.suggest_int(
+          "n_neighbors", 2, 50, step=2),
+      "method": trial.suggest_categorical(
+          "method", ["largest", "mean", "median"]),
+      "metric": trial.suggest_categorical(
+          "metric", ["minkowski", "euclidean", "manhattan"]),
+      "threshold": trial.suggest_float(
+          "threshold", 0, 1)}
 
   # Instantiate an optuna study for knn model
   sampler = optuna.samplers.TPESampler(seed=42)
@@ -186,6 +170,7 @@ Step-4: Hyperparameter Tuning with Optuna using Proxy Metrics
           model_id="knn",
           df_feature_dataset=df_features_per_cell,
           selected_feature_cols=selected_feature_cols,
+          hp_space=hp_space,
           selected_cell_label=selected_cell_label),
       n_trials=100)
 
@@ -338,11 +323,12 @@ Step-8: Predict Anomaly Score Map
   )
 
   axplot.set_xlabel(
-      r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
-      fontsize=12)
+      r"$\log(\Delta Q_{\mathrm{scaled,max,cyc}})$ [Ah]",
+      fontsize = 12)
+
   axplot.set_ylabel(
-      r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
-      fontsize=12)
+      r"$\log(\Delta V_{\mathrm{scaled,max,cyc}})$ [V]",
+      fontsize = 12)
 
   output_fig_filename = (
       "knn_"
