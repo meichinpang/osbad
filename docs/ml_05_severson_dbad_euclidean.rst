@@ -1,5 +1,15 @@
-Example(5): Benchmarking Distance Based Method using Euclidean Distance
-========================================================================
+Example(5): Distance Based Anomaly Detection using Euclidean Distance
+======================================================================
+
+This example illustrates how to leverage the capabilities of **osbad** for 
+distance-based anomaly detection using ``osbad.dbad`` with multivariate 
+datasets. Although distance-based metrics are commonly integrated into 
+various ML-based anomaly detection frameworks, this example shows a simpler 
+adaptation using centroid-based distance calculation. In scenarios where 
+low latency, model interpretability, or limited computational resources are 
+critical, such as in process-control hardware or embedded monitoring systems, 
+a straightforward centroid-based method offers a more practical and efficient 
+alternative to computationally intensive ML algorithms.
 
 The following example of running a hyperparameter tuning and anomaly detection
 pipeline is also provided as a notebook in 
