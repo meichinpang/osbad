@@ -1,5 +1,5 @@
-Example(6): Benchmarking K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics
-======================================================================================================
+Example(6): K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics
+==========================================================================================
 
 This example illustrates how to leverage the capabilities of **osbad** for 
 hyperparameter tuning in unsupervised anomaly detection models when **no 
