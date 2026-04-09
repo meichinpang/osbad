@@ -60,5 +60,5 @@ Example
    ml_02_severson_iforest_hyperparam_tuned
    ml_03_tohoku_autoencoder_baseline
    ml_04_tohoku_autoencoder_hyperparam_tuned
-   ml_05_severson_dbad_euclidean_example
-   ml_06_severson_knn_proxy_regr_example
+   ml_05_severson_dbad_euclidean
+   ml_06_severson_knn_proxy_regr
