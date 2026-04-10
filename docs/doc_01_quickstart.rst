@@ -31,7 +31,7 @@ If you are using Git LFS for the first time, you can follow the `Git LFS install
   # On Ubuntu/Debian
   sudo apt install git-lfs
 
-  # Then initialize and pull
+  # Then initialize Git LFS in your system
   git lfs install
 
 **Step-3: Clone osbad from the GitHub Repository**
@@ -72,6 +72,14 @@ and prints the current version to confirm that the installation is successful.
 .. code-block:: bash
 
    python test_osbad_installation.py
+
+If the installation is successful, you should see an output similar to the following:
+
+.. code-block:: bash
+
+   Hello from osbad!
+   osbad current version: X.Y.Z
+   OSBAD package installation is successful!
 
    # Then you can start Jupyter Notebook
    jupyter notebook
