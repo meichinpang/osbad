@@ -1,0 +1,125 @@
+osbad.stats
+===========
+
+.. py:module:: osbad.stats
+
+
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:data:: ArrayLike
+
+   Type alias for array-like inputs.
+
+   Represents data structures that can be treated as arrays in numerical
+   and analytical operations. This alias is used for type hints to accept
+   both pandas Series and NumPy ndarray objects.
+
+.. py:class:: OutlierMethodConfig
+
+   Immutable configuration for a statistical outlier detector.
+
+   Stores::
+
+     - compute: the detector implementation accepting
+       (X_variable, **stats_params_dict)
+     - params: default statistical parameters
+
+
+   .. py:attribute:: compute
+      :type:  Callable[[Any], Tuple]
+
+
+   .. py:attribute:: params
+      :type:  Dict[str, Any]
+
+
+.. py:data:: outlier_method
+   :type:  Dict[str, OutlierMethodConfig]
+
+   Dictionary mapping outlier-detector identifiers to their configs.
+
+   Identifiers:
+     - "sd":          Standard Deviation
+     - "mad":         Median Absolute Deviation
+     - "iqr":         Interquartile range
+     - "zscore":      Z-score
+     - "mod_zscore":  Modified Z-score
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # (1): Anomaly detection with standard deviation
+       # Access the dict of parameters
+       sd_param_dict = bstats.outlier_method["sd"].params
+
+       # Predict the anomalous cycle using standard dev method
+       # and the corresponding stats parameters
+       (SD_outlier_dV_index,
+        SD_min_limit_dV,
+        SD_max_limit_dV) = bstats.outlier_method["sd"].compute(
+           df_max_dV["max_diff"],
+           **sd_param_dict)
+
+       # (2): Anomaly detection with MAD
+       mad_param_dict = bstats.outlier_method["mad"].params
+
+       (MAD_outlier_index_dV,
+        MAD_min_limit_dV,
+        MAD_max_limit_dV) = bstats.outlier_method["mad"].compute(
+           df_max_dV["max_diff"],
+           **mad_param_dict)
+
+       # To update the statistical parameters or threshold
+       # Create a copy of the default dict parameter
+       mad_param_dict_const = bstats.outlier_method["mad"].params.copy()
+
+       # Update the dict value to be 1.4826
+       mad_param_dict_const["mad_factor"] = 1.4826
+
+       # Use the updated param_dict in the outlier method
+       (MAD_outlier_index_dV_const,
+        MAD_min_limit_dV_const,
+        MAD_max_limit_dV_const) = bstats.outlier_method["mad"].compute(
+           df_max_dV["max_diff"],
+           **mad_param_dict_const)
+
+.. py:function:: calculate_zscore(df_variable: pandas.Series | numpy.ndarray) -> pandas.Series | numpy.ndarray
+
+   Calculate the Z-score of the selected feature.
+
+   :param df_variable: Selected feature.
+   :type df_variable: pd.Series | np.ndarray
+
+   :returns: Z-score of selected feature.
+   :rtype: pd.Series|np.ndarray
+
+
+.. py:function:: calculate_feature_stats(df_variable: ArrayLike, new_col_name: str = None) -> pandas.DataFrame
+
+   Calculate descriptive statistics for a given feature.
+
+   This function computes the mean, minimum, maximum, and standard
+   deviation of the input variable. The results are returned as a
+   pandas DataFrame, optionally labeled with a custom column name.
+
+   :param df_variable: Input data series or
+                       array for which statistics are calculated.
+   :type df_variable: pd.Series | np.ndarray
+   :param new_col_name: Optional name for the resulting
+                        column in the output DataFrame. Defaults to None.
+   :type new_col_name: str, optional
+
+   :returns: DataFrame with statistics (max, min, mean, std)
+             as rows. If ``new_col_name`` is provided, the statistics are
+             stored under that column name.
+   :rtype: pd.DataFrame
+
+

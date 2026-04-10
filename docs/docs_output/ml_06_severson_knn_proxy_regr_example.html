@@ -1,0 +1,812 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="API Reference" href="autoapi/index.html"><link rel="prev" title="Example: Benchmarking Distance Based Method using Euclidean Distance" href="ml_05_severson_dbad_euclidean_example.html">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
+        <title>Example: Benchmarking K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics - osbad 1.4.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">osbad 1.4.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">osbad 1.4.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="doc_01_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="doc_02_dataset_overview.html">Datasets Guide</a><input aria-label="Toggle navigation of Datasets Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="ds_01_severson_dataset.html">MIT/Stanford Data-driven Prediction of Battery Cycle Life Dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ds_02_tohoku_dataset.html">Tohoku Dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="doc_03_models_overview.html">Models Guide</a><input aria-label="Toggle navigation of Models Guide" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ml_01_severson_iforest_baseline.html">Example (1): Baseline Isolation Forest without Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ml_02_severson_iforest_hyperparam_tuned.html">Example (2): Isolation Forest with Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ml_03_tohoku_autoencoder_baseline.html">Example (3): Baseline Autoencoder without Hyperparameter Tuning (Tohoku Dataset)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ml_04_tohoku_autoencoder_hyperparam_tuned.html">Example (4): Autoencoder with Hyperparameter Tuning (Tohoku Dataset)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ml_05_severson_dbad_euclidean_example.html">Example: Benchmarking Distance Based Method using Euclidean Distance</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Example: Benchmarking K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="autoapi/index.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="autoapi/osbad/index.html">osbad</a><input aria-label="Toggle navigation of osbad" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/config/index.html">osbad.config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/database/index.html">osbad.database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/dbad/index.html">osbad.dbad</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/hyperparam/index.html">osbad.hyperparam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/model/index.html">osbad.model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/modval/index.html">osbad.modval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/scaler/index.html">osbad.scaler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/stats/index.html">osbad.stats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/test_filepath/index.html">osbad.test_filepath</a></li>
+<li class="toctree-l3"><a class="reference internal" href="autoapi/osbad/viz/index.html">osbad.viz</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/ml_06_severson_knn_proxy_regr_example.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="example-benchmarking-k-nearest-neighbors-with-hyperparameter-tuning-using-proxy-evaluation-metrics">
+<h1>Example: Benchmarking K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics<a class="headerlink" href="#example-benchmarking-k-nearest-neighbors-with-hyperparameter-tuning-using-proxy-evaluation-metrics" title="Link to this heading">¶</a></h1>
+<p>This example illustrates how to leverage the capabilities of <strong>osbad</strong> for
+hyperparameter tuning in unsupervised anomaly detection models when <strong>no
+prior labeled training</strong> data is available. In such scenarios, traditional
+hyperparameter optimization methods based on transfer learning cannot be
+directly applied. Consequently, the objective function must be redefined
+because conventional outlier detection metrics, such as precision and recall,
+are not meaningful during the tuning process. To address this, a surrogate
+multivariate regression model is utilized to estimate model performance
+using alternative indicators like regression loss and inlier count score.
+These serve as practical substitutes in the absence of ground-truth labels.
+The underlying principle is that if the anomaly detection model effectively
+isolates outliers, the remaining inlier data should exhibit a more coherent
+structure, resulting in improved regression loss.</p>
+<p>The following example of running a hyperparameter tuning and anomaly detection
+pipeline is also provided as a notebook in
+<code class="docutils literal notranslate"><span class="pre">quick_start_tutorials/04_knn_hpt_proxy_regr.ipynb</span></code>.</p>
+<section id="step-1-load-libraries">
+<h2>Step-1: Load libraries<a class="headerlink" href="#step-1-load-libraries" title="Link to this heading">¶</a></h2>
+<p>Import the libraries into your local development environment, including the
+<code class="docutils literal notranslate"><span class="pre">osbad</span></code> library for benchmarking anomaly detection.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Path</span></code> is used for robust, cross-platform file paths.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">duckdb</span></code> is the embedded analytical database engine storing the dataset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fireducks.pandas</span> <span class="pre">as</span> <span class="pre">pd</span></code> gives you a pandas-compatible API;
+you can usually treat it like import pandas as pd.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">optuna</span></code> for automated hyperparameter optimization that uses efficient
+algorithms like Bayesian optimization to find the best parameter settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rcParams[&quot;text.usetex&quot;]</span> <span class="pre">=</span> <span class="pre">True</span></code> tells Matplotlib to render text via
+LaTeX. If you don’t have LaTeX installed, flip this to False.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bconf</span></code>: project config utilities (e.g., where to write artifacts).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BenchDB</span></code>: a thin layer around DuckDB that provides convenience loaders.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ModelRunner</span></code>, <code class="docutils literal notranslate"><span class="pre">hp</span></code>, <code class="docutils literal notranslate"><span class="pre">modval</span></code>: modeling, hyperparameters, and
+model validation helpers for benchmarking study in this project.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Standard library</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">pprint</span>
+
+  <span class="c1"># Third-party libraries</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">optuna</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">rcParams</span>
+
+  <span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;text.usetex&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="c1"># Custom osbad library for anomaly detection</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">osbad.config</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bconf</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">osbad.hyperparam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hp</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">osbad.modval</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">modval</span>
+  <span class="kn">import</span><span class="w"> </span><span class="nn">osbad.viz</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bviz</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">osbad.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">BenchDB</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">osbad.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelRunner</span>
+</pre></div>
+</div>
+</section>
+<section id="step-2-load-benchmarking-dataset">
+<h2>Step-2: Load Benchmarking Dataset<a class="headerlink" href="#step-2-load-benchmarking-dataset" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Pick a specific cell based on the <code class="docutils literal notranslate"><span class="pre">cell_index</span></code>, which identifies the
+experimental data corresponding to one unique cell.</p></li>
+<li><p>Create an artifacts folder for that cell, where you can save figures,
+tables, or model outputs related to this cell.</p></li>
+<li><p>Initialize <code class="docutils literal notranslate"><span class="pre">BenchDB</span></code> for the selected cell and path to the DuckDB file:
+<code class="docutils literal notranslate"><span class="pre">train_dataset_severson.db</span></code>.</p></li>
+<li><p>Loads all data related to <code class="docutils literal notranslate"><span class="pre">selected_cell_label</span></code> from the training
+partition.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the cell-ID from cell_inventory</span>
+<span class="n">selected_cell_label</span> <span class="o">=</span> <span class="s2">&quot;2017-05-12_5_4C-70per_3C_CH17&quot;</span>
+
+<span class="c1"># Create a subfolder to store fig output</span>
+<span class="c1"># corresponding to each cell-index</span>
+<span class="n">selected_cell_artifacts_dir</span> <span class="o">=</span> <span class="n">bconf</span><span class="o">.</span><span class="n">artifacts_output_dir</span><span class="p">(</span>
+    <span class="n">selected_cell_label</span><span class="p">)</span>
+
+  <span class="c1"># Path to the DuckDB file:</span>
+  <span class="c1"># &quot;train_dataset_severson.db&quot;</span>
+  <span class="n">db_filepath</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+      <span class="o">.</span><span class="n">parent</span>
+      <span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;database&quot;</span><span class="p">,</span><span class="s2">&quot;train_dataset_severson.db&quot;</span><span class="p">))</span>
+
+  <span class="c1"># Import the BenchDB class</span>
+  <span class="c1"># Load only the dataset based on the selected cell</span>
+  <span class="n">benchdb</span> <span class="o">=</span> <span class="n">BenchDB</span><span class="p">(</span>
+      <span class="n">db_filepath</span><span class="p">,</span>
+      <span class="n">selected_cell_label</span><span class="p">)</span>
+
+  <span class="c1"># load the benchmarking dataset</span>
+  <span class="n">df_selected_cell</span> <span class="o">=</span> <span class="n">benchdb</span><span class="o">.</span><span class="n">load_benchmark_dataset</span><span class="p">(</span>
+      <span class="n">dataset_type</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="step-3-load-the-features-db">
+<h2>Step-3: Load the Features DB<a class="headerlink" href="#step-3-load-the-features-db" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Load the features (e.g., <code class="docutils literal notranslate"><span class="pre">log_max_diff_dQ</span></code>, <code class="docutils literal notranslate"><span class="pre">log_max_diff_dV</span></code>) based
+on <code class="docutils literal notranslate"><span class="pre">selected_cell_label</span></code> in <code class="docutils literal notranslate"><span class="pre">BenchDB</span></code>.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define the filepath to ``train_features_severson.db``</span>
+<span class="c1"># DuckDB instance.</span>
+<span class="n">db_features_filepath</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">parent</span>
+    <span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;database&quot;</span><span class="p">,</span><span class="s2">&quot;train_features_severson.db&quot;</span><span class="p">))</span>
+
+<span class="c1"># Load only the training features dataset</span>
+<span class="n">df_features_per_cell</span> <span class="o">=</span> <span class="n">benchdb</span><span class="o">.</span><span class="n">load_features_db</span><span class="p">(</span>
+    <span class="n">db_features_filepath</span><span class="p">,</span>
+    <span class="n">dataset_type</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="step-4-hyperparameter-tuning-with-optuna-using-proxy-metrics">
+<h2>Step-4: Hyperparameter Tuning with Optuna using Proxy Metrics<a class="headerlink" href="#step-4-hyperparameter-tuning-with-optuna-using-proxy-metrics" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Define the search space for K-Nearest Neighbors hyperparameters:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">contamination</span></code>: Expected proportion of outliers (0.0 - 0.5)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_neighbors</span></code>: Number of nearest neighbors to consider when computing
+the anomaly score (2 - 50)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code>: Specifies how the anomaly score is calculated.
+Common options include:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">largest</span></code>: Distance to the farthest neighbor.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mean</span></code>: Average distance to all neighbors.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">median</span></code>: Median distance to neighbors.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">metric</span></code>: The distance metric used to compute neighbor distances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threshold</span></code>: Decision threshold for outlier probability (0.0 - 1.0)</p></li>
+</ul>
+</li>
+<li><p>Use Optuna’s TPE sampler to optimize for both proxy metrics (regression loss
+score and inlier count score)</p></li>
+<li><p>Run 100 trials to find the best hyperparameter configuration.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Update the HP config for max_samples depending on the cycle numbers</span>
+<span class="n">total_cycle_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+    <span class="n">df_selected_cell_without_labels</span><span class="p">[</span><span class="s2">&quot;cycle_index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+<span class="n">hp_config_knn</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;contamination&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">},</span>
+    <span class="s2">&quot;n_neighbors&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">},</span>
+    <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;largest&quot;</span><span class="p">,</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span><span class="s2">&quot;median&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;minkowski&quot;</span><span class="p">,</span><span class="s2">&quot;euclidean&quot;</span><span class="p">,</span><span class="s2">&quot;manhattan&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">knn_hp_config_filepath</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+        <span class="s2">&quot;machine_learning&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;hp_config_schema&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;severson_hp_config&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;knn_hp_config.json&quot;</span><span class="p">))</span>
+
+<span class="n">bconf</span><span class="o">.</span><span class="n">create_json_hp_config</span><span class="p">(</span>
+    <span class="n">knn_hp_config_filepath</span><span class="p">,</span>
+    <span class="n">hp_dict</span><span class="o">=</span><span class="n">hp_config_knn</span><span class="p">)</span>
+
+<span class="c1"># Reload the hp module to refresh in-memory variables</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">importlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">reload</span>
+<span class="n">reload</span><span class="p">(</span><span class="n">hp</span><span class="p">)</span>
+
+<span class="c1"># Instantiate an optuna study for knn model</span>
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">samplers</span><span class="o">.</span><span class="n">TPESampler</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">selected_feature_cols</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;cycle_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;log_max_diff_dQ&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;log_max_diff_dV&quot;</span><span class="p">)</span>
+
+<span class="n">knn_study</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">create_study</span><span class="p">(</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;knn_hyperparam&quot;</span><span class="p">,</span>
+    <span class="n">sampler</span><span class="o">=</span><span class="n">sampler</span><span class="p">,</span>
+    <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;minimize&quot;</span><span class="p">,</span><span class="s2">&quot;maximize&quot;</span><span class="p">])</span>
+
+<span class="n">knn_study</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">trial</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">objective</span><span class="p">(</span>
+        <span class="n">trial</span><span class="p">,</span>
+        <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;knn&quot;</span><span class="p">,</span>
+        <span class="n">df_feature_dataset</span><span class="o">=</span><span class="n">df_features_per_cell</span><span class="p">,</span>
+        <span class="n">selected_feature_cols</span><span class="o">=</span><span class="n">selected_feature_cols</span><span class="p">,</span>
+        <span class="n">selected_cell_label</span><span class="o">=</span><span class="n">selected_cell_label</span><span class="p">),</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you notice, there is no <code class="docutils literal notranslate"><span class="pre">df_benchmark_dataset</span></code> argument used in
+objective function. The optimization trials do not depend on the recall and
+precision, but instead on the proxy metrics which are designed to be
+calculated independent of the true labels.</p>
+</div>
+</section>
+<section id="step-5-aggregate-best-hyperparameters">
+<h2>Step-5: Aggregate Best Hyperparameters<a class="headerlink" href="#step-5-aggregate-best-hyperparameters" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Extract the optimal trade-off trails or best compromise solutions from the
+pareto optimal trials.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trade_off_trials_detection</span></code> method from the <code class="docutils literal notranslate"><span class="pre">hp</span></code> module uses frequency
+based approach to detect the best compromise trails (marked by green).</p></li>
+<li><p>Hyperparameters from these trails are aggregated using median values.</p></li>
+<li><p>Export the optimized hyperparameters to CSV for reproducibility.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">schema_knn</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;contamination&quot;</span><span class="p">:</span> <span class="s2">&quot;median&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n_neighbors&quot;</span><span class="p">:</span> <span class="s2">&quot;median_int&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="s2">&quot;mode&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="s2">&quot;median&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">trade_off_trials_list</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">trade_off_trials_detection</span><span class="p">(</span>
+    <span class="n">study</span><span class="o">=</span><span class="n">knn_study</span><span class="p">)</span>
+
+<span class="n">df_knn_hyperparam</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">aggregate_best_trials</span><span class="p">(</span>
+    <span class="n">trade_off_trials_list</span><span class="p">,</span>
+    <span class="n">cell_label</span><span class="o">=</span><span class="n">selected_cell_label</span><span class="p">,</span>
+    <span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;knn&quot;</span><span class="p">,</span>
+    <span class="n">schema</span><span class="o">=</span><span class="n">schema_knn</span><span class="p">)</span>
+
+<span class="n">hp</span><span class="o">.</span><span class="n">plot_proxy_pareto_front</span><span class="p">(</span>
+    <span class="n">knn_study</span><span class="p">,</span>
+    <span class="n">trade_off_trials_list</span><span class="p">,</span>
+    <span class="n">selected_cell_label</span><span class="p">,</span>
+    <span class="n">fig_title</span><span class="o">=</span><span class="s2">&quot;K Nearest Neighbors (KNN) Pareto Front&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># Export current hyperparameters to CSV</span>
+<span class="n">hyperparam_filepath</span> <span class="o">=</span>  <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+    <span class="s2">&quot;ml_02_knn_hyperparam_proxy_severson.csv&quot;</span><span class="p">)</span>
+
+<span class="n">hp</span><span class="o">.</span><span class="n">export_current_hyperparam</span><span class="p">(</span>
+    <span class="n">df_knn_hyperparam</span><span class="p">,</span>
+    <span class="n">selected_cell_label</span><span class="p">,</span>
+    <span class="n">export_csv_filepath</span><span class="o">=</span><span class="n">hyperparam_filepath</span><span class="p">,</span>
+    <span class="n">if_exists</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/k_nearest_neighbors_(knn)_pareto_front_2017-05-12_5_4C-70per_3C_CH17.png"><img alt="Pareto front from ``2017-05-12_5_4C-70per_3C_CH17``" class="align-center" src="_images/k_nearest_neighbors_%28knn%29_pareto_front_2017-05-12_5_4C-70per_3C_CH17.png" style="width: 600px; height: 500px;" />
+</a>
+<ul class="simple">
+<li><p>This figure illustrates the Pareto fronts obtained from Bayesian optimization
+performed to minimize the normalized regression loss score and maximize the
+normalized inlier count score for K-Nearest Neighbors using the severson
+dataset.</p></li>
+<li><p>The X-axis is the normalized regression loss score (regression loss between
+actual features and predicted features by a multivariate linear regression
+model for predicted inlier cycles/features by the unsupervised anomaly
+detection model for selected configuration).</p></li>
+<li><p>The Y-axis is the normalized inlier count score (ratio of predicted inlier
+cycle and total number of cycles).</p></li>
+<li><p>While the blue scattered points represent all the trials evaluated during
+the optimization process, the red dots denote the pareto optimal trials and
+green dot denotes the best compromise solution.</p></li>
+</ul>
+</section>
+<section id="step-6-train-model-with-best-hyperparameters">
+<h2>Step-6: Train Model with Best Hyperparameters<a class="headerlink" href="#step-6-train-model-with-best-hyperparameters" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Load the optimized hyperparameters from the CSV file.</p></li>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">ModelRunner</span></code> instance with the selected features.</p></li>
+<li><p>Train the KNN model using the best hyperparameters.</p></li>
+<li><p>Predict outlier probabilities and identify anomalous cycles.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load best trial parameters from CSV output</span>
+<span class="n">df_hyperparam_from_csv</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">hyperparam_filepath</span><span class="p">)</span>
+
+<span class="n">df_param_per_cell</span> <span class="o">=</span> <span class="n">df_hyperparam_from_csv</span><span class="p">[</span>
+    <span class="n">df_hyperparam_from_csv</span><span class="p">[</span><span class="s2">&quot;cell_index&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">selected_cell_label</span><span class="p">]</span>
+
+<span class="n">param_dict</span> <span class="o">=</span> <span class="n">df_param_per_cell</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<span class="n">pprint</span><span class="o">.</span><span class="n">pp</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span>
+
+<span class="c1"># Run the model with best trial parameters</span>
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">MODEL_CONFIG</span><span class="p">[</span><span class="s2">&quot;knn&quot;</span><span class="p">]</span>
+
+<span class="n">runner</span> <span class="o">=</span> <span class="n">ModelRunner</span><span class="p">(</span>
+    <span class="n">cell_label</span><span class="o">=</span><span class="n">selected_cell_label</span><span class="p">,</span>
+    <span class="n">df_input_features</span><span class="o">=</span><span class="n">df_merge_features</span><span class="p">,</span>
+    <span class="n">selected_feature_cols</span><span class="o">=</span><span class="n">selected_feature_cols</span>
+<span class="p">)</span>
+
+<span class="n">Xdata</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">create_model_x_input</span><span class="p">()</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">model_param</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">Xdata</span><span class="p">)</span>
+<span class="n">proba</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">Xdata</span><span class="p">)</span>
+
+<span class="p">(</span><span class="n">pred_outlier_indices</span><span class="p">,</span>
+<span class="n">pred_outlier_score</span><span class="p">)</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">pred_outlier_indices_from_proba</span><span class="p">(</span>
+    <span class="n">proba</span><span class="o">=</span><span class="n">proba</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="o">=</span><span class="n">param_dict</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">],</span>
+    <span class="n">outlier_col</span><span class="o">=</span><span class="n">cfg</span><span class="o">.</span><span class="n">proba_col</span>
+<span class="p">)</span>
+
+<span class="c1"># Get df_outliers_pred</span>
+<span class="n">df_outliers_pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_merge_features</span><span class="p">[</span>
+    <span class="n">df_merge_features</span><span class="p">[</span><span class="s2">&quot;cycle_index&quot;</span><span class="p">]</span>
+    <span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">pred_outlier_indices</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+<span class="n">df_outliers_pred</span><span class="p">[</span><span class="s2">&quot;outlier_prob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred_outlier_score</span>
+
+<span class="n">df_outliers_pred</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_features_per_cell</span><span class="p">[</span>
+  <span class="n">df_features_per_cell</span><span class="p">[</span><span class="s2">&quot;cycle_index&quot;</span><span class="p">]</span>
+  <span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">pred_outlier_indices</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+<span class="n">df_outliers_pred</span><span class="p">[</span><span class="s2">&quot;outlier_prob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred_outlier_score</span>
+</pre></div>
+</div>
+</section>
+<section id="step-8-predict-anomaly-score-map">
+<h2>Step-8: Predict Anomaly Score Map<a class="headerlink" href="#step-8-predict-anomaly-score-map" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Generate a 2D contour map showing the anomaly probability across the
+feature space.</p></li>
+<li><p>Highlight the predicted anomalous cycles.</p></li>
+<li><p>The map helps visualize which regions of the feature space are considered
+anomalous by the model.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">axplot</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">predict_anomaly_score_map</span><span class="p">(</span>
+  <span class="n">selected_model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+  <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;K Nearest Neighbors (KNN)&quot;</span><span class="p">,</span>
+  <span class="n">xoutliers</span><span class="o">=</span><span class="n">df_outliers_pred</span><span class="p">[</span><span class="s2">&quot;log_max_diff_dQ&quot;</span><span class="p">],</span>
+  <span class="n">youtliers</span><span class="o">=</span><span class="n">df_outliers_pred</span><span class="p">[</span><span class="s2">&quot;log_max_diff_dV&quot;</span><span class="p">],</span>
+  <span class="n">pred_outliers_index</span><span class="o">=</span><span class="n">pred_outlier_indices</span><span class="p">,</span>
+  <span class="n">threshold</span><span class="o">=</span><span class="n">param_dict</span><span class="p">[</span><span class="s2">&quot;threshold&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">axplot</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$&quot;</span><span class="p">,</span>
+    <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">axplot</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$&quot;</span><span class="p">,</span>
+    <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="n">output_fig_filename</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;knn_&quot;</span>
+    <span class="o">+</span> <span class="n">selected_cell_label</span>
+    <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+
+<span class="n">fig_output_path</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">selected_cell_artifacts_dir</span>
+    <span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">output_fig_filename</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+    <span class="n">fig_output_path</span><span class="p">,</span>
+    <span class="n">dpi</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+    <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/knn_2017-05-12_5_4C-70per_3C_CH17.png"><img alt="Anomaly score map from ``2017-05-12_5_4C-70per_3C_CH17``" class="align-center" src="_images/knn_2017-05-12_5_4C-70per_3C_CH17.png" style="width: 600px; height: 420px;" />
+</a>
+<p>The visualization illustrates the decision boundary and anomaly probability
+distribution in the two-dimensional feature space defined by:</p>
+<ul class="simple">
+<li><p><em>log(ΔQ_scaled,max,cyc)</em>: Represents the scaled change in maximum discharge
+capacity across cycles.</p></li>
+<li><p><em>log(ΔV_scaled,max,cyc)</em>: Represents the scaled change in maximum voltage
+across cycles.</p></li>
+</ul>
+<p><strong>Color Gradient Interpretation</strong></p>
+<ul class="simple">
+<li><p>Dark Blue Regions (outlier probability ≈ 0.0): Indicate normal operating
+conditions where cycles exhibit typical capacity and voltage change patterns.</p></li>
+<li><p>Light Blue to White Regions (outlier probability ≈ 0.2–0.5): Transition zones
+where the KNN model begins to detect deviations from expected behavior.</p></li>
+<li><p>Orange to Red Regions (outlier probability ≈ 0.6–0.8): Areas with moderate
+anomaly likelihood, suggesting unusual combinations of capacity and voltage
+changes.</p></li>
+<li><p>Dark Red Regions (outlier probability ≈ 1.0): High-confidence anomaly zones
+where cycles are strongly classified as outliers.</p></li>
+</ul>
+<p><strong>Decision Boundary</strong></p>
+<ul class="simple">
+<li><p>The dashed black contour represents the decision threshold separating normal
+cycles from anomalous ones based on the KNN distance metric.</p></li>
+</ul>
+<p><strong>Predicted Normal vs Anomalous Cycles</strong></p>
+<ul class="simple">
+<li><p>Yellow stars mark the detected anomalous cycles at indices 0, 40, 147, and
+148, as annotated in the legend box. The majority of normal cycles cluster
+in the central dark-blue region, indicating stable degradation behavior.</p></li>
+</ul>
+<p><strong>Key Insight</strong></p>
+<ul class="simple">
+<li><p>This visualization demonstrates how the KNN model leverages local density and
+distance-based metrics to distinguish anomalous capacity-voltage change
+patterns from normal distribution. The anomalies detected are positioned far
+from the dense cluster of normal cycles, highlighting their deviation in
+both engineered features.</p></li>
+</ul>
+</section>
+<section id="step-9-model-performance-evaluation">
+<h2>Step-9: Model Performance Evaluation<a class="headerlink" href="#step-9-model-performance-evaluation" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The optimal hyperparameters are evaluated against the true labels using
+standard anomaly detection metrics for a post hoc evaluation and comparison.</p></li>
+<li><p>Generate a confusion matrix to visualize True Positives, False Positives,
+True Negatives, and False Negatives.</p></li>
+<li><p>Calculate performance metrics: precision, recall, F1-score, and accuracy.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">df_eval_outlier</span> <span class="o">=</span> <span class="n">modval</span><span class="o">.</span><span class="n">evaluate_pred_outliers</span><span class="p">(</span>
+  <span class="n">df_benchmark</span><span class="o">=</span><span class="n">df_selected_cell</span><span class="p">,</span>
+  <span class="n">outlier_cycle_index</span><span class="o">=</span><span class="n">pred_outlier_indices</span><span class="p">)</span>
+
+<span class="c1"># confusion matrix</span>
+<span class="n">axplot</span> <span class="o">=</span> <span class="n">modval</span><span class="o">.</span><span class="n">generate_confusion_matrix</span><span class="p">(</span>
+  <span class="n">y_true</span><span class="o">=</span><span class="n">df_eval_outlier</span><span class="p">[</span><span class="s2">&quot;true_outlier&quot;</span><span class="p">],</span>
+  <span class="n">y_pred</span><span class="o">=</span><span class="n">df_eval_outlier</span><span class="p">[</span><span class="s2">&quot;pred_outlier&quot;</span><span class="p">])</span>
+
+<span class="n">axplot</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+    <span class="s2">&quot;K Nearest Neighbors (KNN)&quot;</span><span class="p">,</span>
+    <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+<span class="n">output_fig_filename</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;conf_matrix_knn_&quot;</span>
+    <span class="o">+</span> <span class="n">selected_cell_label</span>
+    <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+
+<span class="n">fig_output_path</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">selected_cell_artifacts_dir</span>
+    <span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">output_fig_filename</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+    <span class="n">fig_output_path</span><span class="p">,</span>
+    <span class="n">dpi</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+    <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="c1"># evaluate model performance</span>
+<span class="n">df_current_eval_metrics</span> <span class="o">=</span> <span class="n">modval</span><span class="o">.</span><span class="n">eval_model_performance</span><span class="p">(</span>
+  <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;knn&quot;</span><span class="p">,</span>
+  <span class="n">selected_cell_label</span><span class="o">=</span><span class="n">selected_cell_label</span><span class="p">,</span>
+  <span class="n">df_eval_outliers</span><span class="o">=</span><span class="n">df_eval_outlier</span><span class="p">)</span>
+
+<span class="c1"># Export model performance metrics to CSV output</span>
+<span class="n">hyperparam_eval_filepath</span> <span class="o">=</span>  <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+  <span class="s2">&quot;eval_metrics_hp_single_cell_severson.csv&quot;</span><span class="p">)</span>
+
+<span class="n">hp</span><span class="o">.</span><span class="n">export_current_model_metrics</span><span class="p">(</span>
+    <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;knn&quot;</span><span class="p">,</span>
+    <span class="n">selected_cell_label</span><span class="o">=</span><span class="n">selected_cell_label</span><span class="p">,</span>
+    <span class="n">df_current_eval_metrics</span><span class="o">=</span><span class="n">df_current_eval_metrics</span><span class="p">,</span>
+    <span class="n">export_csv_filepath</span><span class="o">=</span><span class="n">hyperparam_eval_filepath</span><span class="p">,</span>
+    <span class="n">if_exists</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="_images/conf_matrix_knn_2017-05-12_5_4C-70per_3C_CH17.png"><img alt="Confusion matrix from ``2017-05-12_5_4C-70per_3C_CH17``" class="align-center" src="_images/conf_matrix_knn_2017-05-12_5_4C-70per_3C_CH17.png" style="width: 550px; height: 450px;" />
+</a>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="autoapi/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">API Reference</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="ml_05_severson_dbad_euclidean_example.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Example: Benchmarking Distance Based Method using Euclidean Distance</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Mei-Chin Pang
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Example: Benchmarking K-Nearest Neighbors with Hyperparameter Tuning using Proxy Evaluation Metrics</a><ul>
+<li><a class="reference internal" href="#step-1-load-libraries">Step-1: Load libraries</a></li>
+<li><a class="reference internal" href="#step-2-load-benchmarking-dataset">Step-2: Load Benchmarking Dataset</a></li>
+<li><a class="reference internal" href="#step-3-load-the-features-db">Step-3: Load the Features DB</a></li>
+<li><a class="reference internal" href="#step-4-hyperparameter-tuning-with-optuna-using-proxy-metrics">Step-4: Hyperparameter Tuning with Optuna using Proxy Metrics</a></li>
+<li><a class="reference internal" href="#step-5-aggregate-best-hyperparameters">Step-5: Aggregate Best Hyperparameters</a></li>
+<li><a class="reference internal" href="#step-6-train-model-with-best-hyperparameters">Step-6: Train Model with Best Hyperparameters</a></li>
+<li><a class="reference internal" href="#step-8-predict-anomaly-score-map">Step-8: Predict Anomaly Score Map</a></li>
+<li><a class="reference internal" href="#step-9-model-performance-evaluation">Step-9: Model Performance Evaluation</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=9172181d"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

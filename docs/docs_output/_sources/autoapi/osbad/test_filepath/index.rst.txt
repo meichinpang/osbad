@@ -1,0 +1,20 @@
+osbad.test_filepath
+===================
+
+.. py:module:: osbad.test_filepath
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:function:: find_repo_root(marker)
+
+   Find the project root directory.
+
+
+.. py:data:: repo_root_path
+

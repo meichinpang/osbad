@@ -1,0 +1,553 @@
+osbad.viz
+=========
+
+.. py:module:: osbad.viz
+
+.. autoapi-nested-parse::
+
+   The methods outlined in this module visualize cycle data with and without
+   anomalies.
+
+   .. code-block::
+
+       import osbad.viz as bviz
+
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:data:: ROOT_DIR
+
+.. py:data:: PATH_TO_ENV_VARIABLE
+
+.. py:data:: USE_LATEX
+
+.. py:data:: USE_LATEX
+   :value: True
+
+
+.. py:function:: plot_cycle_data(xseries: pandas.Series, yseries: pandas.Series, cycle_index_series: pandas.Series, xoutlier: pandas.Series = None, youtlier: pandas.Series = None) -> matplotlib.axes._axes.Axes
+
+   Create scatter plot for the cycling data including colormap, colorbar and
+   the option to plot outliers.
+
+   :param xseries: Data for x-axis (e.g. capacity data);
+   :type xseries: pd.Series
+   :param yseries: Data for y-axis (e.g. voltage data);
+   :type yseries: pd.Series
+   :param cycle_index_series: Data for cycle count;
+   :type cycle_index_series: pd.Series
+   :param xoutlier: Anomalous x-data. Defaults to None.
+   :type xoutlier: pd.Series, optional
+   :param youtlier: Anomalous y-data. Defaults to None.
+   :type youtlier: pd.Series, optional
+
+   :returns: Matplotlib axes for additional external
+             customization.
+   :rtype: mpl.axes._axes.Axes
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Anomalous cycle has label = 1
+       # Normal cycle has label = 0
+       # true outliers from benchmarking dataset
+       df_true_outlier = df_selected_cell_no_label[
+           df_selected_cell_no_label.cycle_index.isin(
+               true_outlier_cycle_index)]
+
+       # Plot normal cycles with true outliers
+       axplot = bviz.plot_cycle_data(
+           xseries=df_selected_cell_no_label["discharge_capacity"],
+           yseries=df_selected_cell_no_label["voltage"],
+           cycle_index_series=df_selected_cell_no_label["cycle_index"],
+           xoutlier=df_true_outlier["discharge_capacity"],
+           youtlier=df_true_outlier["voltage"])
+
+       axplot.set_xlabel(
+           r"Discharge capacity [Ah]",
+           fontsize=14)
+       axplot.set_ylabel(
+           r"Discharge voltage [V]",
+           fontsize=14)
+
+       axplot.set_title(
+           f"Cell {selected_cell_label}",
+           fontsize=16)
+
+       plt.show()
+
+
+.. py:function:: hist_boxplot(df_variable: Union[pandas.Series, numpy.ndarray]) -> matplotlib.axes._axes.Axes
+
+   Plot a combined boxplot and histogram of a feature.
+
+   This function generates a two-part visualization for a given
+   feature: a boxplot on the top (to show distribution, median,
+   and potential outliers) and a histogram on the bottom (to show
+   frequency distribution). Both plots share the same x-axis for
+   easier comparison.
+
+   :param df_variable: Input feature
+                       values as a pandas Series or NumPy array.
+   :type df_variable: Union[pd.Series, np.ndarray]
+
+   :returns: Matplotlib histogram axes. This allows
+             additional external customization, such as setting labels or
+             titles.
+   :rtype: mpl.axes._axes.Axes
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Plot the histogram and boxplot of the scaled data
+       ax_hist = bviz.hist_boxplot(
+           df_var=df_capacity_med_scaled["scaled_discharge_capacity"])
+
+       ax_hist.set_xlabel(
+           r"Discharge capacity, $Q_\textrm{dis}$ [Ah]",
+           fontsize=12)
+       ax_hist.set_ylabel(
+           r"Count",
+           fontsize=12)
+
+       plt.show()
+
+
+.. py:function:: scatterhist(xseries: pandas.Series, yseries: pandas.Series, cycle_index_series: pandas.Series, selected_cell_label=None) -> matplotlib.axes._axes.Axes
+
+   Plot a scatter plot with marginal histograms for two features.
+
+   This function creates a joint visualization consisting of:
+       - A central scatter plot of two features, color-coded by cycle index.
+       - A histogram of the x-series above the scatter plot.
+       - A histogram of the y-series to the right of the scatter plot.
+
+   The marginal histograms provide additional insight into the
+   distributions of each variable, while the scatter plot shows
+   their relationship.
+
+   :param xseries: Data for the x-axis.
+   :type xseries: pd.Series
+   :param yseries: Data for the y-axis.
+   :type yseries: pd.Series
+   :param cycle_index_series: Series of cycle indices used
+                              for color mapping in the scatter plot.
+   :type cycle_index_series: pd.Series
+   :param selected_cell_label: Label for the cell,
+                               displayed as the plot title. Defaults to None.
+   :type selected_cell_label: str, optional
+
+   :returns: Matplotlib scatter plot axes. Enables
+             further customization (e.g., labels, annotations).
+   :rtype: mpl.axes._axes.Axes
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       axplot = bviz.scatterhist(
+           xseries=df_selected_cell_no_label["discharge_capacity"],
+           yseries=df_selected_cell_no_label["voltage"],
+           cycle_index_series=df_selected_cell_no_label["cycle_index"],
+           selected_cell_label=selected_cell_label)
+
+       axplot.set_xlabel(
+           r"Capacity, $Q_\textrm{dis}$ [Ah]",
+           fontsize=12)
+       axplot.set_ylabel(
+           r"Voltage, $V_\textrm{dis}$ [V]",
+           fontsize=12)
+
+       plt.show()
+
+
+.. py:function:: plot_explain_scaling(df_scaled_capacity: pandas.DataFrame, df_scaled_voltage: pandas.DataFrame, selected_cell_label: str, xoutlier: pandas.Series = None, youtlier: pandas.Series = None)
+
+   Visualize statistical scaling transformations for a cell's cycles.
+
+   This function creates a 2×3 grid of subplots to illustrate how scaling
+   and statistical feature transformations are applied to cycling data.
+   It plots original and scaled capacity-voltage curves, highlights detected
+   outliers, and visualizes derived features such as median-square, IQR,
+   and median/IQR ratio. A shared colorbar indicates cycle progression.
+
+   :param df_scaled_capacity: DataFrame containing cycle-based
+                              capacity features. Must include the following columns:
+                              ``["discharge_capacity", "scaled_discharge_capacity",
+                              "median_square", "IQR", "median_square_IQR_ratio",
+                              "cycle_index"]``.
+   :type df_scaled_capacity: pd.DataFrame
+   :param df_scaled_voltage: DataFrame containing cycle-based
+                             voltage features. Must include the following columns:
+                             ``["voltage", "scaled_voltage", "median_square", "IQR",
+                             "median_square_IQR_ratio"]``.
+   :type df_scaled_voltage: pd.DataFrame
+   :param selected_cell_label: Identifier of the evaluated cell, used
+                               for titling the plots and naming the output file.
+   :type selected_cell_label: str
+   :param xoutlier: X-coordinates of outlier points to
+                    highlight in the voltage-capacity plot. Defaults to None.
+   :type xoutlier: pd.Series, optional
+   :param youtlier: Y-coordinates of outlier points to
+                    highlight in the voltage-capacity plot. Defaults to None.
+   :type youtlier: pd.Series, optional
+
+   :returns: The function saves the resulting figure as a PNG file and
+             displays it.
+   :rtype: None
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Path to DuckDB file
+       db_filepath = str(
+           Path.cwd()
+           .parent
+           .joinpath("database","train_dataset_severson.db"))
+
+       selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+
+       # Import the BenchDB class
+       # Load only the dataset based on the selected cell
+       benchdb = BenchDB(
+           db_filepath,
+           selected_cell_label)
+
+       # Extract true outliers cycle index from benchmarking dataset
+       true_outlier_cycle_index = benchdb.get_true_outlier_cycle_index(
+           df_selected_cell)
+
+       # Anomalous cycle has label = 1
+       # Normal cycle has label = 0
+       # true outliers from benchmarking dataset
+       df_true_outlier = df_selected_cell_without_labels[
+           df_selected_cell_without_labels.cycle_index.isin(
+               true_outlier_cycle_index)]
+
+       # Instantiate the CycleScaling class
+       scaler = CycleScaling(
+           df_selected_cell=df_selected_cell_without_labels)
+
+       # Implement median IQR scaling on the discharge capacity data
+       df_capacity_med_scaled = scaler.median_IQR_scaling(
+           variable="discharge_capacity",
+           validate=True)
+
+       # Implement median IQR scaling on the discharge voltage data
+       df_voltage_med_scaled = scaler.median_IQR_scaling(
+           variable="voltage",
+           validate=True)
+
+       bviz.plot_explain_scaling(
+           df_scaled_capacity=df_capacity_med_scaled,
+           df_scaled_voltage=df_voltage_med_scaled,
+           extracted_cell_label=selected_cell_label,
+           xoutlier=df_true_outlier["discharge_capacity"],
+           youtlier=df_true_outlier["voltage"]
+       )
+
+   .. note::
+
+       - The plots include:
+           1. Raw capacity-voltage curve.
+           2. Scaled capacity-voltage curve.
+           3. Capacity-voltage curve with detected outliers.
+           4. Median-square transformation.
+           5. Interquartile range (IQR).
+           6. Median/IQR ratio.
+       - All scatter plots are color-coded by ``cycle_index`` using a
+         shared colorbar.
+       - Figures are saved under ``fig_output/`` with a filename based on
+         the cell label.
+
+
+.. py:function:: compare_hist_limits(df_variable, df_norm_variable, upper_limit, lower_limit)
+
+.. py:function:: plot_quantiles(xdata: pandas.Series | numpy.ndarray, ax: matplotlib.axes._axes.Axes, fit=False, validate=False) -> matplotlib.axes._axes.Axes
+
+   Adapt the probplot method from scipy stats to create the probability plot
+   of a selected feature so that the feature distribution can be
+   compared to the theoretical quantiles of a normal distribution.
+
+   :param xdata: Selected feature.
+   :type xdata: pd.Series | np.ndarray
+   :param ax: Matplotlib axes from a subplot.
+   :type ax: mpl.axes._axes.Axes
+   :param fit: If True, create a straight line fit through the
+               probability plot. Defaults to False.
+   :type fit: bool, optional
+   :param validate: If True, compare adapted visualization
+                    method with scipy's implementation.
+                    Defaults to False.
+   :type validate: bool, optional
+
+   :returns: Matplotlib axes for additional external
+             customization.
+   :rtype: mpl.axes._axes.Axes
+
+   .. Note::
+
+       The straight dotted line in the probability plot indicates a perfect
+       fit to the normal distribution. If most data points fall approximately
+       along the straight line, it implies that the feature are consistent
+       with the normal distribution. Anomalies would appear as points far
+       away from the main cluster and the straight line fit. If points
+       deviate significantly in the tails, this suggests heavier tails
+       compared to the theoretical normal distribution.
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 6))
+
+       ax1 = bviz.plot_quantiles(
+           xdata=df_max_dV["max_diff"],
+           ax=ax1,
+           fit=True,
+           validate=False)
+
+       ax1.set_title(
+           "Normality check before removing outliers")
+
+       ax2 = bviz.plot_quantiles(
+           xdata=df_max_dV_2nd_iter["max_diff"],
+           ax=ax2,
+           fit=True,
+           validate=False)
+
+       ax2.set_title(
+           "Normality check after removing detected outliers")
+
+       plt.show()
+
+
+.. py:function:: plot_histogram_with_distribution_fit(df_variable: Union[pandas.Series, numpy.ndarray], method='norm') -> matplotlib.axes._axes.Axes
+
+   Plot a histogram of feature values with fitted distribution overlay.
+
+   This function visualizes the distribution of a selected feature by
+   plotting its histogram and overlaying a fitted probability density
+   function (PDF). The feature can be fitted with either a normal or
+   lognormal distribution, based on the ``method`` argument.
+
+   :param df_variable: Input feature data.
+   :type df_variable: pd.Series | np.ndarray
+   :param method: Distribution type for fitting. Must be:
+
+                  - ``norm``: Fit using ``scipy.stats.norm.fit`` and overlay a
+                    normal distribution.
+                  - ``lognorm``: Fit using ``scipy.stats.lognorm.fit`` and
+                    overlay a lognormal distribution. Defaults to ``"norm"``.
+   :type method: str, optional
+
+   :returns: Matplotlib axes object containing the
+             histogram and fitted distribution plot. Can be customized
+             further externally.
+   :rtype: mpl.axes._axes.Axes
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Plot with normal fit
+       axplot = bviz.plot_histogram_with_distribution_fit(
+           df_variable=df_max_dV_2nd_iter["max_diff"],
+           method="norm")
+
+       axplot.set_xlabel(
+           r"$\Delta V_\textrm{scaled,max,cyc}\;\textrm{[V]}$",
+           fontsize=12)
+
+       axplot.set_ylabel('Probability', fontsize=12)
+
+       plt.show()
+
+       # Plot with lognormal fit
+       axplot = bviz.plot_histogram_with_distribution_fit(
+           df_variable=np.array(df_max_dQ_2nd_iter["max_diff"]),
+           method="lognorm")
+
+       axplot.set_xlabel(
+           r"$\Delta Q_\textrm{scaled,max,cyc}\;\textrm{[V]}$",
+           fontsize=12)
+
+       axplot.set_ylabel('Probability', fontsize=12)
+
+       plt.show()
+
+   .. note::
+
+       - Histogram uses ``bins="auto"`` for automatic bin width
+         selection, balancing performance across distributions.
+       - The histogram is normalized (``density=True``) so that the
+         total area integrates to 1, matching the fitted PDF.
+       - For ``"norm"`` fitting, see ``scipy.stats.norm.fit``.
+       - For ``"lognorm"`` fitting, see ``scipy.stats.lognorm.fit``.
+
+
+.. py:function:: calculate_bubble_size_ratio(df_variable: pandas.Series | numpy.ndarray) -> pandas.Series
+
+   Calculate the bubble size of the feature in the bubble plot depending
+   on the anomaly score by using the feature standardization method.
+
+   :param df_variable: Selected feature.
+   :type df_variable: pd.Series | np.ndarray
+
+   :returns: Calculated bubble size of the feature.
+   :rtype: pd.Series
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       df_bubble_size_dQ = bviz.calculate_bubble_size_ratio(
+           df_variable=df_max_dQ["max_diff_dQ"])
+
+       df_bubble_size_dV = bviz.calculate_bubble_size_ratio(
+           df_variable=df_max_dV["max_diff"])
+
+
+.. py:function:: plot_bubble_chart(xseries: pandas.Series, yseries: pandas.Series, bubble_size: numpy.ndarray | pandas.Series, unique_cycle_count: numpy.ndarray | pandas.Series = None, cycle_outlier_idx_label: numpy.ndarray = None, square_grid: bool = False) -> matplotlib.axes._axes.Axes
+
+   Plot the bubble chart of each feature with scalable bubble size ratio
+   depending on the anomaly score.
+
+   :param xseries: Data to be plotted on the x-axis of the bubble chart.
+   :type xseries: pd.Series
+   :param yseries: Data to be plotted on the y-axis of the bubble chart.
+   :type yseries: pd.Series
+   :param bubble_size: Calculated bubble size depending on the anomaly score.
+   :type bubble_size: np.ndarray|pd.Series
+   :param unique_cycle_count: Unique cycle count of the selected cell. Defaults to None.
+   :type unique_cycle_count: np.ndarray|pd.Series, optional
+   :param cycle_outlier_idx_label: The index of anomalous cycles. Defaults to None.
+   :type cycle_outlier_idx_label: np.ndarray, optional
+   :param square_grid: Define square grid with equal distance for x-axis and y-axis.
+                       Defaults to False.
+   :type square_grid: bool, optional
+
+   :returns: Matplotlib axes for additional external
+             customization.
+   :rtype: mpl.axes._axes.Axes
+
+   .. code-block::
+
+       # Plot the bubble chart and label the outliers
+       axplot = bviz.plot_bubble_chart(
+           xseries=df_features_per_cell["log_max_diff_dQ"],
+           yseries=df_features_per_cell["log_max_diff_dV"],
+           bubble_size=bubble_size,
+           unique_cycle_count=unique_cycle_count,
+           cycle_outlier_idx_label=true_outlier_cycle_index,
+           square_grid=True)
+
+       axplot.set_title(
+           f"Cell {selected_cell_label}", fontsize=13)
+
+       axplot.set_xlabel(
+           r"$\log(\Delta Q_\textrm{scaled,max,cyc)}\;\textrm{[Ah]}$",
+           fontsize=12)
+       axplot.set_ylabel(
+           r"$\log(\Delta V_\textrm{scaled,max,cyc})\;\textrm{[V]}$",
+           fontsize=12)
+
+       output_fig_filename = (
+           "log_bubble_plot_"
+           + selected_cell_label
+           + ".png")
+
+       fig_output_path = (
+           selected_cell_artifacts_dir.joinpath(output_fig_filename))
+
+       plt.savefig(
+           fig_output_path,
+           dpi=200,
+           bbox_inches="tight")
+
+       plt.show()
+
+
+.. py:function:: plot_multiple_outlier_cycles(df_selected_cell: pandas.DataFrame, potential_outlier_cycles: list, selected_cell_label: str) -> None
+
+   Plot and annotate multiple potential outlier cycles.
+
+   This function creates a grid of subplots, each highlighting one of
+   the potential outlier cycles from the given cell dataset. Cycling
+   data for all cycles is shown with a colormap, and the specified
+   outlier cycles are annotated with text boxes. A shared colorbar
+   indicates the cycle index range. The figure is saved to the cell’s
+   artifacts directory and displayed interactively.
+
+   :param df_selected_cell: Cycling dataset for the cell,
+                            containing ``discharge_capacity``, ``voltage`` and ``cycle_index``.
+   :type df_selected_cell: pd.DataFrame
+   :param potential_outlier_cycles: List of cycle indices to be
+                                    highlighted as potential outliers.
+   :type potential_outlier_cycles: list
+   :param selected_cell_label: Identifier of the evaluated cell, used
+                               in the plot title and output filename.
+   :type selected_cell_label: str
+
+   :returns: The function saves and displays the generated plot.
+   :rtype: None
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Get the cell-ID from cell_inventory
+       selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+
+       bviz.plot_multiple_outliers(
+           df_selected_cell,
+           potential_outlier_cycles= [0, 40, 147, 148],
+           selected_cell_label=selected_cell_label)
+
+
+.. py:function:: plot_single_outlier_cycle(df_selected_cell: pandas.DataFrame, selected_cycle_index: int, selected_cell_label: str)
+
+   Plot and annotate a single cycle as a potential outlier.
+
+   This function visualizes the voltage vs. discharge capacity for the
+   selected cell and highlights one cycle specified by its cycle index.
+   The chosen cycle is annotated as a potential outlier on the plot.
+   The figure is saved to the artifacts directory for the selected cell
+   and displayed interactively.
+
+   :param df_selected_cell: Cycling dataset for the cell,
+                            containing ``discharge_capacity``, ``voltage`` and
+                            ``cycle index``.
+   :type df_selected_cell: pd.DataFrame
+   :param selected_cycle_index: Cycle index to highlight as a
+                                potential outlier.
+   :type selected_cycle_index: int
+   :param selected_cell_label: Identifier of the evaluated cell,
+                               used in the plot title and output filename.
+   :type selected_cell_label: str
+
+   :returns: The function saves and displays the generated plot.
+   :rtype: None
+
+   .. rubric:: Example
+
+   .. code-block::
+
+       # Get the cell-ID from cell_inventory
+       selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+
+       bviz.plot_single_outlier(
+           df_selected_cell,
+           selected_cycle_index=147,
+           selected_cell_label=selected_cell_label)
+
+

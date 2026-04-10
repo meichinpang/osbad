@@ -1,0 +1,136 @@
+osbad.scaler
+============
+
+.. py:module:: osbad.scaler
+
+.. autoapi-nested-parse::
+
+   The methods outlined in this module implement statistical feature
+   transformations before passing the input features into the anomaly detection
+   methods in this benchmarking study.
+
+
+   .. code-block::
+
+       from osbad.scaler import CycleScaling
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:class:: CycleScaling(df_selected_cell: pandas.DataFrame)
+
+   Implement statistical feature transformation methods on the selected
+   dataframe.
+
+   .. code-block::
+
+       # Only select the relevant features for the models while excluding
+       # the true labels from the benchmarking dataset.
+       df_selected_cell_without_labels = df_selected_cell[
+           ["cell_index",
+            "cycle_index",
+            "discharge_capacity",
+            "voltage"]].reset_index(drop=True)
+
+       # Instantiate the CycleScaling class for dataset without labels
+       scaler = CycleScaling(
+           df_selected_cell=df_selected_cell_without_labels)
+
+   .. note::
+
+       True labels are stored in the dataframe as
+       ``df_selected_cell["outlier"]``.
+
+
+   .. py:method:: median_IQR_scaling(variable: str, validate: bool = False) -> pandas.DataFrame
+
+      Implement median-IQR-scaling on the selected feature from the
+      dataframe to help with the marginal histogram separation of
+      abnormal cycles from normal cycles.
+
+      :param variable: Variable or feature to implement with the
+                       median-IQR-scaling method.
+      :type variable: str
+      :param validate: Validate and visually inspect if the
+                       scaling are performed correctly.
+                       If True, this method will return
+                       additional columns with intermediate
+                       calculation step results.
+                       Defaults to False.
+      :type validate: bool, optional
+
+      :returns: Scaled variable with the corresponding cycle index.
+      :rtype: pd.DataFrame
+
+      Example::
+
+          # Instantiate the CycleScaling class
+          scaler = CycleScaling(
+              df_selected_cell=df_selected_cell_without_labels)
+
+          # Implement median IQR scaling on the discharge capacity data
+          df_capacity_med_scaled = scaler.median_IQR_scaling(
+              variable="discharge_capacity",
+              validate=True)
+
+
+
+   .. py:method:: calculate_max_diff_per_cycle(df_scaled: pandas.DataFrame, variable_name: str) -> pandas.DataFrame
+
+      Calculate the maximum feature difference per cycle to transform
+      collective anomalies of a given cycle into cycle-wise point anomalies.
+      If continuous abnormal voltage and current measurements are recorded
+      in a cycle, the specific cycle will be labelled as an anomalous cycle.
+
+      :param df_scaled: The dataframe with scaled feature.
+      :type df_scaled: pd.DataFrame
+      :param variable_name: Name of the feature or variable in the
+                            dataframe.
+      :type variable_name: str
+
+      :returns: Maximum feature difference per cycle with the
+                corresponding cycle index.
+      :rtype: pd.DataFrame
+
+      .. Note::
+
+          While the cycle index at the beginning may be the same as the
+          natural index of the dataframe, do not use the natural index of
+          the dataframe to label the cycle number. This is because the
+          natural index may change if some anomalous cycless are removed
+          from the dataframe.
+
+      Example::
+
+          # maximum scaled capacity difference per cycle
+          df_max_dQ = scaler.calculate_max_diff_per_cycle(
+              df_scaled=df_capacity_med_scaled,
+              variable_name="scaled_discharge_capacity")
+
+          # maximum scaled voltage difference per cycle
+          df_max_dV = scaler.calculate_max_diff_per_cycle(
+              df_scaled=df_voltage_med_scaled,
+              variable_name="scaled_voltage")
+
+
+
+   .. py:method:: calculate_max_feature_derivative_per_cycle(Xfeature: pandas.Series, Yfeature: pandas.Series, cycle_index: pandas.Series) -> pandas.DataFrame
+
+      Calculate the derivative of Yfeature and Xfeature (dYdX)
+
+      :param Xfeature: Feature to be considered as denominator.
+      :type Xfeature: pd.Series
+      :param Yfeature: Feature to be considered as numerator.
+      :type Yfeature: pd.Series
+      :param cycle_index: Cycle index of selected cell.
+      :type cycle_index: pd.Series
+
+      :returns: Calculate max feature derivative (dYdX) per cycle.
+      :rtype: pd.DataFrame
+
+
+

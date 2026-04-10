@@ -1,0 +1,291 @@
+osbad.model
+===========
+
+.. py:module:: osbad.model
+
+.. autoapi-nested-parse::
+
+   Utilities for anomaly detection benchmarking on battery cell data.
+
+   This module provides the :class:`ModelRunner` class to orchestrate data
+   preparation, prediction, evaluation, and visualization for a single cell.
+   It supports several PyOD models via the :data:`PyODModelType` type alias
+   and produces publication-ready figures saved per cell in an artifacts
+   directory.
+
+   Key features:
+       - ``create_model_x_input``: Extracts selected feature columns from the
+         input DataFrame and stores them as ``self.Xdata``.
+       - ``pred_outlier_indices_from_proba``: Identifies indices of predicted
+         outliers based on probability outputs and a decision threshold.
+       - ``evaluate_indices``: Compares predicted outliers against benchmark
+         labels and computes recall and precision scores.
+       - ``create_2d_mesh_grid``: Builds a 2D mesh grid from the first two
+         features of ``self.Xdata`` for plotting decision surfaces.
+       - ``predict_anomaly_score_map``: Fits a PyOD model, visualizes anomaly
+         probabilities with a decision boundary, highlights predicted outliers,
+         and saves the resulting figure to the cell’s artifact directory.
+
+   .. code-block::
+
+       from osbad.model import ModelRunner
+
+
+
+
+
+
+
+Module Contents
+---------------
+
+.. py:data:: ROOT_DIR
+
+.. py:data:: PATH_TO_ENV_VARIABLE
+
+.. py:data:: USE_LATEX
+
+.. py:data:: USE_LATEX
+   :value: True
+
+
+.. py:data:: SELECTED_FEATURE_COLS
+   :value: ('log_max_diff_dQ', 'log_max_diff_dV')
+
+
+.. py:data:: PyODModelType
+
+   Type alias for supported PyOD anomaly detection models.
+
+   This alias groups together the most commonly used PyOD estimators for
+   outlier detection. It allows functions and methods to accept any of
+   these model types without explicitly listing each one in the type
+   annotations.
+
+   Models included:
+       - IForest (Isolation Forest)
+       - KNN (k-Nearest Neighbors)
+       - GMM (Gaussian Mixture Model)
+       - LOF (Local Outlier Factor)
+       - PCA (Principal Component Analysis for outliers)
+       - AutoEncoder (Neural-network-based autoencoder for anomalies)
+
+.. py:class:: ModelRunner(cell_label: str, df_input_features: pandas.DataFrame, selected_feature_cols: Union[Tuple, List])
+
+   .. py:attribute:: df_input_features
+
+
+   .. py:attribute:: selected_features
+
+
+   .. py:method:: create_model_x_input()
+
+      Extract selected feature columns as a NumPy array.
+
+      This method selects the feature columns specified in
+      ``self.selected_features`` from the input DataFrame
+      ``self.df_input_features``. The values are converted into a NumPy
+      array and stored in ``self.Xdata`` for downstream model training and
+      visualization.
+
+      :param None:
+
+      :returns: Array of shape (n_samples, n_features) containing the
+                selected feature values.
+      :rtype: np.ndarray
+
+      .. code-block::
+
+          selected_feature_cols = (
+              "log_max_diff_dQ",
+              "log_max_diff_dV")
+
+          runner = ModelRunner(
+              cell_label=selected_cell_label,
+              df_input_features=df_features_per_cell,
+              selected_feature_cols=selected_feature_cols
+          )
+
+          Xdata = runner.create_model_x_input()
+
+
+
+   .. py:method:: pred_outlier_indices_from_proba(proba: numpy.ndarray, threshold: float, outlier_col: int = 1) -> numpy.ndarray
+
+      Identify outlier sample indices from probability predictions.
+
+      In PyOD, probability output has shape (n_samples, 2), where:
+
+      - column 0 = inlier probability
+      - column 1 = outlier probability
+
+      This function selects all indices where the outlier probability is
+      greater than or equal to the given threshold.
+
+      :param proba: Array of shape (n_samples, 2) with predicted probabilities.
+      :type proba: np.ndarray
+      :param threshold: Probability threshold above which a sample is flagged
+                        as outlier.
+      :type threshold: float
+      :param outlier_col: Column index for outlier probability. Defaults to 1.
+      :type outlier_col: int, optional
+
+      :returns:     Array of indices for samples classified as outliers.
+      :rtype: np.ndarray
+
+
+
+   .. py:method:: evaluate_indices(df_benchmark_dataset: pandas.DataFrame, pred_indices: numpy.ndarray) -> Tuple[float, float]
+
+      Evaluate predicted outlier indices against benchmark labels.
+
+      Uses ``modval.evaluate_pred_outliers`` to align predicted outlier
+      indices with the benchmark dataset. The resulting DataFrame is
+      expected to contain the columns ``true_outlier`` and
+      ``pred_outlier``. Recall and precision are then computed from
+      these columns.
+
+      :param df_benchmark_dataset: Benchmark dataset containing ground-truth outlier labels.
+      :type df_benchmark_dataset: pd.DataFrame
+      :param pred_indices: Indices of predicted outliers from the model.
+      :type pred_indices: np.ndarray
+
+      :returns:     - recall: Fraction of true outliers correctly identified.
+                    - precision: Fraction of predicted outliers that are true.
+      :rtype: Tuple[float, float]
+
+      .. note::
+
+          Both recall and precision use ``zero_division=0``. This means
+          that if there is a zero division, for example when the denominator
+          is zero (TP + FP = 0 for precision) or (TP + FN = 0 for recall),
+          the calculated ``recall_score`` or ``precision_score``
+          will be zero.
+
+
+
+   .. py:method:: proxy_evaluate_indices(pred_indices: numpy.ndarray, cycle_idx: numpy.ndarray, features: numpy.ndarray) -> Tuple[float, float]
+
+      Evaluates the quality of predicted outlier indices using a proxy
+      regression-based approach and calculates proxy evaluation metrics
+      like, regression loss score and inlier count score by fitting a
+      linear regression model on the predicted inlier data.
+
+      :param pred_indices: Indices of predicted outliers from the model.
+      :type pred_indices: np.ndarray
+      :param cycle_idx: All predictor cycle indices or cycle numbers for proxy
+                        regression model obtained from model input Xdata if
+                        'cycle_index' is one of the features selected to be
+                        extracted from ``self.df_input_features``.
+      :type cycle_idx: np.ndarray
+      :param features: (np.ndarray):
+                       All target features like voltage feature or capacity
+                       discharge feature obtained from model input Xdata, apart
+                       from the predictor 'cycle_index' feature.
+
+      :returns: A tuple containing loss_score and
+                inlier_score.
+      :rtype: Tuple[float, float]
+
+      .. note::
+
+          - loss_score: Normalized MSE regression loss for predicted
+            inliers. A lower value (closer to 0) indicates that the
+            outlier detection model performed well in excluding true
+            positives (points that were indeed outliers. A value closer
+            to 1 implies model was unable to remove true positives.
+
+          - inlier_score: Normalized inlier count score. It represents
+            the proportion of data points retained after excluding
+            predicted outliers. A higher value (closer to 1) means
+            fewer points were removed, while a lower value indicates
+            more aggressive outlier removal.
+
+
+
+   .. py:method:: create_2d_mesh_grid(square_grid: bool = True, grid_offset: Union[int, float] = 1)
+
+      Create a mesh grid spanning the first two feature dimensions.
+
+      Generates linearly spaced grids from ``self.Xdata`` that are padded
+      by ``grid_offset`` units. When ``square_grid`` is True, both axes
+      share the combined min and max range to form a square plotting area.
+
+      :param square_grid: Enforce equal axis bounds for a
+                          square grid. Defaults to True.
+      :type square_grid: bool, optional
+      :param grid_offset: Margin added to each
+                          axis bound to expand the plotting coverage. Defaults to 1.
+      :type grid_offset: Union[int, float], optional
+
+      :returns: ``xx`` and ``yy`` mesh
+                arrays plus a flattened ``meshgrid`` suitable for contour
+                evaluation.
+      :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
+
+
+
+   .. py:method:: predict_anomaly_score_map(selected_model: PyODModelType, model_name: str, xoutliers: pandas.Series, youtliers: pandas.Series, pred_outliers_index: numpy.ndarray, threshold: float = 0.7, square_grid=True, grid_offset=1)
+
+      Plot a 2D anomaly score map with decision boundaries.
+
+      This function fits the selected PyOD model to the dataset and
+      visualizes the predicted anomaly scores across a 2D mesh grid.
+      It creates a contour plot showing anomaly probabilities, a dashed
+      decision boundary at the specified threshold, and highlights the
+      predicted anomalous cycles. Annotations and a legend are added to
+      label outliers, and the figure is saved in the artifacts directory.
+
+      :param selected_model: Trained PyOD model used to predict anomaly scores.
+      :type selected_model: PyODModelType
+      :param model_name: Name of the model, used as the plot title and
+                         in the output filename.
+      :type model_name: str
+      :param xoutliers: x-coordinates of predicted anomalous
+                        samples.
+      :type xoutliers: pd.Series
+      :param youtliers: y-coordinates of predicted anomalous
+                        samples.
+      :type youtliers: pd.Series
+      :param pred_outliers_index: Indices of the predicted
+                                  anomalous samples.
+      :type pred_outliers_index: np.ndarray
+      :param threshold: Probability threshold for the
+                        anomaly decision boundary. Defaults to 0.7.
+      :type threshold: np.float64, optional
+      :param square_grid: Use shared bounds for both axes to
+                          render a square mesh. Defaults to True.
+      :type square_grid: bool, optional
+      :param grid_offset: Margin added to axis
+                          limits when constructing the mesh grid. Defaults to 1.
+      :type grid_offset: Union[int, float], optional
+
+      :returns: Axes object containing the anomaly score
+                contour plot.
+      :rtype: matplotlib.axes.Axes
+
+      .. code-block::
+
+          axplot = runner.predict_anomaly_score_map(
+              selected_model=model,
+              model_name="Isolation Forest",
+              xoutliers=df_outliers_pred["log_max_diff_dQ"],
+              youtliers=df_outliers_pred["log_max_diff_dV"],
+              pred_outliers_index=pred_outlier_indices,
+              threshold=param_dict["threshold"],
+              square_grid=True,
+              grid_offset=1
+          )
+
+      .. note::
+
+          Currently supported PyOD models in this benchmarking study are:
+              * ``pyod.models.iforest.IForest``
+              * ``pyod.models.knn.KNN``
+              * ``pyod.models.gmm.GMM``
+              * ``pyod.models.lof.LOF``
+              * ``pyod.models.pca.PCA``
+              * ``pyod.models.auto_encoder.Autoencoder``
+
+
+

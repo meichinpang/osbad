@@ -1,0 +1,24 @@
+osbad
+=====
+
+.. py:module:: osbad
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/osbad/config/index
+   /autoapi/osbad/database/index
+   /autoapi/osbad/dbad/index
+   /autoapi/osbad/hyperparam/index
+   /autoapi/osbad/model/index
+   /autoapi/osbad/modval/index
+   /autoapi/osbad/scaler/index
+   /autoapi/osbad/stats/index
+   /autoapi/osbad/test_filepath/index
+   /autoapi/osbad/viz/index
+
+

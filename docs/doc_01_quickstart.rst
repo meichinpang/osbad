@@ -10,65 +10,76 @@ Follow the `official Astral installation documentation
 <https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_1/>`_ to
 install uv.
 
-**Step-2: Install osbad from PyPi**
+**Step-2: Setup Git LFS for your system**
 
-* Creates a new project folder named ``osbad`` with a basic ``pyproject.toml``
-  and ``README.md`` and switch into the project directory on your terminal.
-* Create a uv virtual environment within the project directory.
-* Add the ``osbad`` dependency by running ``uv add osbad``. This step updates
-  your ``pyproject.toml`` under ``[project].dependencies``.
-* Generate a lockfile which pins exact versions of all dependencies for
-  reproducibility.
-* Sync dependencies by installing all dependencies listed in ``uv.lock`` and
-  ensures your virtual environment matches the locked versions.
+This project uses Git LFS to manage large files such as datasets. Without Git LFS, 
+you will only be able to download the text pointers instead of the actual large files, 
+which will lead to errors when you run the benchmarking scripts.
+
+Example error message when Git LFS is not installed:
+
+.. code-block:: python
+
+   IOException: IO Error: The file "train_dataset_severson.db" exists, but it is not a 
+   valid DuckDB database file!
+
+If you are using Git LFS for the first time, you can follow the `Git LFS installation guide
+<https://github.com/git-lfs/git-lfs/wiki/Installation>`_ to install Git LFS.
 
 .. code-block:: bash
 
-   # Initialize a new project
-   uv init osbad
+  # On Ubuntu/Debian
+  sudo apt install git-lfs
 
-   # Switch into the project directory
-   cd osbad
+  # Then initialize and pull
+  git lfs install
 
-   # Create a uv virtual environment within the project directory
-   uv venv
+**Step-3: Clone osbad from the GitHub Repository**
 
-   # Add the osbad dependency
-   uv add osbad
+* Clone the osbad repository to access the example notebooks and scripts
+* Sync dependencies and activate the virtual environment
+* Pull the large dataset files with Git LFS
 
-   # Generate a Lockfile
-   uv lock
-
-   # Sync Dependencies
-   uv sync
+.. code-block:: bash
 
    # Clone the osbad repository to access the example notebooks and scripts
    git clone git@github.com:meichinpang/osbad.git
 
-To test ``osbad`` installation, replace the script in ``main.py`` with
+   # Change into the cloned osbad repository
+   cd osbad
 
-.. code-block:: python
+   # Sync Dependencies
+   uv sync
 
-  # Test osbad installation:
-  # osbad for open-source benchmark of anomaly detection
-  from importlib.metadata import version
-  import osbad
+   # Activate the virtual environment
+   # On macOS/Linux:
+   source .venv/bin/activate
 
-  def main():
-      print("Hello from osbad!")
-      osbad_current_version = version("osbad")
-      print(f"osbad current version: {osbad_current_version}")
-      print(f"OSBAD package installation is successful!")
+   # On Windows (Command Prompt):
+   .venv\Scripts\activate.bat
 
-  if __name__ == "__main__":
-      main()
+   # On Windows (PowerShell):
+   .venv\Scripts\Activate.ps1
 
-On your terminal where ``main.py`` is located, run
+   # Pull the large dataset files with Git LFS
+   git lfs pull
+
+
+To test ``osbad`` installation, run the script ``test_osbad_installation.py`` 
+in the root directory of the project. This script imports the osbad package 
+and prints the current version to confirm that the installation is successful.
 
 .. code-block:: bash
 
-   # Execute the python script with uv run
-   uv run main.py
+   python test_osbad_installation.py
+
+   # Then you can start Jupyter Notebook
+   jupyter notebook
+
+In the Jupyter browser UI, navigate to the following notebook to run the
+osbad workflow for the Isolation Forest model on the Severson dataset:
+
+``machine_learning/hp_tuning_with_transfer_learning/severson_data_source/01_train_dataset/ml_01_iforest_hyperparam_severson.ipynb``
 
 Typical Workflow
 -------------------
