@@ -18,7 +18,7 @@ which will lead to errors when you run the benchmarking scripts.
 
 Example error message when Git LFS is not installed:
 
-.. code-block:: python
+.. code-block:: text
 
    IOException: IO Error: The file "train_dataset_severson.db" exists, but it is not a 
    valid DuckDB database file!
@@ -92,13 +92,51 @@ osbad workflow for the Isolation Forest model on the Severson dataset:
 Typical Workflow
 -------------------
 
-1. Load the benchmarking dataset and features database
-2. For unsupervised ML models, run hyperparameter tuning using Bayesian
-   optimization.
-3. Train models with best trial hyperparameters
-4. Evaluate with model performance with confusion matrix and model performance
-   KPI such as accuracy, precision, recall, F1-score and Matthew correlation
-   coefficient.
+The notebook
+``ml_01_iforest_hyperparam_severson.ipynb``
+demonstrates the end-to-end osbad workflow for the Isolation Forest model:
+
+1. **Import libraries**: Load ``osbad``, ``optuna``, ``duckdb``, ``pandas``,
+   and ``matplotlib``.
+2. **Load the benchmarking dataset**: Connect to the Severson training
+   dataset (``train_dataset_severson.db``) via DuckDB and select a cell
+   for analysis.
+3. **Drop true labels**: Remove ground-truth anomaly labels from the
+   dataset to simulate an unsupervised setting.
+4. **Plot raw cycle data**: Visualize discharge capacity vs. voltage
+   curves without labels.
+5. **Load features database**: Import pre-computed features from
+   ``train_features_severson.db``.
+6. **Hyperparameter tuning**: Run Bayesian optimization with Optuna
+   (TPE sampler, 20 trials) to find the best Isolation Forest
+   hyperparameters (contamination, n_estimators, max_samples, threshold).
+7. **Aggregate best trials**: Extract the median hyperparameters from
+   the Pareto-optimal trials and export them to CSV.
+8. **Train the model**: Fit an Isolation Forest with the best trial
+   parameters and predict anomaly scores.
+9. **Visualize anomaly score map**: Plot the decision boundary and
+   predicted outliers in feature space.
+10. **Evaluate model performance**: Generate a confusion matrix and
+    compute performance metrics (accuracy, precision, recall, F1-score,
+    and Matthews correlation coefficient).
+11. **Export evaluation metrics**: Save the model performance results
+    to a CSV file.
+12. **Verify with true labels**: Compare predicted outliers against
+    the ground-truth labels using cycle plots and bubble charts.
+
+
+Issues and Troubleshooting
+----------------------------
+* If you encounter errors related to missing files or invalid database
+  files, ensure that you have Git LFS installed and have pulled the
+  large dataset files correctly.
+* If you see errors about missing Python packages, make sure you have
+  activated the virtual environment with ``source .venv/bin/activate`` (or the
+  appropriate command for your operating system) and that you have run
+  ``uv sync`` to install all dependencies.
+* For any other issues, please open an issue on the
+  `OSBAD Issue Tracker <https://github.com/meichinpang/osbad/issues>`_
+  with details about the error message and your system configuration.
 
 Next Steps
 --------------
