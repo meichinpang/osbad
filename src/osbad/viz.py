@@ -450,10 +450,10 @@ def plot_explain_scaling(
 
     ax1.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
     ax1.set_xlabel(
-        r"Capacity, $Q$ [Ah]",
+        "Capacity, Q [Ah]",
         fontsize=12)
     ax1.set_ylabel(
-        r"Voltage, $V$ [V]",
+        "Voltage, V [V]",
         fontsize=12)
 
     # plot scaled capacity-voltage curve ---------------------------
@@ -472,10 +472,10 @@ def plot_explain_scaling(
 
     ax2.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
     ax2.set_xlabel(
-        r"Scaled capacity, $Q_\textrm{scaled}$ [Ah]",
+        "Scaled capacity [Ah]",
         fontsize=12)
     ax2.set_ylabel(
-        r"Scaled voltage, $V_\textrm{scaled}$ [V]",
+        "Scaled voltage [V]",
         fontsize=12)
 
     # plot voltage-capacity curve with detected outliers -----------
@@ -506,10 +506,10 @@ def plot_explain_scaling(
 
     ax3.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
     ax3.set_xlabel(
-        r"Capacity, $Q$ [Ah]",
+        "Capacity, Q [Ah]",
         fontsize=12)
     ax3.set_ylabel(
-        r"Voltage, $V$ [V]",
+        "Voltage, V [V]",
         fontsize=12)
 
     # plot median square -------------------------------------------
@@ -528,10 +528,10 @@ def plot_explain_scaling(
 
     ax4.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
     ax4.set_xlabel(
-        r"Median square capacity, $Q^{2}_\textrm{med}$ [Ah$^{2}$]",
+        "Median square capacity [Ah\u00B2]",
         fontsize=12)
     ax4.set_ylabel(
-        r"Median square voltage, $V^{2}_\textrm{med}$ [V$^{2}$]",
+        "Median square voltage [V\u00B2]",
         fontsize=12)
 
     # plot IQR --------------------------------------------------
@@ -551,10 +551,10 @@ def plot_explain_scaling(
 
     ax5.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
     ax5.set_xlabel(
-        r"IQR capacity, $Q_\textrm{IQR}$ [Ah]",
+        "IQR capacity [Ah]",
         fontsize=12)
     ax5.set_ylabel(
-        r"IQR voltage, $V_\textrm{IQR}$ [V]",
+        "IQR voltage [V]",
         fontsize=12)
 
     # plot median/IQR ratio --------------------------------------
@@ -798,9 +798,7 @@ def plot_quantiles(
 
     # Adapt from:
     # https://matplotlib.org/3.3.4/gallery/recipes/placing_text_boxes.html
-    textstr = '\n'.join((
-        r"\textbf{R-square:}",
-        f"{r_value_plot}"))
+    textstr = f"R-square: {r_value_plot}"
 
     # properties for bbox
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
@@ -988,7 +986,8 @@ def plot_bubble_chart(
     bubble_size: np.ndarray|pd.Series,
     unique_cycle_count: np.ndarray|pd.Series=None,
     cycle_outlier_idx_label: np.ndarray=None,
-    square_grid:bool =False) -> mpl.axes._axes.Axes:
+    square_grid:bool =False,
+    textbox_position: str = "inside") -> mpl.axes._axes.Axes:
     """
     Plot the bubble chart of each feature with scalable bubble size ratio
     depending on the anomaly score.
@@ -1109,18 +1108,22 @@ def plot_bubble_chart(
                 r"Anomalous cycles:",
                 f"{cycle_outlier_idx_label}"))
 
-            # first text value corresponds to the left right
-            # alignment starting from left
-            # second second value corresponds to up down
-            # alignment starting from bottom
-            ax.text(
-                0.75, 0.95,
-                textstr,
-                transform=ax.transAxes,
-                fontsize=12,
-                # ha means right alignment of the text
-                ha="center", va='top',
-                bbox=props)
+            if textbox_position == "inside":
+                ax.text(
+                    0.75, 0.95,
+                    textstr,
+                    transform=ax.transAxes,
+                    fontsize=12,
+                    ha="center", va='top',
+                    bbox=props)
+            else:
+                ax.text(
+                    0.5, -0.15,
+                    textstr,
+                    transform=ax.transAxes,
+                    fontsize=12,
+                    ha="center", va='top',
+                    bbox=props)
 
     ax.grid(color="grey", linestyle="-", linewidth=0.25, alpha=0.7)
 
@@ -1278,7 +1281,7 @@ def plot_multiple_outlier_cycles(
 
         # Create textbox to annotate anomalous cycle
         textstr = '\n'.join((
-            r"\textbf{Anomalous cycle:}",
+            "Anomalous cycle:",
             f"{potential_outlier_cycle_index}"))
 
         # first 0.95 corresponds to the left right alignment
@@ -1296,11 +1299,11 @@ def plot_multiple_outlier_cycles(
 
     # Create common x-axis and y-axis
     fig.supxlabel(
-        r"Discharge capacity, $Q_\textrm{dis}$ [Ah]",
+        "Discharge capacity [Ah]",
         y=-0.02,
         fontsize=14)
     fig.supylabel(
-        r"Discharge voltage, $V_\textrm{dis}$ [V]",
+        "Discharge voltage [V]",
         x=ylabel_offset,
         fontsize=14)
 
@@ -1405,10 +1408,10 @@ def plot_single_outlier_cycle(
         youtlier=df_check_outlier["voltage"])
 
     axplot.set_xlabel(
-        r"Discharge capacity, $Q_\textrm{dis}$ [Ah]",
+        "Discharge capacity [Ah]",
         fontsize=12)
     axplot.set_ylabel(
-        r"Discharge voltage, $V_\textrm{dis}$ [V]",
+        "Discharge voltage [V]",
         fontsize=12)
 
     axplot.set_title(f"Cell {selected_cell_label}",
@@ -1416,7 +1419,7 @@ def plot_single_outlier_cycle(
 
     # Create textbox to annotate anomalous cycle
     textstr = '\n'.join((
-        r"\textbf{Potential anomalous cycle:}",
+        "Potential anomalous cycle:",
         f"{check_outlier_cycle_index}"))
 
     # properties for bbox
