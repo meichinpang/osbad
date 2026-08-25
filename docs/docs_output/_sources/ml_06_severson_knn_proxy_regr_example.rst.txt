@@ -27,7 +27,7 @@ Import the libraries into your local development environment, including the
 
 * ``Path`` is used for robust, cross-platform file paths.
 * ``duckdb`` is the embedded analytical database engine storing the dataset.
-* ``fireducks.pandas as pd`` gives you a pandas-compatible API;
+* ``pandas as pd`` gives you a pandas-compatible API;
   you can usually treat it like import pandas as pd.
 * ``optuna`` for automated hyperparameter optimization that uses efficient
   algorithms like Bayesian optimization to find the best parameter settings.

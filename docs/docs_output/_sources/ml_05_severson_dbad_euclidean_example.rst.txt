@@ -9,7 +9,7 @@ Import the libraries into your local development environment, including the
 
 * ``Path`` is used for robust, cross-platform file paths.
 * ``duckdb`` is the embedded analytical database engine storing the dataset.
-* ``fireducks.pandas as pd`` gives you a pandas-compatible API;
+* ``pandas as pd`` gives you a pandas-compatible API;
   you can usually treat it like import pandas as pd.
 * ``rcParams["text.usetex"] = True`` tells Matplotlib to render text via
   LaTeX. If you don’t have LaTeX installed, flip this to False.
@@ -28,7 +28,7 @@ Import the libraries into your local development environment, including the
 
     # Third-party libraries
     import duckdb
-    import fireducks.pandas as pd
+    import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
     from matplotlib import rcParams
