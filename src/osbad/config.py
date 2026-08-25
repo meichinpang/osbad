@@ -79,8 +79,14 @@ def find_repo_root(marker: str = "pyproject.toml"):
     raise FileNotFoundError(
         f"Marker file '{marker}' not found in any parent directories.")
 
-# Define the root directory of the repository
-ROOT_DIR = find_repo_root()
+# Define the root directory of the repository.
+# The repo root is optional: when the package is installed into a project
+# that has no marker file (e.g. ``pyproject.toml``) in any parent directory,
+# fall back to the current working directory instead of raising.
+try:
+    ROOT_DIR = find_repo_root()
+except FileNotFoundError:
+    ROOT_DIR = Path.cwd()
 # print(f"Root directory of the repository: {ROOT_DIR}")
 
 # Path to the database directory
