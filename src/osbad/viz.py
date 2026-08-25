@@ -27,9 +27,14 @@ from osbad.scaler import CycleScaling
 
 
 # Load environment variables from the .env file in the project root directory
-ROOT_DIR = bconf.find_repo_root(".env")
-PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
-load_dotenv(PATH_TO_ENV_VARIABLE)
+# The .env file is optional: if it is not found, environment-based settings
+# (e.g. LaTeX rendering) simply fall back to their defaults.
+try:
+    ROOT_DIR = bconf.find_repo_root(".env")
+    PATH_TO_ENV_VARIABLE = (ROOT_DIR.joinpath(".env"))
+    load_dotenv(PATH_TO_ENV_VARIABLE)
+except FileNotFoundError:
+    pass
 
 # Check if LaTeX rendering is enabled via environment variable
 # Set global variable to control rcParams["text.usetex"] throughout the module
