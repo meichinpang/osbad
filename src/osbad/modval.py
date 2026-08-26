@@ -56,12 +56,9 @@ except FileNotFoundError:
     pass
 
 # Check if LaTeX rendering is enabled via environment variable
-USE_LATEX = os.getenv("USE_LATEX_FOR_FIG")
+USE_LATEX = os.getenv("USE_LATEX_FOR_FIG") == "True"
 
-if USE_LATEX == "True":
-    USE_LATEX = True
-else:
-    USE_LATEX = False
+if not USE_LATEX:
     plt.rcParams['mathtext.fontset'] = 'dejavusans'
 
 rcParams["text.usetex"] = USE_LATEX
