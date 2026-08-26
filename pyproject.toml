@@ -1,6 +1,6 @@
 [project]
 name = "osbad"
-version = "1.6.2"
+version = "1.6.3"
 description = "OSBAD (Open-source Benchmark of Anomaly Detection)"
 readme = "README.md"
 authors = [
@@ -45,6 +45,13 @@ default = true
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# Only package the library source; exclude datasets, docs and artifacts
+[tool.hatch.build.targets.wheel]
+packages = ["src/osbad"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src/osbad"]
 
 [dependency-groups]
 dev = [

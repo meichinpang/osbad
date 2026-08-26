@@ -9,7 +9,7 @@
 project = 'osbad'
 copyright = '2025, Mei-Chin Pang'
 author = 'Mei-Chin Pang'
-release = '1.6.2'
+release = '1.6.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
