@@ -38,13 +38,7 @@ Module Contents
 
 .. py:data:: ROOT_DIR
 
-.. py:data:: PATH_TO_ENV_VARIABLE
-
 .. py:data:: USE_LATEX
-
-.. py:data:: USE_LATEX
-   :value: True
-
 
 .. py:function:: evaluate_pred_outliers(df_benchmark: pandas.DataFrame, outlier_cycle_index: numpy.ndarray) -> pandas.DataFrame
 

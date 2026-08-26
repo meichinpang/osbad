@@ -1,12 +1,12 @@
 [project]
 name = "osbad"
-version = "1.6.0"
+version = "1.6.1"
 description = "OSBAD (Open-source Benchmark of Anomaly Detection)"
 readme = "README.md"
 authors = [
     { name = "Mei-Chin Pang", email = "mei-chin.pang@basf.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "duckdb==1.3.2",
     "llvmlite>=0.44.0",
@@ -48,11 +48,11 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "furo>=2025.7.19",
+    "furo>=2024.8.6",
     "ipywidgets>=8.1.7",
     "jupytext>=1.17.2",
     "notebook>=7.4.5",
-    "sphinx>=8.2.3",
+    "sphinx>=8.1.3,<8.2",
     "sphinx-autoapi>=3.6.0",
     "sphinx-autobuild>=2024.10.3",
 ]

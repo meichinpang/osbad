@@ -69,13 +69,7 @@ Module Contents
 
 .. py:data:: ROOT_DIR
 
-.. py:data:: PATH_TO_ENV_VARIABLE
-
 .. py:data:: USE_LATEX
-
-.. py:data:: USE_LATEX
-   :value: True
-
 
 .. py:data:: RANDOM_STATE
    :value: 42

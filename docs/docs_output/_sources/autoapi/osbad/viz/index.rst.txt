@@ -25,10 +25,6 @@ Module Contents
 
 .. py:data:: USE_LATEX
 
-.. py:data:: USE_LATEX
-   :value: True
-
-
 .. py:function:: plot_cycle_data(xseries: pandas.Series, yseries: pandas.Series, cycle_index_series: pandas.Series, xoutlier: pandas.Series = None, youtlier: pandas.Series = None) -> matplotlib.axes._axes.Axes
 
    Create scatter plot for the cycling data including colormap, colorbar and

@@ -44,13 +44,7 @@ Module Contents
 
 .. py:data:: ROOT_DIR
 
-.. py:data:: PATH_TO_ENV_VARIABLE
-
 .. py:data:: USE_LATEX
-
-.. py:data:: USE_LATEX
-   :value: True
-
 
 .. py:class:: BenchDB(input_db_filepath: str, cell_label: str)
 

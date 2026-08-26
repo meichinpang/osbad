@@ -41,13 +41,7 @@ Module Contents
 
 .. py:data:: ROOT_DIR
 
-.. py:data:: PATH_TO_ENV_VARIABLE
-
 .. py:data:: USE_LATEX
-
-.. py:data:: USE_LATEX
-   :value: True
-
 
 .. py:data:: SELECTED_FEATURE_COLS
    :value: ('log_max_diff_dQ', 'log_max_diff_dV')
