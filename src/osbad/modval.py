@@ -117,7 +117,7 @@ def evaluate_pred_outliers(
         # benchmarking dataset for true outliers
         df_cycle_true = df_benchmark[
             df_benchmark["cycle_index"] == cycle_count]
-        if df_cycle_true["outlier"].unique() == 1:
+        if (df_cycle_true["outlier"] == 1).any():
             true_cycle_label = 1
             true_outlier_cycle_label.append(true_cycle_label)
         else:
@@ -128,7 +128,7 @@ def evaluate_pred_outliers(
         # For predicted outliers
         df_cycle_pred = df_pred_outliers[
             df_pred_outliers["cycle_index"] == cycle_count]
-        if df_cycle_pred["outlier_pred"].unique() == 1:
+        if (df_cycle_pred["outlier_pred"] == 1).any():
             pred_cycle_label = 1
             pred_outlier_cycle_label.append(pred_cycle_label)
         else:

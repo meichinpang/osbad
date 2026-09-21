@@ -179,7 +179,6 @@ class CycleScaling:
         for k, cycle_count in enumerate(unique_cycle_count):
             # print(cycle_count)
 
-            # Drop the first and last 10 data point
             df_cycle = df_scaled[
                 df_scaled["cycle_index"] == cycle_count]
 
