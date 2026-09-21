@@ -99,6 +99,44 @@ positives and false negatives,
 These metrics help ensure a fair and comprehensive comparison across different
 detection techniques.
 
+## Running the Tests
+
+The test suite is written with [pytest](https://docs.pytest.org/) and lives in
+the `tests/` directory. To run it, first make sure the development
+dependencies are installed:
+
+```bash
+uv sync --dev
+```
+
+Then run all tests from the project root:
+
+```bash
+uv run pytest
+```
+
+If you already have the virtual environment activated, you can simply call:
+
+```bash
+pytest
+```
+
+Some useful variations:
+
+```bash
+# verbose, show each test name
+pytest -v
+
+# run a single module
+pytest tests/test_stats.py
+
+# run a single test class
+pytest tests/test_stats.py::TestOutlierDetectors
+
+# run tests matching a keyword
+pytest -k "distance"
+```
+
 ## Documentation
 
 The documentation to our project can be found here:
