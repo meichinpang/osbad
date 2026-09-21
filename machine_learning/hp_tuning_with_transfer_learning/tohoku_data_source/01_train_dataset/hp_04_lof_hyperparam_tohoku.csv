@@ -1,0 +1,2 @@
+ml_model,cell_index,contamination,n_neighbors,leaf_size,metric,threshold
+lof,cell_num_1,0.18727005942368125,36,81,manhattan,0.014527180120179194

@@ -1,0 +1,5 @@
+ml_model,cell_index,contamination,n_neighbors,leaf_size,metric,threshold
+lof,cell_num_1,0.1872700594236812,36,81,manhattan,0.0145271801201791
+lof,cell_num_2,0.0987648419833832,26,35,minkowski,0.6500412033362895
+lof,cell_num_5,0.1750948143908565,46,68,minkowski,0.0807259173679261
+lof,cell_num_6,0.2938070224295344,37,75,manhattan,0.196829303590863

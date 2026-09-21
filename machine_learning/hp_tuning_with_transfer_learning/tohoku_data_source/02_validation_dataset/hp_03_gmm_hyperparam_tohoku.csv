@@ -1,0 +1,5 @@
+ml_model,cell_index,contamination,n_components,covariance_type,init_param,threshold
+gmm,cell_num_1,0.2164356328798363,4,diag,kmeans,0.7440882575488279
+gmm,cell_num_2,0.1095318605959561,3,tied,kmeans,0.0735878474598829
+gmm,cell_num_5,0.321455102795385,3,full,random,0.5752996783376914
+gmm,cell_num_6,0.22924847369509505,5,full,kmeans,0.6011150117432088

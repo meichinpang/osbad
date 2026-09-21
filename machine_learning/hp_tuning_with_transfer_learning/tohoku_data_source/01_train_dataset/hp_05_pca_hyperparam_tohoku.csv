@@ -1,0 +1,2 @@
+ml_model,cell_index,contamination,n_components,threshold
+pca,cell_num_1,0.30354167825682243,1,0.18384853029791792

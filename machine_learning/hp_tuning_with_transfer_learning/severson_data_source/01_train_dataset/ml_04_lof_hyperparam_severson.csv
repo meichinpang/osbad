@@ -1,0 +1,2 @@
+ml_model,cell_index,contamination,n_neighbors,leaf_size,metric,threshold
+lof,2017-05-12_5_4C-70per_3C_CH17,0.2808763539195418,35,50,euclidean,0.2979913491322597

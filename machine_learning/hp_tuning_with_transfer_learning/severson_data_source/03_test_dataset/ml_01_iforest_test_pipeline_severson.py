@@ -1,6 +1,6 @@
 # Standard library
 import pprint
-from joblib import dump, load
+from joblib import load
 from pathlib import Path
 
 # Third-party libraries

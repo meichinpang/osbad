@@ -1,0 +1,2 @@
+ml_model,cell_index,threshold,contamination,n_estimators,max_samples
+iforest,cell_num_1,0.7321432280768185,0.0631460561046617,321,445

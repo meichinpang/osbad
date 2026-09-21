@@ -1,0 +1,2 @@
+ml_model,cell_index,contamination,n_neighbors,method,metric,threshold
+knn,2017-05-12_5_4C-70per_3C_CH17,0.2638107863674184,16,largest,manhattan,0.22922688187918833
