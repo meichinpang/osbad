@@ -256,7 +256,7 @@ class BenchDB:
 
                 # Extract true outliers cycle index
                 # from benchmarking dataset
-                true_outlier_cycle_idx = battdb.get_true_outlier_cycle_index(
+                true_outlier_cycle_idx = benchdb.get_true_outlier_cycle_index(
                     df_selected_cell)
                 print(f"True outlier cycle index: {true_outlier_cycle_idx}")
         """

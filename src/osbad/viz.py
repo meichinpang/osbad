@@ -178,7 +178,7 @@ def hist_boxplot(
 
             # Plot the histogram and boxplot of the scaled data
             ax_hist = bviz.hist_boxplot(
-                df_var=df_capacity_med_scaled["scaled_discharge_capacity"])
+                df_variable=df_capacity_med_scaled["scaled_discharge_capacity"])
 
             ax_hist.set_xlabel(
                 r"Discharge capacity, $Q_\\textrm{dis}$ [Ah]",
@@ -402,7 +402,7 @@ def plot_explain_scaling(
             bviz.plot_explain_scaling(
                 df_scaled_capacity=df_capacity_med_scaled,
                 df_scaled_voltage=df_voltage_med_scaled,
-                extracted_cell_label=selected_cell_label,
+                selected_cell_label=selected_cell_label,
                 xoutlier=df_true_outlier["discharge_capacity"],
                 youtlier=df_true_outlier["voltage"]
             )
@@ -1008,6 +1008,10 @@ def plot_bubble_chart(
         square_grid (bool, optional):
             Define square grid with equal distance for x-axis and y-axis.
             Defaults to False.
+        textbox_position (str, optional):
+            Placement of the annotation textbox listing anomalous cycles.
+            Use ``"inside"`` to position it within the axes; any other value
+            places it below the axes. Defaults to ``"inside"``.
 
     Returns:
         mpl.axes._axes.Axes: Matplotlib axes for additional external
@@ -1190,7 +1194,7 @@ def plot_multiple_outlier_cycles(
             # Get the cell-ID from cell_inventory
             selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
-            bviz.plot_multiple_outliers(
+            bviz.plot_multiple_outlier_cycles(
                 df_selected_cell,
                 potential_outlier_cycles= [0, 40, 147, 148],
                 selected_cell_label=selected_cell_label)
@@ -1383,7 +1387,7 @@ def plot_single_outlier_cycle(
             # Get the cell-ID from cell_inventory
             selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
-            bviz.plot_single_outlier(
+            bviz.plot_single_outlier_cycle(
                 df_selected_cell,
                 selected_cycle_index=147,
                 selected_cell_label=selected_cell_label)

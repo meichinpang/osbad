@@ -18,7 +18,7 @@ Key features:
       features of ``self.Xdata`` for plotting decision surfaces.
     - ``predict_anomaly_score_map``: Fits a PyOD model, visualizes anomaly
       probabilities with a decision boundary, highlights predicted outliers,
-      and saves the resulting figure to the cell’s artifact directory.
+      and returns the resulting figure axes.
 
 .. code-block::
 
@@ -210,8 +210,11 @@ class ModelRunner:
                 Column index for outlier probability. Defaults to 1.
 
         Returns:
-            np.ndarray:
-                Array of indices for samples classified as outliers.
+            Tuple[np.ndarray, np.ndarray]:
+                - pred_outlier_indices: Array of indices for samples
+                  classified as outliers.
+                - pred_outlier_score: Outlier probability scores for the
+                  samples classified as outliers.
         """
         outlier_prob = proba[:, outlier_col]
 
@@ -449,13 +452,12 @@ class ModelRunner:
         It creates a contour plot showing anomaly probabilities, a dashed
         decision boundary at the specified threshold, and highlights the
         predicted anomalous cycles. Annotations and a legend are added to
-        label outliers, and the figure is saved in the artifacts directory.
+        label outliers.
 
         Args:
             selected_model (PyODModelType):
                 Trained PyOD model used to predict anomaly scores.
-            model_name (str): Name of the model, used as the plot title and
-                in the output filename.
+            model_name (str): Name of the model, used as the plot title.
             xoutliers (pd.Series): x-coordinates of predicted anomalous
                 samples.
             youtliers (pd.Series): y-coordinates of predicted anomalous

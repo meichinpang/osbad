@@ -8,11 +8,11 @@ covers six anomaly-detection models: Isolation Forest, KNN, GMM, LOF, PCA,
 and AutoEncoder.
 
 Key features:
-    - ``ModelConfigDataClass``: Frozen dataclass bundling the Optuna
-      search-space function (``hp_space``), model configuration with
-      tuned hyperparameters (``model_param``), model configuration without
-      hyperparameters tuning (``baseline_model_param``) and the probability
-      column index for outliers (``proba_col``).
+    - ``ModelConfigDataClass``: Frozen dataclass bundling the model
+      configuration with tuned hyperparameters (``model_param``), model
+      configuration without hyperparameter tuning
+      (``baseline_model_param``) and the probability column index for
+      outliers (``proba_col``).
     - ``MODEL_CONFIG``: Registry mapping model IDs (``iforest``, ``knn``,
       ``gmm``, ``lof``, ``pca``, ``autoencoder``) to their
       ``ModelConfigDataClass``.
@@ -377,10 +377,11 @@ MODEL_CONFIG: Dict[str, ModelConfigDataClass] = {
 """
 Dictionary mapping model identifiers to their configurations.
 
-Each entry contains a ModelConfigDataClass object that defines the search
-space for Optuna hyperparameter optimization (`hp_space`) and a
-factory function (`model_param`) to create the corresponding model
-with the chosen hyperparameters.
+Each entry contains a ModelConfigDataClass object that defines a factory
+function (`model_param`) to create the corresponding model with the chosen
+hyperparameters, a baseline factory function (`baseline_model_param`) that
+creates the model without hyperparameter tuning, and the outlier
+probability column index (`proba_col`).
 
 The following model identifiers are supported:
     - "iforest": Isolation Forest
@@ -430,6 +431,8 @@ def objective(
         selected_feature_cols (list): List of selected feature column names.
         selected_cell_label (str): Label identifying the cell for which
             the model is being trained.
+        hp_space (Callable[[optuna.trial.Trial], Dict[str, Any]]): Function
+            that samples the hyperparameter search space from the trial.
         df_benchmark_dataset (Optional[pd.DataFrame]): Benchmark dataset
             used to evaluate predicted outliers. If None, proxy evaluation
             is performed.
@@ -450,11 +453,19 @@ def objective(
             from importlib import reload
             reload(hp)
 
-            # Check if the schema in the script has been updated
-            # based on the latest updated constraints
-            print("Current hyperparameter config:")
-            print(hp._IFOREST_HP_CONFIG)
-            print("-"*70)
+            # Define the hyperparameter search space for the iForest model
+            total_cycle_count = len(
+                df_selected_cell["cycle_index"].unique())
+
+            hp_space = lambda trial: {
+                "contamination": trial.suggest_float(
+                    "contamination", 0, 0.5),
+                "n_estimators": trial.suggest_int(
+                    "n_estimators", 100, 500),
+                "max_samples": trial.suggest_int(
+                    "max_samples", 100, total_cycle_count),
+                "threshold": trial.suggest_float(
+                    "threshold", 0, 1)}
 
             # Instantiate an optuna study for iForest model
             sampler = optuna.samplers.TPESampler(seed=42)
@@ -474,6 +485,7 @@ def objective(
                     model_id="iforest",
                     df_feature_dataset=df_features_per_cell,
                     selected_feature_cols=selected_feature_cols,
+                    hp_space=hp_space,
                     df_benchmark_dataset=df_selected_cell,
                     selected_cell_label=selected_cell_label),
                 n_trials=20)
@@ -777,8 +789,6 @@ def plot_proxy_pareto_front(
             used to generate the output file path.
         fig_title (str): Title of the plot and basis for the output file
             name.
-        output_log_status (bool, optional): If True, enables logging of
-            intermediate evaluation steps. Defaults to False.
 
     Returns:
         None: The function saves the Pareto front plot as a PNG file in
@@ -789,6 +799,7 @@ def plot_proxy_pareto_front(
 
             hp.plot_proxy_pareto_front(
                 if_study,
+                best_trials_list,
                 selected_cell_label,
                 fig_title="Isolation Forest Pareto Front")
     """
@@ -894,6 +905,17 @@ def evaluate_hp_perfect_score_pct(
                 "log_max_diff_dQ",
                 "log_max_diff_dV")
 
+            # Define the hyperparameter search space for the iForest model
+            hp_space = lambda trial: {
+                "contamination": trial.suggest_float(
+                    "contamination", 0, 0.5),
+                "n_estimators": trial.suggest_int(
+                    "n_estimators", 100, 500),
+                "max_samples": trial.suggest_int(
+                    "max_samples", 100, 200),
+                "threshold": trial.suggest_float(
+                    "threshold", 0, 1)}
+
             if_study = optuna.create_study(
                 study_name="iforest_hyperparam",
                 sampler=sampler,
@@ -905,6 +927,7 @@ def evaluate_hp_perfect_score_pct(
                     model_id="iforest",
                     df_feature_dataset=df_features_per_cell,
                     selected_feature_cols=selected_feature_cols,
+                    hp_space=hp_space,
                     df_benchmark_dataset=df_selected_cell,
                     selected_cell_label=selected_cell_label),
                 n_trials=20)
