@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv
+
+# Generated documentation output
+docs/docs_output/
+docs/_build/
+
+# Generated pipeline artifacts
+**/artifacts_output_dir/
