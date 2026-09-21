@@ -47,6 +47,12 @@ filterwarnings = [
     "ignore:.*will be deprecated in a future version:PendingDeprecationWarning",
 ]
 
+[tool.interrogate]
+fail-under = 80
+ignore-init-module = true
+ignore-private = false
+color = true
+
 [[tool.uv.index]]
 name = "pypi"
 url = "https://pypi.org/simple"
@@ -67,6 +73,7 @@ only-include = ["src/osbad"]
 [dependency-groups]
 dev = [
     "furo>=2024.8.6",
+    "interrogate>=1.7.0",
     "ipywidgets>=8.1.7",
     "jupytext>=1.17.2",
     "notebook>=7.4.5",

@@ -32,3 +32,6 @@ jobs:
 
       - name: Run tests
         run: uv run --python ${{ matrix.python-version }} pytest -ra
+
+      - name: Check docstring coverage
+        run: uv run --python ${{ matrix.python-version }} interrogate -v src/osbad

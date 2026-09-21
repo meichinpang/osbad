@@ -1,5 +1,8 @@
 # Open-Source Benchmark of Anomaly Detection (OSBAD)
 
+[![Tests](https://github.com/meichinpang/osbad/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/meichinpang/osbad/actions/workflows/tests.yml)
+[![Docstring coverage](https://raw.githubusercontent.com/meichinpang/osbad/master/docs/_static/interrogate_badge.svg)](https://interrogate.readthedocs.io/)
+
 Welcome to the Open-Source Benchmark of Anomaly Detection (OSBAD) repository,
 a unified, reproducible framework for evaluating the performance of various
 statistical, distance-based, and machine learning methods in detecting
