@@ -136,7 +136,7 @@ class CycleScaling:
         self,
         df_scaled: pd.DataFrame,
         variable_name: str,
-        eps: float) -> pd.DataFrame:
+        eps: float = 1e-12) -> pd.DataFrame:
         """
         Calculate the maximum feature difference per cycle to transform
         collective anomalies of a given cycle into cycle-wise point anomalies.
@@ -147,6 +147,10 @@ class CycleScaling:
             df_scaled (pd.DataFrame): The dataframe with scaled feature.
             variable_name (str): Name of the feature or variable in the
                                  dataframe.
+            eps (float): Lower clip applied to the absolute feature
+                         difference before taking the logarithm, to avoid
+                         evaluating ``log(0)`` when a cycle shows no
+                         variation. Defaults to ``1e-12``.
 
         Returns:
             pd.DataFrame: Maximum feature difference per cycle with the
@@ -226,7 +230,7 @@ class CycleScaling:
         Xfeature: pd.Series,
         Yfeature: pd.Series,
         cycle_index: pd.Series,
-        eps: float
+        eps: float = 1e-12
         ) -> pd.DataFrame:
         """
         Calculate the derivative of Yfeature and Xfeature (dYdX)
@@ -235,6 +239,10 @@ class CycleScaling:
             Xfeature (pd.Series): Feature to be considered as denominator.
             Yfeature (pd.Series): Feature to be considered as numerator.
             cycle_index (pd.Series): Cycle index of selected cell.
+            eps (float): Minimum magnitude of the denominator feature
+                difference, to avoid dividing by zero when two
+                consecutive Xfeature measurements are identical.
+                Defaults to ``1e-12``.
 
         Returns:
             pd.DataFrame: Calculate max feature derivative (dYdX) per cycle.
