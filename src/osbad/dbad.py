@@ -100,12 +100,17 @@ def calculate_distance(
         norm (bool): If True, distance is normalized.
 
     Returns:
-        np.ndarray: A 1D array of distances between each feature vector and the
-        centroid.   
+        Union[np.ndarray, Tuple[np.ndarray, float], list]: The computed
+        distances. The exact return value depends on ``norm`` and
+        ``max_distance``:
 
-    Raises:
-        ValueError: If required parameters (``p`` for Minkowski or
-        ``inv_cov_matrix`` for Mahalanobis) are not provided.
+        - If ``norm`` is True and ``max_distance`` is provided, returns a
+          1D ``np.ndarray`` of distances normalized by ``max_distance``.
+        - If ``norm`` is True and ``max_distance`` is None, returns a tuple
+          ``(distance, max_distance)``, where ``distance`` is the 1D
+          ``np.ndarray`` normalized by the maximum distance and
+          ``max_distance`` is that maximum value.
+        - If ``norm`` is False, returns a list of unnormalized distances.
     """
     metric = distance_metrics[metric_name]
     if metric_name == "minkowski":
@@ -232,9 +237,6 @@ def plot_hist_distance(distance: np.ndarray,
         distance (np.ndarray): A 1D array of distance values for each data
             point.
 
-        outlier_indices (np.ndarray): Indices of the data points identified as
-            outliers.
-
         threshold (float): The distance threshold used to classify outliers
             (e.g., based on MAD).
 
@@ -336,24 +338,45 @@ def plot_distance_score_map(
 
     .. code-block::
 
+        # First compute distances on the actual features to obtain the
+        # normalization factor ``max_euclidean_dist`` (returned because
+        # ``max_distance`` is not passed here).
+        euclidean_dist, max_euclidean_dist = dbad.calculate_distance(
+            metric_name="euclidean",
+            features=features,
+            centroid=centroid,
+            norm=True)
+
+        (pred_outlier_indices,
+         pred_outlier_distance,
+         pred_outlier_features,
+         euclidean_threshold) = dbad.predict_outliers(
+            distance=euclidean_dist,
+            features=features,
+            mad_threshold=3)
+
         xx, yy, meshgrid = runner.create_2d_mesh_grid()
 
+        # Reuse ``max_euclidean_dist`` so the grid distances are normalized
+        # on the same scale. Passing ``max_distance`` makes this call return
+        # a single array instead of a ``(distance, max_distance)`` tuple.
         grid_euclidean_dist = dbad.calculate_distance(
-                                    metric_name="euclidean",
-                                    features=meshgrid,
-                                    centroid=centroid
-                                    )
+            metric_name="euclidean",
+            features=meshgrid,
+            centroid=centroid,
+            max_distance=max_euclidean_dist,
+            norm=True)
 
         axplot = dbad.plot_distance_score_map(
-            meshgrid_distance = grid_euclidean_dist,
-            xx = xx,
-            yy = yy,
+            meshgrid_distance=grid_euclidean_dist,
+            xx=xx,
+            yy=yy,
             features=features,
-            xoutliers= df_outliers["feature1"],
-            youtliers= df_outliers["feature2"],
+            xoutliers=df_outliers_pred["log_max_diff_dQ"],
+            youtliers=df_outliers_pred["log_max_diff_dV"],
             centroid=centroid,
-            threshold= euclidean_threshold,
-            pred_outlier_indices= pred_outlier_indices,
+            threshold=euclidean_threshold,
+            pred_outlier_indices=pred_outlier_indices,
             norm=True
             )
     """

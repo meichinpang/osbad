@@ -1,0 +1,7 @@
+ml_model,cell_index,accuracy,precision,recall,f1_score,mcc_score
+iforest,cell_num_1,1.0,1.0,1.0,1.0,1.0
+knn,cell_num_1,1.0,1.0,1.0,1.0,1.0
+gmm,cell_num_1,1.0,1.0,1.0,1.0,1.0
+lof,cell_num_1,1.0,1.0,1.0,1.0,1.0
+pca,cell_num_1,1.0,1.0,1.0,1.0,1.0
+autoencoder,cell_num_1,1.0,1.0,1.0,1.0,1.0

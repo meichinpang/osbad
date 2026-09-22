@@ -1,0 +1,5 @@
+ml_model,cell_index,contamination,n_neighbors,method,metric,threshold
+knn,cell_num_1,0.3185513082418132,10,largest,manhattan,0.133733257268509
+knn,cell_num_2,0.331261142176991,10,largest,manhattan,0.5247564316322378
+knn,cell_num_5,0.2371413413327704,10,largest,manhattan,0.1289401251489997
+knn,cell_num_6,0.21597250932105788,10,largest,manhattan,0.19967378215835974

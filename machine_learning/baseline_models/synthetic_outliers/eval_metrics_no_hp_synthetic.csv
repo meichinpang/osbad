@@ -1,0 +1,7 @@
+ml_model,cell_index,accuracy,precision,recall,f1_score,mcc_score
+iforest,synthetic_multivariate,1.0,1.0,1.0,1.0,1.0
+knn,synthetic_multivariate,0.9903381642512076,1.0,0.7142857142857143,0.8333333333333334,0.8409599149190805
+gmm,synthetic_multivariate,0.9806763285024156,1.0,0.4285714285714285,0.6,0.6482037235521644
+lof,synthetic_multivariate,0.9806763285024156,1.0,0.4285714285714285,0.6,0.6482037235521644
+pca,synthetic_multivariate,1.0,1.0,1.0,1.0,1.0
+autoencoder,synthetic_multivariate,1.0,1.0,1.0,1.0,1.0

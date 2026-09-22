@@ -256,7 +256,7 @@ class BenchDB:
 
                 # Extract true outliers cycle index
                 # from benchmarking dataset
-                true_outlier_cycle_idx = battdb.get_true_outlier_cycle_index(
+                true_outlier_cycle_idx = benchdb.get_true_outlier_cycle_index(
                     df_selected_cell)
                 print(f"True outlier cycle index: {true_outlier_cycle_idx}")
         """
@@ -436,16 +436,20 @@ class BenchDB:
                 df_merge_features_train = con.execute(
                     "SELECT * FROM df_test_features_sv").fetchdf()
 
-        # Filter dataset for specific selected cell only
-        assert (self._selected_cell_label
-            in df_merge_features_train["cell_index"].unique()), (
-            f"{self._selected_cell_label} does not exist in database")
+            # Filter dataset for specific selected cell only
+            assert (self._selected_cell_label
+                in df_merge_features_train["cell_index"].unique()), (
+                f"{self._selected_cell_label} does not exist in database")
 
-        df_features_per_cell = (df_merge_features_train[
-            df_merge_features_train["cell_index"] ==
-            self._selected_cell_label]
-            .reset_index(drop=True))
+            df_features_per_cell = (df_merge_features_train[
+                df_merge_features_train["cell_index"] ==
+                self._selected_cell_label]
+                .reset_index(drop=True))
 
-        print(f"Features database is loaded.")
-        print("*"*100)
-        return df_features_per_cell
+            print(f"Features database is loaded.")
+            print("*"*100)
+            return df_features_per_cell
+
+        else:
+            print("Filepath is not valid. Please ensure that features "
+                  + "database can be found in the given filepath.")

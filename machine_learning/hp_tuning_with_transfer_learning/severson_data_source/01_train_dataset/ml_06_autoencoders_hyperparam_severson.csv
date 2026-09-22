@@ -1,0 +1,2 @@
+ml_model,cell_index,batch_size,epoch_num,learning_rate,dropout_rate,threshold
+autoencoder,2017-05-12_5_4C-70per_3C_CH17,20,22,0.052475643163223784,0.3394633936788146,0.4401524937396013

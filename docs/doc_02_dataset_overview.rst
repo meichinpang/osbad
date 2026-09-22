@@ -4,10 +4,13 @@ Datasets Guide
 Overview
 ======================
 In this open-source anomaly detection benchmarking project, we only work with
-publicly available published dataset:
+publicly available published datasets. In addition, we also included synthetic
+outliers to demonstrate the generalization capability of our anomaly 
+detection framework beyond battery applications.
 
 * :doc:`ds_01_severson_dataset`
 * :doc:`ds_02_tohoku_dataset`
+* :doc:`ds_03_synthetic_dataset`
 
 Data management toolstack
 ============================
@@ -45,3 +48,4 @@ Example Dataset
 
    ds_01_severson_dataset
    ds_02_tohoku_dataset
+   ds_03_synthetic_dataset

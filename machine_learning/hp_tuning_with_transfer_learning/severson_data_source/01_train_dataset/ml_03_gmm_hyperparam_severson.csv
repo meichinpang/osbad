@@ -1,0 +1,2 @@
+ml_model,cell_index,contamination,n_components,covariance_type,init_param,threshold
+gmm,2017-05-12_5_4C-70per_3C_CH17,0.35403628889802274,1,tied,random,0.38516432028979736

@@ -1,0 +1,2 @@
+ml_model,cell_index,batch_size,epoch_num,learning_rate,dropout_rate,threshold
+autoencoder,cell_num_1,15,46,0.0763319652961747,0.2518098780043112,0.16892180382476857
