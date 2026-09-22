@@ -135,7 +135,8 @@ class CycleScaling:
     def calculate_max_diff_per_cycle(
         self,
         df_scaled: pd.DataFrame,
-        variable_name: str) -> pd.DataFrame:
+        variable_name: str,
+        eps: float) -> pd.DataFrame:
         """
         Calculate the maximum feature difference per cycle to transform
         collective anomalies of a given cycle into cycle-wise point anomalies.
@@ -200,7 +201,7 @@ class CycleScaling:
             abs_max_diff = np.abs(max_diff)
 
             # Calculate log max diff per cycle
-            log_max_diff = np.log(abs_max_diff)
+            log_max_diff = np.log(np.clip(abs_max_diff, eps, None))
 
             # Create a dict to keep track of max_dV and
             # the corresponding cycle index
@@ -225,7 +226,9 @@ class CycleScaling:
         self,
         Xfeature: pd.Series,
         Yfeature: pd.Series,
-        cycle_index: pd.Series) -> pd.DataFrame:
+        cycle_index: pd.Series,
+        eps: float
+        ) -> pd.DataFrame:
         """
         Calculate the derivative of Yfeature and Xfeature (dYdX)
 
@@ -262,7 +265,11 @@ class CycleScaling:
             numerator_feature_diff = np.diff(df_cycle.iloc[:,1])
             denominator_feature_diff = np.diff(df_cycle.iloc[:,0])
 
-            feature_diff = numerator_feature_diff/denominator_feature_diff
+            feature_diff = numerator_feature_diff/np.maximum(
+                np.abs(denominator_feature_diff), eps) * np.sign(
+                    denominator_feature_diff + (denominator_feature_diff == 0))
+
+            #feature_diff = numerator_feature_diff/denominator_feature_diff
 
             # Replace any inf or nan values with zeros
             updated_diff = np.where(
