@@ -16,6 +16,9 @@ Key features:
     - ``eval_model_performance``: Computes and prints standard evaluation
       metrics (accuracy, precision, recall, F1-score, Matthews correlation
       coefficient) and returns them in a single-row DataFrame.
+    - ``summarize_eval_metrics``: Aggregates per-cell evaluation metrics
+      into a single row per model, reporting the mean and the standard
+      deviation of each metric across the evaluated cells.
 
     .. code-block:: python
 
@@ -293,3 +296,96 @@ def eval_model_performance(
     return df_current_eval_metrics
 
 
+def summarize_eval_metrics(
+    df_eval_metrics: pd.DataFrame,
+    ddof: int = 1,
+    drop_duplicate_cells: bool = True) -> pd.DataFrame:
+    """
+    Summarize per-cell evaluation metrics across all evaluated cells.
+
+    This function aggregates the per-cell output of
+    :func:`eval_model_performance` into a single row per model,
+    reporting both the mean and the standard deviation of each metric
+    across the evaluated cells. The standard deviation describes how
+    consistently a model performs from cell to cell, which a mean value
+    alone does not convey.
+
+    Args:
+        df_eval_metrics (pd.DataFrame): Per-cell evaluation metrics
+            containing the columns ``ml_model``, ``cell_index``,
+            ``accuracy``, ``precision``, ``recall``, ``f1_score`` and
+            ``mcc_score``.
+        ddof (int): Delta degrees of freedom used for the standard
+            deviation. Defaults to ``1`` (sample standard deviation),
+            since the evaluated cells are a sample of all available
+            cells.
+        drop_duplicate_cells (bool): If ``True``, keep only the first
+            record for each ``ml_model`` and ``cell_index`` pair before
+            aggregating. Defaults to ``True``.
+
+    Returns:
+        pd.DataFrame: One row per model containing ``ml_model``,
+        ``n_cells`` and an ``avg_<metric>`` and ``std_<metric>`` column
+        for each evaluated metric.
+
+    Raises:
+        KeyError: If any of the required columns is missing from
+            ``df_eval_metrics``.
+
+    Example:
+        .. code-block::
+
+            df_eval_metrics_test = pd.read_csv(TEST_DATASET_METRICS_PATH)
+
+            df_compare_metrics_test = modval.summarize_eval_metrics(
+                df_eval_metrics=df_eval_metrics_test)
+
+    .. note::
+
+        - Models are returned in order of first appearance rather than
+          in alphabetical order, so that the row order follows the
+          evaluation pipeline and stays aligned with the axis labels
+          used in the comparison plots.
+        - A model evaluated on a single cell yields a standard
+          deviation of ``NaN`` when ``ddof=1``, because the spread
+          across cells is undefined for a single observation.
+    """
+
+    metric_columns = [
+        "accuracy",
+        "precision",
+        "recall",
+        "f1_score",
+        "mcc_score"]
+
+    required_columns = ["ml_model", "cell_index"] + metric_columns
+
+    missing_columns = [
+        column for column in required_columns
+        if column not in df_eval_metrics.columns]
+
+    if missing_columns:
+        raise KeyError(
+            "Missing required columns in df_eval_metrics: "
+            f"{missing_columns}")
+
+    if drop_duplicate_cells:
+        df_eval_metrics = df_eval_metrics.drop_duplicates(
+            subset=["ml_model", "cell_index"],
+            keep="first")
+
+    # sort=False keeps the models in order of first appearance, so that
+    # the summary rows stay aligned with the axis labels of the
+    # comparison plots.
+    grouped_by_model = df_eval_metrics.groupby("ml_model", sort=False)
+
+    summary_dict = {"n_cells": grouped_by_model["cell_index"].nunique()}
+
+    for metric in metric_columns:
+        summary_dict[f"avg_{metric}"] = grouped_by_model[metric].mean()
+        summary_dict[f"std_{metric}"] = grouped_by_model[metric].std(
+            ddof=ddof)
+
+    df_summary_metrics = pd.DataFrame(summary_dict).reset_index()
+
+    return df_summary_metrics
