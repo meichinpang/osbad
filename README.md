@@ -63,25 +63,34 @@ This benchmark includes a broad spectrum of approaches grouped into three
 categories:
 
 ### Statistical Methods
-- Standard Deviation
-- Median Absolute Deviation (MAD)
-- Interquartile Range (IQR)
-- Z-score
-- Modified Z-score
+
+| Method                          | Classification Type                             |
+| ------------------------------- | ----------------------------------------------- |
+| Standard Deviation              | Statistical dispersion-based method             |
+| Median Absolute Deviation (MAD) | Robust statistical dispersion-based method      |
+| Interquartile Range (IQR)       | Statistical quantile-based method               |
+| Z-score                         | Statistical standardization-based method        |
+| Modified Z-score                | Robust statistical standardization-based method |
 
 ### Distance-Based Metrics
-- Euclidean Distance
-- Manhattan Distance
-- Minkowski Distance
-- Mahalanobis Distance
+
+| Method               | Classification Type                                           |
+| -------------------- | ------------------------------------------------------------- |
+| Euclidean Distance   | Geometric distance-based metric (L2 norm)                     |
+| Manhattan Distance   | Geometric distance-based metric (L1 norm)                     |
+| Minkowski Distance   | Generalized distance-based metric (Lp norm)                   |
+| Mahalanobis Distance | Covariance-aware (correlation-adjusted) distance-based metric |
 
 ### Machine Learning Approaches
-- Isolation Forest
-- K-Nearest Neighbors (KNN)
-- Gaussian Mixture Models (GMM)
-- Local Outlier Factor (LOF)
-- Principal Component Analysis (PCA)
-- Autoencoders (AE)
+
+| Method                             | Classification Type                                        |
+| ---------------------------------- | ---------------------------------------------------------- |
+| Isolation Forest                   | Tree-based ensemble method                                 |
+| K-Nearest Neighbors (KNN)          | Distance/proximity-based method                            |
+| Gaussian Mixture Models (GMM)      | Probabilistic (density-based) method                       |
+| Local Outlier Factor (LOF)         | Density-based (local proximity) method                     |
+| Principal Component Analysis (PCA) | Linear projection / reconstruction-based (subspace) method |
+| Autoencoders (AE)                  | Neural network reconstruction-based (deep learning) method |
 
 Each method is applied and tested on curated benchmarking datasets to assess
 its suitability and effectiveness.
