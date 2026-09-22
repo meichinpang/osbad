@@ -443,7 +443,8 @@ class ModelRunner:
         pred_outliers_index: np.ndarray,
         threshold: float= 0.7,
         square_grid=True,
-        grid_offset=1):
+        grid_offset=1,
+        annotation_label: str = "Predicted anomalous cycles:"):
         """
         Plot a 2D anomaly score map with decision boundaries.
 
@@ -470,6 +471,9 @@ class ModelRunner:
                 render a square mesh. Defaults to True.
             grid_offset (Union[int, float], optional): Margin added to axis
                 limits when constructing the mesh grid. Defaults to 1.
+            annotation_label (str, optional): Heading text shown in the
+                annotation textbox above the list of predicted anomalous
+                cycles. Defaults to "Predicted anomalous cycles:".
 
         Returns:
             matplotlib.axes.Axes: Axes object containing the anomaly score
@@ -610,7 +614,7 @@ class ModelRunner:
 
             # Create textbox to annotate anomalous cycle
             textstr = '\n'.join((
-                r"Predicted anomalous cycles:",
+                annotation_label,
                 f"{label_pred_outliers_index}"))
 
             # first text value corresponds to the left right
