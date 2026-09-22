@@ -1,0 +1,11 @@
+cell_index,outlier_cycle,anomaly_count,split
+cell_num_1,"[79, 429, 476]",3,train
+cell_num_2,"[73, 74, 98]",3,train
+cell_num_3,[],0,excluded due to no anomalies
+cell_num_4,"[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 62, 81, 82, 90, 95]",22,excluded due to random experimental noise
+cell_num_5,"[94, 227, 251]",3,train
+cell_num_6,"[99, 229, 244]",3,train
+cell_num_7,"[99, 220]",2,test
+cell_num_8,"[38, 129]",2,test
+cell_num_9,"[29, 58, 229, 262]",4,test
+cell_num_10,"[70, 71, 72, 73, 74, 75, 76, 77, 229, 239]",10,test
