@@ -135,7 +135,8 @@ class CycleScaling:
     def calculate_max_diff_per_cycle(
         self,
         df_scaled: pd.DataFrame,
-        variable_name: str) -> pd.DataFrame:
+        variable_name: str,
+        eps: float = 1e-12) -> pd.DataFrame:
         """
         Calculate the maximum feature difference per cycle to transform
         collective anomalies of a given cycle into cycle-wise point anomalies.
@@ -146,6 +147,10 @@ class CycleScaling:
             df_scaled (pd.DataFrame): The dataframe with scaled feature.
             variable_name (str): Name of the feature or variable in the
                                  dataframe.
+            eps (float): Lower clip applied to the absolute feature
+                         difference before taking the logarithm, to avoid
+                         evaluating ``log(0)`` when a cycle shows no
+                         variation. Defaults to ``1e-12``.
 
         Returns:
             pd.DataFrame: Maximum feature difference per cycle with the
@@ -199,7 +204,7 @@ class CycleScaling:
             abs_max_diff = np.abs(max_diff)
 
             # Calculate log max diff per cycle
-            log_max_diff = np.log(abs_max_diff)
+            log_max_diff = np.log(np.clip(abs_max_diff, eps, None))
 
             # Create a dict to keep track of max_dV and
             # the corresponding cycle index
@@ -224,7 +229,9 @@ class CycleScaling:
         self,
         Xfeature: pd.Series,
         Yfeature: pd.Series,
-        cycle_index: pd.Series) -> pd.DataFrame:
+        cycle_index: pd.Series,
+        eps: float = 1e-12
+        ) -> pd.DataFrame:
         """
         Calculate the derivative of Yfeature and Xfeature (dYdX)
 
@@ -232,6 +239,10 @@ class CycleScaling:
             Xfeature (pd.Series): Feature to be considered as denominator.
             Yfeature (pd.Series): Feature to be considered as numerator.
             cycle_index (pd.Series): Cycle index of selected cell.
+            eps (float): Minimum magnitude of the denominator feature
+                difference, to avoid dividing by zero when two
+                consecutive Xfeature measurements are identical.
+                Defaults to ``1e-12``.
 
         Returns:
             pd.DataFrame: Calculate max feature derivative (dYdX) per cycle.
@@ -261,7 +272,11 @@ class CycleScaling:
             numerator_feature_diff = np.diff(df_cycle.iloc[:,1])
             denominator_feature_diff = np.diff(df_cycle.iloc[:,0])
 
-            feature_diff = numerator_feature_diff/denominator_feature_diff
+            feature_diff = numerator_feature_diff/np.maximum(
+                np.abs(denominator_feature_diff), eps) * np.sign(
+                    denominator_feature_diff + (denominator_feature_diff == 0))
+
+            #feature_diff = numerator_feature_diff/denominator_feature_diff
 
             # Replace any inf or nan values with zeros
             updated_diff = np.where(
