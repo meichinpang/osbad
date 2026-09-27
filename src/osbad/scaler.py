@@ -269,14 +269,11 @@ class CycleScaling:
             # Note:
             # df_cycle.iloc[:,1] denotes scaled_voltage (dY = dV)
             # df_cycle.iloc[:,0] denotes scaled_discharge_capacity (dX = dQ)
-            numerator_feature_diff = np.diff(df_cycle.iloc[:,1])
+            numerator_feature_diff = np.abs(np.diff(df_cycle.iloc[:,1]))
             denominator_feature_diff = np.diff(df_cycle.iloc[:,0])
 
             feature_diff = numerator_feature_diff/np.maximum(
-                np.abs(denominator_feature_diff), eps) * np.sign(
-                    denominator_feature_diff + (denominator_feature_diff == 0))
-
-            #feature_diff = numerator_feature_diff/denominator_feature_diff
+                np.abs(denominator_feature_diff), eps)
 
             # Replace any inf or nan values with zeros
             updated_diff = np.where(
