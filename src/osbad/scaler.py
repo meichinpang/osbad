@@ -227,7 +227,8 @@ class CycleScaling:
         Xfeature: pd.Series,
         Yfeature: pd.Series,
         cycle_index: pd.Series,
-        eps: float = 1e-3
+        eps: float = 1e-3,
+        trim_points: int = 10
         ) -> pd.DataFrame:
         """
         Calculate the derivative of Yfeature and Xfeature (dYdX)
@@ -240,6 +241,10 @@ class CycleScaling:
                 difference, to avoid dividing by zero when two
                 consecutive Xfeature measurements are identical.
                 Defaults to ``1e-3``.
+            trim_points (int): Number of data points to drop from the start
+                and end of each cycle before computing the derivative, to
+                remove edge artefacts. Set to ``0`` to keep all points.
+                Defaults to ``10``.
 
         Returns:
             pd.DataFrame: Calculate max feature derivative (dYdX) per cycle.
@@ -257,10 +262,11 @@ class CycleScaling:
 
         for k, cycle_count in enumerate(unique_cycle_count):
 
-            # Drop the first and last 10 data point
-            df_cycle = (df_merge_scaled_feature[
+            # Drop the first and last trim_points data points
+            df_cycle = df_merge_scaled_feature[
                 df_merge_scaled_feature["cycle_index"] == cycle_count]
-                .iloc[10:-10])
+            if trim_points > 0:
+                df_cycle = df_cycle.iloc[trim_points:-trim_points]
 
             # Calculate the pointwise feature difference
             # Note:
