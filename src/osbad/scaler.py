@@ -136,7 +136,7 @@ class CycleScaling:
         self,
         df_scaled: pd.DataFrame,
         variable_name: str,
-        eps: float = 1e-12) -> pd.DataFrame:
+        eps: float = 1e-3) -> pd.DataFrame:
         """
         Calculate the maximum feature difference per cycle to transform
         collective anomalies of a given cycle into cycle-wise point anomalies.
@@ -150,7 +150,7 @@ class CycleScaling:
             eps (float): Lower clip applied to the absolute feature
                          difference before taking the logarithm, to avoid
                          evaluating ``log(0)`` when a cycle shows no
-                         variation. Defaults to ``1e-12``.
+                         variation. Defaults to ``1e-3``.
 
         Returns:
             pd.DataFrame: Maximum feature difference per cycle with the
@@ -196,12 +196,9 @@ class CycleScaling:
                 0,
                 feature_diff)
 
-            # Calculate max diff per cycle
-            max_diff = np.max(updated_diff)
-
             # Make sure that the max difference is always positive before
             # log transformation.
-            abs_max_diff = np.abs(max_diff)
+            abs_max_diff = np.max(np.abs(updated_diff))
 
             # Calculate log max diff per cycle
             log_max_diff = np.log(np.clip(abs_max_diff, eps, None))
@@ -230,7 +227,7 @@ class CycleScaling:
         Xfeature: pd.Series,
         Yfeature: pd.Series,
         cycle_index: pd.Series,
-        eps: float = 1e-12
+        eps: float = 1e-3
         ) -> pd.DataFrame:
         """
         Calculate the derivative of Yfeature and Xfeature (dYdX)
@@ -242,7 +239,7 @@ class CycleScaling:
             eps (float): Minimum magnitude of the denominator feature
                 difference, to avoid dividing by zero when two
                 consecutive Xfeature measurements are identical.
-                Defaults to ``1e-12``.
+                Defaults to ``1e-3``.
 
         Returns:
             pd.DataFrame: Calculate max feature derivative (dYdX) per cycle.
@@ -282,15 +279,15 @@ class CycleScaling:
                 feature_diff)
 
             # Calculate max diff per cycle
-            max_diff = np.max(updated_diff)
+            abs_max_diff = np.max(np.abs(updated_diff))
 
             # Calculate log max diff per cycle
-            log_max_diff = np.log(max_diff)
+            log_max_diff = np.log(np.clip(abs_max_diff, eps, None))
 
             # Create a dict to keep track of max_dV and
             # the corresponding cycle index
             diff_dict = {
-                "max_diff": [max_diff],
+                "max_diff": [abs_max_diff],
                 "log_max_diff": [log_max_diff],
                 "cycle_index": cycle_count
             }
