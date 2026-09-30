@@ -43,8 +43,6 @@ Import the libraries into your local development environment, including the
   distance for feature engineering.
 * ``bconf``: project config utilities (e.g., where to write artifacts).
 * ``BenchDB``: a thin layer around DuckDB that provides convenience loaders.
-* ``CycleScaling``: implements the statistical feature transformation
-  methods for scaling cycle data.
 * ``ModelRunner``, ``hp``, ``modval``, ``bviz``: modeling,
   hyperparameters, model validation, and visualization helpers for the
   benchmarking study.
@@ -203,7 +201,7 @@ Step-5: Plot Capacity Fade Without Labels
 
     plt.show()
 
-.. image:: docs_figure/cycling_data_without_labels_cell_num_1.png
+.. image:: docs_figure/ml_03_tohoku_autoencoder_baseline/cycling_data_without_labels_cell_num_1.png
    :height: 420px
    :width: 600px
    :alt: Cycle dataset without labels from ``cell_num_1``

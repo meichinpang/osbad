@@ -13,7 +13,7 @@ alternative to computationally intensive ML algorithms.
 
 The following example of running a hyperparameter tuning and anomaly detection
 pipeline is also provided as a notebook in 
-``distance/distance_01_euclidan.ipynb``.
+``distance/distance_01_euclidean.ipynb``.
 
 Step-1: Load libraries
 ---------------------------
@@ -65,20 +65,21 @@ Step-2: Load Benchmarking Dataset
 
 .. code-block:: python
 
-  # Get the cell-ID from cell_inventory
-  selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+    # Get the cell-ID from cell_inventory
+    selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
-  # Create a subfolder to store fig output
-  # corresponding to each cell-index
-  selected_cell_artifacts_dir = bconf.artifacts_output_dir(
-      selected_cell_label)
+    # Create a subfolder to store fig output
+    # corresponding to each cell-index
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
+
+    # Path to database directory
+    DB_DIR = bconf.DB_DIR
 
     # Path to the DuckDB file:
     # "train_dataset_severson.db"
     db_filepath = (
-        Path.cwd()
-        .parent
-        .joinpath("database","train_dataset_severson.db"))
+        DB_DIR.joinpath("train_dataset_severson.db"))
 
     # Import the BenchDB class
     # Load only the dataset based on the selected cell
@@ -101,9 +102,8 @@ Step-3: Load the Features DB
     # Define the filepath to ``train_features_severson.db``
     # DuckDB instance.
     db_features_filepath = (
-        Path.cwd()
-        .parent
-        .joinpath("database","train_features_severson.db"))
+        DB_DIR.joinpath(
+            "train_features_severson.db"))
 
     # Load only the training features dataset
     df_features_per_cell = benchdb.load_features_db(
@@ -248,7 +248,7 @@ Step-6: Plot distance score mapping and contour
   output_fig_filename = filename + "_" + selected_cell_label + ".png"
 
   # Define the full path for saving the figure.
-  fig_output_path = selected_cell_artifacts.joinpath(output_fig_filename)
+  fig_output_path = selected_cell_artifacts_dir.joinpath(output_fig_filename)
 
   # Save the figure with high resolution and tight bounding box.
   plt.savefig(
@@ -365,7 +365,7 @@ Step-7: Model performance evaluation
       + ".png")
 
   fig_output_path = (
-      selected_cell_artifacts
+      selected_cell_artifacts_dir
       .joinpath(output_fig_filename))
 
   plt.savefig(

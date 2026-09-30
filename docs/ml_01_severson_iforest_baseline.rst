@@ -657,7 +657,7 @@ Step-10: Predict Probabilistic Anomaly Score Map
 .. image:: docs_figure/ml_01_severson_iforest_baseline/baseline_iforest_2017-05-12_5_4C-70per_3C_CH17.png
    :height: 424.39 px
    :width: 600 px
-   :alt: iForest confusion matrix from ``2017-05-12_5_4C-70per_3C_CH17``
+   :alt: iForest anomaly score map from ``2017-05-12_5_4C-70per_3C_CH17``
    :align: center
 
 The figure shows the anomaly score map produced by the baseline Isolation

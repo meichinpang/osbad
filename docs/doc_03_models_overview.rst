@@ -62,3 +62,4 @@ Example
    ml_04_tohoku_autoencoder_hyperparam_tuned
    ml_05_severson_dbad_euclidean
    ml_06_severson_knn_proxy_regr
+   ml_07_synthetic_gmm_baseline

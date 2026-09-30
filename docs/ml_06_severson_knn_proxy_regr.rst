@@ -36,7 +36,7 @@ Import the libraries into your local development environment, including the
 
 .. code-block:: python
 
-  # Standard library
+    # Standard library
     from pathlib import Path
     import pprint
 
@@ -69,20 +69,21 @@ Step-2: Load Benchmarking Dataset
 
 .. code-block:: python
 
-  # Get the cell-ID from cell_inventory
-  selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
+    # Get the cell-ID from cell_inventory
+    selected_cell_label = "2017-05-12_5_4C-70per_3C_CH17"
 
-  # Create a subfolder to store fig output
-  # corresponding to each cell-index
-  selected_cell_artifacts_dir = bconf.artifacts_output_dir(
-      selected_cell_label)
+    # Create a subfolder to store fig output
+    # corresponding to each cell-index
+    selected_cell_artifacts_dir = bconf.artifacts_output_dir(
+        selected_cell_label)
+
+    # Path to database directory
+    DB_DIR = bconf.DB_DIR
 
     # Path to the DuckDB file:
     # "train_dataset_severson.db"
     db_filepath = (
-        Path.cwd()
-        .parent
-        .joinpath("database","train_dataset_severson.db"))
+        DB_DIR.joinpath("train_dataset_severson.db"))
 
     # Import the BenchDB class
     # Load only the dataset based on the selected cell
@@ -106,9 +107,8 @@ Step-3: Load the Features DB
     # Define the filepath to ``train_features_severson.db``
     # DuckDB instance.
     db_features_filepath = (
-        Path.cwd()
-        .parent
-        .joinpath("database","train_features_severson.db"))
+        DB_DIR.joinpath(
+            "train_features_severson.db"))
 
     # Load only the training features dataset
     df_features_per_cell = benchdb.load_features_db(
@@ -139,7 +139,7 @@ Step-4: Hyperparameter Tuning with Optuna using Proxy Metrics
 .. code-block:: python
 
   # Define the hyperparameter search space for KNN
-  hp_space_knn=lambda trial: {
+  hp_space=lambda trial: {
       "contamination": trial.suggest_float(
           "contamination", 0, 0.5),
       "n_neighbors": trial.suggest_int(
@@ -268,9 +268,13 @@ Step-6: Train Model with Best Hyperparameters
   # Run the model with best trial parameters
   cfg = hp.MODEL_CONFIG["knn"]
 
+  selected_feature_cols = (
+      "log_max_diff_dQ",
+      "log_max_diff_dV")
+
   runner = ModelRunner(
       cell_label=selected_cell_label,
-      df_input_features=df_merge_features,
+      df_input_features=df_features_per_cell,
       selected_feature_cols=selected_feature_cols
   )
 
@@ -289,20 +293,14 @@ Step-6: Train Model with Best Hyperparameters
   )
 
   # Get df_outliers_pred
-  df_outliers_pred = (df_merge_features[
-      df_merge_features["cycle_index"]
+  df_outliers_pred = (df_features_per_cell[
+      df_features_per_cell["cycle_index"]
       .isin(pred_outlier_indices)].copy())
 
   df_outliers_pred["outlier_prob"] = pred_outlier_score
 
-  df_outliers_pred = (df_features_per_cell[
-    df_features_per_cell["cycle_index"]
-    .isin(pred_outlier_indices)].copy())
 
-  df_outliers_pred["outlier_prob"] = pred_outlier_score
-
-
-Step-8: Predict Anomaly Score Map
+Step-7: Predict Anomaly Score Map
 -----------------------------------
 
 * Generate a 2D contour map showing the anomaly probability across the
@@ -346,7 +344,7 @@ Step-8: Predict Anomaly Score Map
 
   plt.show()
 
-.. image:: /docs_figure/ml_06_severson_knn_proxy_regr/knn_2017-05-12_5_4C-70per_3C_CH17.png
+.. image:: docs_figure/ml_06_severson_knn_proxy_regr/knn_2017-05-12_5_4C-70per_3C_CH17.png
    :height: 420px
    :width: 600 px
    :alt: Anomaly score map from ``2017-05-12_5_4C-70per_3C_CH17``
@@ -391,7 +389,7 @@ distribution in the two-dimensional feature space defined by:
   from the dense cluster of normal cycles, highlighting their deviation in 
   both engineered features.
 
-Step-9: Model Performance Evaluation
+Step-8: Model Performance Evaluation
 --------------------------------------
 
 * The optimal hyperparameters are evaluated against the true labels using
